@@ -1,0 +1,36 @@
+{
+  "name": "angular2-service-worker",
+  "version": "0.0.1",
+  "description": "Experimental service worker by the Angular Mobile team",
+  "main": "index.js",
+  "scripts": {
+    "prepublish": "gulp build",
+    "build": "gulp build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/angular/offline.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/angular/offline/issues"
+  },
+  "homepage": "https://github.com/angular/offline#readme",
+  "devDependencies": {
+    "gulp": "^3.9.0",
+    "gulp-typescript": "^2.10.0",
+    "gulp-util": "^3.0.7",
+    "systemjs": "^0.19.17",
+    "systemjs-builder": "^0.15.5",
+    "ts-node": "^0.5.5",
+    "tsd": "^0.6.5",
+    "typescript": "^1.7.5"
+  },
+  "dependencies": {
+    "es6-promise": "^3.0.2",
+    "es6-shim": "^0.33.13",
+    "angular2": "^2.0.0-beta.1"
+  }
+}

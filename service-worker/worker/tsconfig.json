@@ -1,0 +1,21 @@
+{
+	"compilerOptions": {
+		"module": "commonjs",
+		"target": "es5",
+		"noImplicitAny": false,
+		"outDir": "build",
+		"sourceMap": false,
+		"emitDecoratorMetadata": true,
+		"experimentalDecorators": true,
+		"moduleResolution": "node",
+		"noResolve": false
+	},
+	"files": [
+		"gulpfile.ts",
+		"src/index.ts",
+		"src/service-worker.d.ts"
+	],
+	"exclude": [
+		"node_modules/"
+	]
+}
