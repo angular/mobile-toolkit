@@ -20,8 +20,10 @@
   "homepage": "https://github.com/angular/offline#readme",
   "devDependencies": {
     "gulp": "^3.9.0",
+    "gulp-jasmine": "^2.2.1",
     "gulp-typescript": "^2.10.0",
     "gulp-util": "^3.0.7",
+    "jasmine": "^2.4.1",
     "systemjs": "^0.19.17",
     "systemjs-builder": "^0.15.5",
     "ts-node": "^0.5.5",

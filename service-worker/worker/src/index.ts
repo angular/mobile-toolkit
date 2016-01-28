@@ -1,5 +1,6 @@
 /// <reference path="../typings/tsd.d.ts" />
 import 'reflect-metadata';
+import {SWManifest, SWManifestBundle, SWManifestDelta, SWManifestFile} from '';
 import {Injector, Injectable, provide} from 'angular2/src/core/di';
 
 /**
@@ -11,115 +12,6 @@ abstract class SWContext {
   location: Location;
   fetch: typeof fetch;
   caches: CacheStorage;
-}
-
-/**
- * A parsed AppCache manifest, including interpretation of the service worker
- * specific instructions inside the manifest comments.
- */
-class SWManifest {
-  bundles: Object = {};
-  
-  toString(): string {
-    var bundles = [];
-    for (var bundle in this.bundles) {
-      bundles.push(this.bundles[bundle].toString());
-    }
-    return bundles.join('\n');
-  }
-}
-
-/**
- * A single bundle from the manifest.
- */
-class SWManifestBundle {
-  files: string[] = [];
-  version: string = '0';
-  routes: Object = {};
-  constructor(public name: string) {}
-  
-  toString(): string {
-    var routes: string = this._serializeRoutes();
-    return `bundle ${this.name} {
-  version: ${this.version},
-  files:
-    ${this.files.join('\n    ')}
-  routes:
-    ${routes}
-}`;
-  }
-
-  get cache(): string {
-    return `bundle.${this.name}.${this.version}`;
-  }
-
-  _serializeRoutes(): string {
-    var routes = [];
-    for (var route in this.routes) {
-      routes.push(`${route}: ${this.routes[route]}`);
-    }
-    return routes.join('\n    ');
-  }
-}
-
-/**
- * Reads AppCache manifests and parses them into a `SWManifest` structure.
- */
-class AppCacheManifestReader {
-  swManifest: SWManifest = new SWManifest();
-  bundle: SWManifestBundle = new SWManifestBundle('default');
-
-  read(acManifest: string): void {
-    acManifest
-      .split('\n')
-      .map((line) => line.trim())
-      .filter((line) => line !== 'CACHE MANIFEST')
-      .forEach((line) => {
-        if (line.startsWith('#')) {
-          this._parseComment(line);
-        } else if (line.length > 0) {
-          this.bundle.files.push(line);
-        }
-      });
-    if (this.bundle.files.length > 0) {
-      this.swManifest.bundles[this.bundle.name] = this.bundle;
-    }
-  }
-
-  _parseComment(line: string) {
-    var comment = line.substring(1).trim();
-    if (!comment.startsWith('sw.')) {
-      return;
-    }
-    comment = comment.substring(3);
-    var colon = comment.indexOf(':');
-    if (colon === -1) {
-      return;
-    }
-    var key = comment.substring(0, colon).trim();
-    var value = comment.substring(colon + 1).trim();
-    switch (key) {
-      case 'bundle':
-        if (this.bundle.files.length > 0) {
-          this.swManifest.bundles[this.bundle.name] = this.bundle;
-        }
-        this.bundle = new SWManifestBundle(value);
-      case 'version':
-        this.bundle.version = value;
-      case 'route':
-        this._parseRoute(value);
-    }
-  }
-
-  _parseRoute(route: string) {
-    var space = route.indexOf(' ');
-    if (space === -1) {
-      return;
-    }
-    var from = route.substring(0, space).trim();
-    var serve = route.substring(space + 1).trim();
-    this.bundle.routes[from] = serve;
-  }
 }
 
 const SW_EVENTS = {
@@ -167,29 +59,6 @@ class NgServiceWorker {
    */
   fetchManifest(): Promise<Response> {
     return this.fetchFresh(new Request('/manifest.appcache'));
-  }
-
-  /**
-   * Prime the caches for the given `SWManifest`.
-   */
-  primeManifest(manifest: SWManifest): Promise<any> {
-    var promises = [];
-    for (var name in manifest.bundles) {
-      var bundle = manifest.bundles[name];
-      promises.push(this
-        .context
-        .caches
-        .open(bundle.cache)
-        .then((cache) => Promise.all(bundle
-          .files
-          .map((file) => {
-            console.log(`bundle.${name}: caching ${file}`);
-            return file;
-          })
-          .map((file) => new Request(file))
-          .map((req) => this.fetchFresh(req).then((resp) => cache.put(req, resp))))));
-    }
-    return Promise.all(promises)
   }
 
   /**
@@ -267,19 +136,30 @@ class NgServiceWorker {
 	onInstall(installEvent) {
     console.log('installing...');
     // Fetch the current manifest.
-    installEvent.waitUntil(this
-      .fetchManifest()
-      .then((resp) => {
-        return resp
-          .text()
-          .then((text) => {
-            var manifest = this._parseManifest(text);
-            // Prime the caches before signaling to the forthcoming activation event that a background update has taken place.
-            return this.primeManifest(manifest)
-              .then(() => this.setManifest('latest', new Response(text)))
-              .then(() => console.log('install complete'));
-          });
-      }));
+    installEvent.waitUntil(
+      Promise.all([
+        this.fetchManifest().then((resp) => resp !== undefined ? resp.text() : null),
+        this.loadManifestFromCache('active').then((resp) => resp !== null ? resp.text() : null)
+      ])
+      .then((manifests) => {
+        var newManifestText = manifests[0];
+        if (newManifestText === null) {
+          throw 'Error fetching manifest from server.';
+        }
+        var newManifest = this._parseManifest(newManifestText);
+        var oldManifestText = manifests[1];
+        var prime = null;
+        if (oldManifestText === null) {
+          prime = this.primeManifest(newManifest);
+        } else {
+          var oldManifest = this._parseManifest(oldManifestText);
+          var delta = this.diffManifest(oldManifest, newManifest);
+          prime = this.primeManifest(newManifest, delta);
+        }
+        return prime
+          .then(() => this.setManifest('latest', new Response(text)))
+          .then(() => console.log('install complete'));
+      });
   }
 
   /**
@@ -364,6 +244,98 @@ class NgServiceWorker {
     var reader = new AppCacheManifestReader();
     reader.read(manifest);
     return reader.swManifest;
+  }
+  
+  diffManifest(oldVer: SWManifest, newVer: SWManifest): SWManifestDelta {
+    var delta = new SWManifestDelta(oldVer);
+    for (var name in newVer.bundles) {
+      var bundle = newVer.bundles[bundle];
+      
+      // For each new file, determine if A) it's cached and B) it's changed since the last version.
+      bundle.files.forEach((newFile) => {
+        var oldFile = this._findFileInManifest(oldVer, newFile.url);
+        // If there is an old cached version, both versions have hashes, and the hashes match, it's safe
+        // to use the old version instead of fetching from the network.
+        if (oldFile !== null && newFile.version !== null && oldFile.version !== null && newFile.version === oldFile.version) {
+          delta.unchanged.push(newFile);
+        }
+      });
+    }
+  }
+  
+  primeManifest(manifest: SWManifest, delta?: SWManifestDelta = null): Promise<void> {
+    var promises = [];
+    // Prime each bundle.
+    for (var name in manifest.bundles) {
+      var bundle = manifest.bundles[name];
+      promises.add(bundle.files.map((file) => {
+        return this
+          .context
+          .caches
+          .open(bundle.cache)
+          .then((cache) => {
+            // Need a promise to begin with. The first step is to check the delta for an old version
+            // to pull forward.
+            return Promise.resolve(null)
+              .then(() => {
+                // If no delta was passed, skip this step.
+                if (delta !== null) {
+                  return null;
+                }
+                
+                // Check if this file is listed as unchanged.
+                var oldFile = delta.unchanged.find((old) => old.url === file.url);
+                if (oldFile === undefined)) {
+                  // No, so proceed with fetching from the server.
+                  return null;
+                }
+                
+                // Find oldFile in the old manifest to determine the bundle.
+                for (var name in delta.oldManifest.bundles) {
+                  var oldBundle = delta.oldManifest.bundles[name];
+                  if (oldBundle.files.indexOf(oldFile) !== -1) {
+                    return this
+                      .context
+                      .caches
+                      .open(oldBundle.cache)
+                      .then((oldCache) => oldCache.match(new Requests(oldFile.url)))
+                      .then((res) => res !== undefined ? res : null);
+                  }
+                }
+                
+                // The cached version was unexpectedly missing, so fall back on fetching from the server.
+                return null;
+              })
+              .then((cachedResponse) => {
+                // If a cached response is ready, just use it.
+                if (cachedResponse !== null) {
+                  return cachedResponse;
+                }
+                // Fetch from the network.
+                return this.context.fetch(new Request(file.url));
+              })
+              .then((resp) => {
+                if (resp === null || resp === undefined) {
+                  // TODO: better error handling.
+                  throw `Failed to update/fetch: ${file.url}`;
+                }
+                return cache.put(new Request(file.url), resp);
+              });
+          });
+      });
+    }
+    return Promise.all(promises);
+  }
+  
+  _findFileInManifest(manifest: SWManifest, url: string): SWManifestFile {
+    for (var name in manifest.bundles) {
+      var bundle = manifest.bundles[name];
+      var file = bundle.files.find((file) => file.url === url));
+      if (file !== undefined) {
+        return file;
+      }
+    }
+    return null;
   }
 
   /**
