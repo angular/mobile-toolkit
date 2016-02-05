@@ -1,7 +1,8 @@
 System.config({
 	"transpiler": "typescript",
 	"typescriptOptions": {
-		"emitDecoratorMetadata": true	
+		"emitDecoratorMetadata": true,
+		"experimentalDecorators": true,
 	},
 	"map": {
 		"typescript": "node_modules/typescript/lib/typescript.js",

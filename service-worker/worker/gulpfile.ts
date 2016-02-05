@@ -5,10 +5,17 @@ var util = require('gulp-util');
 var ts = require('gulp-typescript');
 var jasmine = require('gulp-jasmine');
 var Builder = require('systemjs-builder');
+var clean = require('gulp-clean');
 
-gulp.task('default', ['build:worker'], () => {});
+gulp.task('default', ['bundle:worker'], () => {});
 
-gulp.task('bundle:worker', () => {
+gulp.task('clean', () => {
+  return gulp
+    .src('dist/', {read: false})
+    .pipe(clean());
+});
+
+gulp.task('bundle:worker', ['clean'], () => {
 	var builder = new Builder();
 	return builder
 	  .loadConfig('system.config.js')
@@ -17,11 +24,13 @@ gulp.task('bundle:worker', () => {
 	  });
 });
 
-gulp.task('build:worker', () => {
-	
-})
+gulp.task('install:worker', ['bundle:worker'], () => {
+  return gulp
+    .src(['dist/worker.js'])
+    .pipe(gulp.dest('../../../answers-app/dist'));
+});
 
-gulp.task('build:tests', () => {
+gulp.task('build:tests', ['clean'], () => {
 	return gulp
 		.src([
 			'src/**/*.ts',

@@ -56,7 +56,7 @@ export class SWManifestFile {
 export class SWManifestDelta {
   unchanged: SWManifestFile[] = [];
   
-  constructor(public oldVersion: SWManifest) {}
+  constructor(public oldManifest: SWManifest) {}
 }
 
 /**
@@ -67,8 +67,6 @@ export class AppCacheManifestReader {
   bundle: SWManifestBundle = new SWManifestBundle('default');
 
   lastFileVersion: string = null;
-  lastFileVersionUsed: boolean = false;
- 
 
   read(acManifest: string): void {
     acManifest
@@ -80,8 +78,10 @@ export class AppCacheManifestReader {
           this._parseComment(line);
         } else if (line.length > 0) {
           var file = new SWManifestFile(line);
-          if (this.lastFileVersion !== null && !this.lastFileVersionUsed) {
+          if (this.lastFileVersion !== null) {
             file.version = this.lastFileVersion;
+            console.log(`version of ${line} is ${file.version}`);
+            this.lastFileVersion = null;
           }
           this.bundle.files.push(file);
         }
@@ -115,7 +115,6 @@ export class AppCacheManifestReader {
         this._parseRoute(value);
       case 'file.hash':
         this.lastFileVersion = value;
-        this.lastFileVersionUsed = false;
     }
   }
 
