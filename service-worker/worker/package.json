@@ -25,7 +25,7 @@
     "gulp-typescript": "^2.10.0",
     "gulp-util": "^3.0.7",
     "jasmine": "^2.4.1",
-    "reflect-metadata": "^0.1.2",
+    "reflect-metadata": "0.1.2",
     "systemjs": "^0.19.17",
     "systemjs-builder": "^0.15.5",
     "ts-node": "^0.5.5",
