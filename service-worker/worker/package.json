@@ -4,9 +4,9 @@
   "description": "Experimental service worker by the Angular Mobile team",
   "main": "index.js",
   "scripts": {
-    "prepublish": "gulp build",
-    "build": "gulp build",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "prepublish": "gulp bundle:worker",
+    "build": "gulp bundle:worker",
+    "test": "gulp test"
   },
   "repository": {
     "type": "git",
