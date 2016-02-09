@@ -19,6 +19,9 @@ Our main goal is to enable offline access to application static content. Seconda
 
 To ensure the primary goal of offline access to static content is achieved, Angular Mobile's offline strategy will be to utilize Service Worker where available but fall back on the AppCache API if needed. AppCache uses a static manifest file to declare to the browser which resources should be cached at startup to ensure offline operation.
 
+<a name="benefit-from-design"></a>
+By supporting either AppCache OR ServiceWorker, an estimated 91.8% of users will be able to benefit from this design<sup>[1](#can-i-use-sw) [2](#can-i-use-ac)</sup>.
+
 If Service Workers are installed for an origin, AppCache is completely disabled for it, so there are no unexpected consequences of using both APIs together.
 
 ### Manifest
@@ -158,3 +161,8 @@ On an update, the worker in the **install** event will notice that an **active**
 * Both the old and new manifests show the file with the same file hash
 
 If either condition is met, the file will be fetched from the previously cached bundle and stored in the new bundle's cache, instead of being fetched from network. In this way, only changed bundles or changed files will be redownloaded.
+
+<hr>
+
+ 1. <a name="can-i-use-sw"><a> http://caniuse.com/#feat=serviceworkers [&#x21A9;](#benefit-from-design)
+ 2. <a name="can-i-use-ac"></a> http://caniuse.com/#feat=offline-apps [&#x21A9;](#benefit-from-design)
