@@ -1,3 +1,4 @@
+/*
 import {MockRequest, MockResponse} from './mock_cache';
 
 class MockEntry {
@@ -27,3 +28,4 @@ export class MockFetchBackend {
     return Promise.resolve(entry.response);
   }
 }
+*/

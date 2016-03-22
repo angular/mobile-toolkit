@@ -1,3 +1,4 @@
+/*
 import {MockCacheStorage, MockRequest, MockResponse} from './mock_cache';
 import {MockFetchBackend} from './mock_fetch';
 import {SWAdapter} from '../driver';
@@ -27,3 +28,4 @@ export class MockSWAdapter implements SWAdapter {
     this._backend.mock(req, resp);
   }
 }
+*/

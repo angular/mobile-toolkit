@@ -1,3 +1,4 @@
+
 function findIndex(array: any[], matcher: Function): number {
   for (var i = 0; i < array.length; i++) {
     if (matcher(array[i])) {
@@ -160,23 +161,45 @@ class MockBody {
 }
 
 export class MockRequest extends MockBody implements Request {
+  url: string;
   method: string = "GET";
-  cache: string = "default";
+  cache: RequestCache = "default";
   
   headers: any;
   get body(): any {
     return this;
   }
   
-  mode: string;
-  context: string;
+  mode: RequestMode;
+  context: RequestContext;
   referrer: string;
-  credentials: string;
+  credentials: RequestCredentials;
   
-  constructor(public url: string) {
+  constructor(req: string | Request, init?: Object) {
     super(null);
+    if (typeof req == 'string') {
+      this.url = <string>req;
+    } else {
+      let other = <Request>req;
+      this.url = other.url;
+      this.method = other.method;
+      this.cache = other.cache;
+      this.headers = other.headers;
+      //this.body = other.body;
+      this.mode = other.mode;
+      this.context = other.context;
+      this.referrer = other.referrer;
+      this.credentials = other.credentials;
+    }
+    ['method', 'cache', 'headers', 'mode', 'context', 'referrer', 'credentials']
+      .forEach(prop => this._copyProperty(prop, init));
   }
   
+  _copyProperty(prop: string, from: Object) {
+    if (from && from.hasOwnProperty(prop)) {
+      this[prop] = from[prop];
+    }
+  }
   
   matches(req: Request): boolean {
     return req.url === this.url && req.method === this.method;
@@ -189,10 +212,10 @@ export class MockResponse extends MockBody implements Response {
   status: number = 200;
   url: string;
   headers: any;
-  type: string = "default";
+  type: ResponseType = "default";
   
-  constructor(body: string) {
-    super(body);
+  constructor(body: string | Blob) {
+    super(<string>body);
   }
 
   clone(): MockResponse {

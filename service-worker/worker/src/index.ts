@@ -1,11 +1,21 @@
-import 'reflect-metadata';
-import {Injector, provide} from 'angular2/src/core/di';
-import {NgServiceWorker} from './worker';
-import {SWContext, ServiceWorkerDriver, SWAdapter, ServiceWorker, BrowserSWAdapter} from './driver';
 
-var w: any = self;
+import {provide} from 'angular2/core';
+import {WorkerScope, Events} from './context';
+import {ManifestParser} from './manifest';
+import {ServiceWorker} from './worker';
+import {Fetch} from './fetch';
+import {CacheManager} from './cache';
 
-var adapter = new BrowserSWAdapter(w);
-var worker = new NgServiceWorker(adapter);
+export * from './cache';
+export * from './context';
+export * from './manifest';
+export * from './worker';
+export * from './fetch';
 
-new ServiceWorkerDriver(w, worker);
+export var SW_PROVIDERS = [
+  CacheManager,
+  Events,
+  Fetch,
+  ManifestParser,
+  ServiceWorker
+];

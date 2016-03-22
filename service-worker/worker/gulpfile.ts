@@ -3,57 +3,84 @@ declare var require;
 var gulp = require('gulp');
 var util = require('gulp-util');
 var ts = require('gulp-typescript');
-var jasmine = require('gulp-jasmine');
 var Builder = require('systemjs-builder');
-var clean = require('gulp-clean');
+var fs = require('fs');
+var rimraf = require('rimraf');
+var concat = require('gulp-concat');
+let jsmn = require('gulp-jasmine');
+var runSequence = require('run-sequence');
+var logger = require('gulp-logger');
+var process = require('process');
 
-gulp.task('default', ['bundle:worker'], () => {});
+var systemCompilerConfig = JSON.parse(fs.readFileSync('./tsconfig.json')).compilerOptions;
+var commonCompilerConfig = JSON.parse(fs.readFileSync('./tsconfig.cjs.json')).compilerOptions;
 
-gulp.task('clean', () => {
-  return gulp
-    .src('dist/', {read: false})
-    .pipe(clean());
+gulp.task('default', ['build']);
+
+gulp.task('clean', (done) => {
+  rimraf('./dist', done);
 });
 
-gulp.task('bundle:worker', ['clean'], () => {
-	var builder = new Builder();
-	return builder
-	  .loadConfig('system.config.js')
-	  .then(() => {
-		 return builder.buildStatic('app/index', 'dist/worker.js', {"minify": util.env.production}) 
-	  });
-});
+gulp.task('build', (done) => runSequence(
+  'clean',
+  '!build:system',
+  done));
 
-gulp.task('install:worker', ['bundle:worker'], () => {
-  return gulp
-    .src(['dist/worker.js'])
-    .pipe(gulp.dest('../../../answers-app/dist'));
-});
+gulp.task('!build:system', () => gulp
+  .src([
+    'src/**/*.ts',
+    '!src/**/*.spec.ts',
+    'typings/browser/**/*.d.ts'
+  ])
+  .pipe(ts(systemCompilerConfig))
+  .pipe(gulp.dest('dist/src')));
+  
+gulp.task('!build:commonjs', () => gulp
+  .src([
+    'src/**/*.ts',
+    'typings/browser/**/*.d.ts'
+  ])
+  .pipe(ts(commonCompilerConfig))
+  .pipe(gulp.dest('dist/src')));
+  
+gulp.task('build:test', (done) => runSequence(
+  'clean',
+  '!build:commonjs',
+  done
+));
 
-gulp.task('build:tests', ['clean'], () => {
-	return gulp
-		.src([
-			'src/**/*.ts',
-			'spec/**/*.ts',
-			'typings/**/*.d.ts',
-			'!typings/tsd.d.ts'
-		])
-		.pipe(ts({
-			"module": "commonjs",
-			"target": "es5",
-			"noImplicitAny": false,
-			"outDir": "dist",
-			"sourceMap": false,
-			"emitDecoratorMetadata": true,
-			"experimentalDecorators": true,
-			"moduleResolution": "node",
-			"noResolve": false
-		}))
-		.pipe(gulp.dest('dist'));
-});
+gulp.task('test', ['build:test'], () => gulp
+  .src([
+    'dist/src/**/*.spec.js'
+  ], {base: '.'})
+  .pipe(jsmn({
+    verbose: true,
+  })));
 
-gulp.task('test', ['build:tests'], () => {
-	return gulp
-	  .src(['dist/**/*_spec.js'])
-	  .pipe(jasmine());
+gulp.task('bundle', ['build'], () => {
+  var builder = new Builder();
+  builder.config({
+    map: {
+      'worker': 'dist/src',
+      'angular2': 'node_modules/angular2',
+      'rxjs': 'node_modules/rxjs',
+      'reflect-metadata': 'node_modules/reflect-metadata/temp/Reflect.js',
+      'jshashes': 'node_modules/jshashes/hashes.js'
+    },
+    packages: {
+      'worker': {
+        defaultExtension: 'js'
+      },
+      'rxjs': {
+        defaultExtension: 'js'
+      },
+      'angular2': {
+        defaultExtension: 'js'
+      },
+      'reflect-metadata': {
+        format: 'global'
+      }
+    }
+  });
+  builder.buildStatic('worker/browser_entry', 'dist/worker.js');
 });

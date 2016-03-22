@@ -1,363 +1,194 @@
-import 'reflect-metadata';
-import {AppCacheManifestReader, SWManifest, SWManifestBundle, SWManifestDelta, SWManifestFile} from './manifest';
-import {SWAdapter, ServiceWorker} from './driver';
-import {Injectable} from 'angular2/src/core/di';
+import {Injectable} from 'angular2/core';
+import {Observable} from 'rxjs/Rx';
+import {Events, InstallEvent, FetchEvent, WorkerAdapter} from './context';
+import {Manifest, ManifestEntry, ManifestGroup, ManifestParser, ManifestDelta} from './manifest';
+import {Fetch} from './fetch';
+import {CacheManager} from './cache';
+import {diffManifests, buildCaches, cacheFor} from './setup';
 
-/**
- * The actual service worker.
- */
+import {extractBody, doAsync, concatLet} from './operator';
+
+export const MANIFEST_URL = '/manifest.appcache';
+export const CACHE_ACTIVE = 'ngsw.active';
+export const CACHE_INSTALLING = 'ngsw.installing';
+
+enum ManifestSource {
+  NETWORK,
+  INSTALLING,
+  ACTIVE
+}
+
+export interface FetchInstruction {
+  execute(sw: ServiceWorker): Observable<Response>;
+}
+
+export class FetchFromCacheInstruction implements FetchInstruction {
+  constructor(private cache: string, private request: Request) {}
+  
+  execute(sw: ServiceWorker): Observable<Response> {
+    return sw.cache.load(this.cache, this.request);
+  }
+}
+
+export class FetchFromNetworkInstruction implements FetchInstruction {
+  constructor(private request: Request, private useHttpCache: boolean = true) {}
+  
+  execute(sw: ServiceWorker): Observable<Response> {
+    if (this.useHttpCache) {
+      return sw.fetch.request(this.request);
+    }
+    return sw.fetch.refresh(this.request);
+  }
+}
+
+export class FallbackInstruction implements FetchInstruction {
+  constructor(private request: Request) {}
+  
+  execute(sw: ServiceWorker): Observable<Response> {
+    throw 'Fallback not yet implemented.';
+  }
+}
+
+function _cacheInstruction(request: Request, group: ManifestGroup): FetchInstruction {
+  return new FetchFromCacheInstruction(cacheFor(group), request);
+}
+
+function _devMode(request: Request): any {
+  return (obs: Observable<Manifest>) => {
+    return obs
+      .flatMap(manifest => {
+        if (!manifest.metadata.hasOwnProperty('dev') || !manifest.metadata['dev']) {
+          return Observable.empty();
+        }
+        return Observable.of(new FetchFromNetworkInstruction(request))
+      });
+  };
+}
+
+function _handleRequest(request: Request): any {
+  return (obs: Observable<Manifest>) => {
+    return obs
+      .flatMap(manifest => {
+        let groups: Observable<ManifestGroup> = Observable
+          .from<string>(Object.keys(manifest.group))
+          .map(key => manifest.group[key])
+          .cache();
+        return Observable.concat(
+          // Firstly, serve requests from cache, if present.
+          groups.map(group => _cacheInstruction(request, group))
+          // Then from network.
+        );
+      });
+  }
+}
+
 @Injectable()
-export class NgServiceWorker implements ServiceWorker {
-
-	constructor(private _adapter: SWAdapter) {
-    this._adapter.worker = this;
-	}
-
-  /**
-   * Load the AppCache manifest from the named cache.
-   */
-  loadManifestFromCache(cache: string): Promise<Response> {
-    return this
-      ._adapter
-      .caches
-      .open(`manifest.${cache}`)
-      .then((cache) => cache.match(this._adapter.newRequest('/manifest.appcache')))
-      .then((resp) => {
-        // If no manifest is currently cached, return null.
-        if (resp === undefined) {
-          return null;
-        }
-        return resp;
-      });
-  }
-
-  /**
-   * Fetch the AppCache manifest from the server.
-   */
-  fetchManifest(): Promise<Response> {
-    return this.fetchFresh(this._adapter.newRequest('/manifest.appcache'));
-  }
-
-  /**
-   * Set the manifest in the named cache.
-   */
-  setManifest(cache: string, resp: Response): Promise<any> {
-    return this
-      ._adapter
-      .caches
-      .open(`manifest.${cache}`)
-      .then((cache) => cache.put(this._adapter.newRequest('/manifest.appcache'), resp));
-  }
-
-  /**
-   * Process a fetch event.
-   */
-	fetch(request: Request) {
-    return this
-      .readManifest()
-      .then((manifest: SWManifest) => {
-        // If no manifest exists, fall through to fetch().
-        if (manifest === null || manifest === undefined) {
-          console.log('Warning: no manifest so falling through to fetch()');
-          return this._adapter.fetch(request);
-        }
-        
-        var origin = this._adapter.origin;
-        var requestUrl = request.url;
-        if (requestUrl.startsWith(origin)) {
-          requestUrl = requestUrl.substring(origin.length);
-        }
-        
-        // First attempt to match against routes. If there's a matching route, use that instead.
-        for (var name in manifest.bundles) {
-          var bundle: SWManifestBundle = manifest.bundles[name];
-          
-          
-          // If this bundle has a matching route, make a request for it instead.
-          if (bundle.routes.hasOwnProperty(requestUrl)) {
-            var targetUrl = bundle.routes[requestUrl];
-            request = this._adapter.newRequest(targetUrl);
-            break;
-          }
-        }
-        
-        // Now attempt to match the request against the various bundle caches.
-        var promises = [];
-        for (var name in manifest.bundles) {
-          var bundle: SWManifestBundle = manifest.bundles[name];
-          promises.push(this
-            ._adapter
-            .caches
-            .open(bundle.cache)
-            .then((cache) => cache.match(request))
-            .then((resp) => resp !== undefined ? resp : null));
-        }
-        // Pick the first non-null response if there is one, and fall back on fetch if it's not found.
-        return Promise
-          .all(promises)
-          .then((responses) => responses.reduce((prev, resp) => prev !== null ? prev : resp), null)
-          .then((resp) => {
-            if (resp !== null) {
-              return resp;
-            }
-            console.log('fall through', request.url);
-            return this._adapter.fetch(request);
-          });
-      });
-	}
-
-  /**
-   * Process an install event.
-   */
-	install(): Promise<void> {
-    // Fetch the current manifest.
-    return Promise
-      .all([
-        this.fetchManifest().then((resp) => resp !== undefined ? resp.text() : null),
-        this.loadManifestFromCache('active').then((resp) => resp !== null ? resp.text() : null)
-      ])
-      .then((manifests) => {
-        var newManifestText = manifests[0];
-        if (newManifestText === null) {
-          throw 'Error fetching manifest from server.';
-        }
-        var newManifest = this._parseManifest(newManifestText);
-        var oldManifestText = manifests[1];
-        var prime = null;
-        if (oldManifestText === null) {
-          prime = this.primeManifest(newManifest);
-        } else {
-          var oldManifest = this._parseManifest(oldManifestText);
-          var delta = this.diffManifest(oldManifest, newManifest);
-          prime = this.primeManifest(newManifest, delta);
-        }
-        return prime
-          .then(() => this.setManifest('latest', this._adapter.newResponse(newManifestText)));
-      });
-  }
-
-  /**
-   * Process an activation event.
-   */
-	activate(): Promise<void> {
-    // Promote the latest manifest to be active.
-    return Promise
-      .all([this.loadManifestFromCache('latest'), this.loadManifestFromCache('active')])
-      .then((manifests) => {
-        var latest = manifests[0];
-        var active = manifests[1];
-        if (latest === null) {
-          throw 'activation event but no manifest from installation?';
-        }
-        
-        var latestText = latest !== null ? latest.text() : Promise.resolve('');
-        var activeText = active !== null ? active.text() : Promise.resolve('');
-        
-        return Promise
-          .all([latestText, activeText])
-          .then((texts) => {
-            if (texts[0] === texts[1]) {
-              return;
-            }
-            // Promote the latest manifest to be active.
-            return this.setManifest('active', this._adapter.newResponse(texts[0]));
-          });
-      });
-	}
-
-  /**
-   * Read and parse the active manifest.
-   */
-  readManifest(): Promise<SWManifest> {
-    return this
-      .loadManifestFromCache('active')
-      .then((resp) => {
-        if (resp === null) {
-          console.log("Null response from active cache - no manifest");
-          return null;
-        }
-        return resp.text().then((text) => this._parseManifest(text));
-      });
-  }
-
-  /**
-   * Check for any updates to the manifest.
-   */
-  checkForUpdate(): Promise<boolean> {
-    return Promise.all([
-        this
-          .fetchManifest()
-          .then((resp) => resp.text()),
-        this.loadManifestFromCache('active')
-          .then((resp) => resp !== null ? resp.text() : Promise.resolve(''))
-      ])
-      .then((manifests) => {
-        if (manifests[0] === manifests[1]) {
-          console.log('No update available.');
-          return false;
-        }
-        
-        console.log('NEW MANIFEST', manifests[0]);
-        console.log('OLD MANIFEST', manifests[1]);
-        
-        console.log('parsing new');
-        var manifest = this._parseManifest(manifests[0]);
-        console.log('parsing old');
-        var oldManifest = this._parseManifest(manifests[1]);
-        console.log("new", manifest);
-        console.log("old", oldManifest);
-        var delta = this.diffManifest(oldManifest, manifest);
-        console.log('diff done', delta);
-        return this
-          .primeManifest(manifest, delta)
-          .then(() => this.setManifest('active', this._adapter.newResponse(manifests[0])))
-
-          .then(() => true);
-      });
-  }
-
-  /**
-   * Parse the given manifest text with the `AppCacheManifestReader`.
-   */
-  _parseManifest(manifest:string): SWManifest {
-    if (manifest === undefined) {
-      return null;
-    }
-    var reader = new AppCacheManifestReader();
-    reader.read(manifest);
-    return reader.swManifest;
-  }
+export class ServiceWorker {
   
-  diffManifest(oldVer: SWManifest, newVer: SWManifest): SWManifestDelta {
-    var delta = new SWManifestDelta(oldVer);
-    for (var name in newVer.bundles) {
-      console.log('diffing bundle', name);
-      var bundle = newVer.bundles[name];
-      
-      // For each new file, determine if A) it's cached and B) it's changed since the last version.
-      bundle.files.forEach((newFile) => {
-        console.log(`processing file ${newFile.url}`);
-        var old = this._findFileInManifest(oldVer, newFile.url);
-        
-        if (old === null) {
-          console.log(`file not present in old manifest ${newFile.url}`);
-          return;
-        }
-        
-        console.log(`old bundle: ${old['bundle']}, old version: '${old['file'].version}', new version: '${newFile.version}'`);
-        // If there is an old cached version, both versions have hashes, and the hashes match, it's safe
-        // to use the old version instead of fetching from the network.
-        if (newFile.version !== null && old['file'].version !== null && newFile.version === old['file'].version) {
-            console.log(`Marking ${newFile.url} as unchanged due to hash versioning`);
-          delta.unchanged.push(newFile);
-        } else if (name === old['bundle'] && bundle.version === oldVer.bundles[name].version) {
-          console.log(`Marking ${newFile.url} as unchanged due to bundle versioning`);
-          delta.unchanged.push(newFile);
-        } else {
-          console.log(`Must fetch ${newFile.url}`);
-        }
-        
-        
-      });
-    }
-    return delta;
-  }
+  init: Observable<Manifest>;
   
-  primeManifest(manifest: SWManifest, delta: SWManifestDelta = null): Promise<void> {
-    if (delta !== null) {
-      console.log(`priming manifest with delta`, delta);
-    } else {
-      console.log(`priming manifest without delta`)
-    }
-    var promises = [];
-    // Prime each bundle.
-    for (var name in manifest.bundles) {
-      var bundle = manifest.bundles[name];
-      promises.push(bundle.files.map((file) => {
-        console.log(`priming ${file.url} in ${name}`);
-        return this
-          ._adapter
-          .caches
-          .open(bundle.cache)
-          .then((cache) => {
-            // Need a promise to begin with. The first step is to check the delta for an old version
-            // to pull forward.
-            return Promise.resolve(null)
-              .then(() => {
-                if (delta === null) {
-                  return null;
-                }
-                // Check if this file is listed as unchanged.
-                var oldFile = delta.unchanged.find((old) => old.url === file.url);
-                if (oldFile === undefined || oldFile === null) {
-                  // No, so proceed with fetching from the server.
-                  return null;
-                }
-                
-                // Find oldFile in the old manifest to determine the bundle.
-                for (var oldName in delta.oldManifest.bundles) {
-                  var oldBundle = delta.oldManifest.bundles[oldName];
-                  if (oldBundle.files.find((old) => old.url === file.url) !== undefined) {
-                    return this
-                      ._adapter
-                      .caches
-                      .open(oldBundle.cache)
-                      .then((oldCache) => oldCache.match(this._adapter.newRequest(oldFile.url)))
-                      .then((res) => res !== undefined ? res : null);
-                  }
-                }
-                
-                // The cached version was unexpectedly missing, so fall back on fetching from the server.
-                return null;
-              })
-              .then((cachedResponse) => {
-                // If a cached response is ready, just use it.
-                if (cachedResponse !== null) {
-                  return cachedResponse;
-                }
-                console.log('fetching from net', file.url);
-                // Fetch from the network.
-                return this.fetchFresh(this._adapter.newRequest(file.url));
-              })
-              .then((resp) => {
-                if (resp === null || resp === undefined) {
-                  // TODO: better error handling.
-                  throw `Failed to update/fetch: ${file.url}`;
-                }
-                return cache.put(this._adapter.newRequest(file.url), resp);
-              });
-          });
-      }));
-    }
-    return Promise
-      .all(promises)
-      .then(() => undefined);
-  }
   
-  _findFileInManifest(manifest: SWManifest, url: string): any {
-    for (var name in manifest.bundles) {
-      var bundle = manifest.bundles[name];
-      var file = bundle.files.find((file) => file.url === url);
-      if (file !== undefined) {
-        return {
-          "file": file,
-          "bundle": name
-        };
-      }
-    }
-    return null;
-  }
+  manifestReq: Request;
+  
+  constructor(
+    private events: Events,
+    public fetch: Fetch,
+    public cache: CacheManager,
+    public adapter: WorkerAdapter) {
+    this.manifestReq = adapter.newRequest(MANIFEST_URL);
+    this.init = this.normalInit();
 
-  /**
-   * Fetch a request without using the built in HTTP cache.
-   */
-  fetchFresh(req: Request): Promise<Response> {
-    var noCacheReq = this._adapter.newRequest(req.url, {
-      method: req.method,
-      mode: req.mode,
-      credentials: req.credentials,
-      cache: 'no-cache'
+    events.install.subscribe((ev: InstallEvent) => {
+      this.init = this
+        .checkDiffs(ManifestSource.NETWORK)
+        .let(buildCaches(cache, fetch))
+        .let(doAsync((delta: ManifestDelta) => cache.store(CACHE_INSTALLING, MANIFEST_URL, adapter.newResponse(delta.currentStr))))
+        .map((delta: ManifestDelta) => delta.current)
+        .cache();
+      ev.waitUntil(this.init.toPromise());
     });
-    return this._adapter.fetch(noCacheReq);
+    
+    events.activate.subscribe((ev: InstallEvent) => {
+      this.init = this
+        .checkDiffs(ManifestSource.INSTALLING)
+        .let(doAsync((delta: ManifestDelta) => cache.store(CACHE_ACTIVE, MANIFEST_URL, adapter.newResponse(delta.currentStr))))
+        .map((delta: ManifestDelta) => delta.current);
+      ev.waitUntil(this.init.toPromise());
+    });
+    
+    events.fetch.subscribe((ev: FetchEvent) => {
+      let request = ev.request;
+      ev.respondWith(this
+        .init
+        .let<FetchInstruction>(concatLet(_devMode(request), _handleRequest(request)))
+        .concat(Observable.of(new FetchFromNetworkInstruction(request, true)))
+        .concatMap(instruction => instruction.execute(this))
+        .filter(resp => resp !== undefined)
+        .first()
+        .toPromise());
+    });
+  }
+  
+  normalInit(): Observable<Manifest> {
+    return this
+      .loadFreshManifest(ManifestSource.ACTIVE)
+      .do(data => {
+        if (!data) {
+          throw 'Unable to load manifest!';
+        }
+      })
+      .map(data => (new ManifestParser()).parse(data))
+      .cache();
+  }
+  
+  checkDiffs(source: ManifestSource): Observable<ManifestDelta> {
+    return Observable
+      .combineLatest(this.loadFreshManifest(source), this.loadCachedManifest())
+      .let(diffManifests)
+      .cache();
+  }
+  
+  loadFreshManifest(source: ManifestSource): Observable<string> {
+    let respSource: Observable<Response>;
+    switch (source) {
+      case ManifestSource.NETWORK:
+        respSource = this
+          .fetch
+          .refresh(this.manifestReq);
+        break;
+      case ManifestSource.INSTALLING:
+        respSource = this
+          .cache
+          .load(CACHE_INSTALLING, MANIFEST_URL);
+        break;
+      case ManifestSource.ACTIVE:
+        respSource = this
+          .cache
+          .load(CACHE_ACTIVE, MANIFEST_URL);
+        break;
+      default:
+        throw `Unknown diff source: ${source}`;
+    }
+    return respSource
+      .do(resp => {
+        if (resp && !resp.ok) {
+          throw 'Failed to load fresh manifest.';
+        }
+      })
+      .let(extractBody);
+  }
+  
+  loadCachedManifest(): Observable<string> {
+    return this
+      .cache
+      .load(CACHE_ACTIVE, MANIFEST_URL)
+      .let(extractBody);
+  }
+  
+  bodyFn(obs: Observable<Response>): Observable<string> {
+    return obs.flatMap(resp =>
+      resp != undefined ?
+        resp.text() :
+        Observable.from<string>(undefined));
   }
 }
