@@ -1,23 +1,23 @@
 {
   "name": "angular2-service-worker",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Experimental service worker by the Angular Mobile team",
-  "main": "index.js",
+  "main": "dist/generator/index.js",
   "scripts": {
-    "prepublish": "gulp bundle:worker",
-    "build": "gulp bundle:worker",
+    "prepublish": "gulp prepublish",
+    "build": "gulp build && gulp build:generator",
     "test": "gulp test"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/angular/offline.git"
+    "url": "git+https://github.com/angular/progressive.git"
   },
   "author": "",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/angular/offline/issues"
+    "url": "https://github.com/angular/progressive/issues"
   },
-  "homepage": "https://github.com/angular/offline#readme",
+  "homepage": "https://github.com/angular/progressive#readme",
   "devDependencies": {
     "angular2": "^2.0.0-beta.11",
     "es6-shim": "^0.33.13",

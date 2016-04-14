@@ -1,13 +1,14 @@
 {
-	"compilerOptions": {
-		"module": "system",
-		"target": "es5",
-		"noImplicitAny": false,
-		"emitDecoratorMetadata": true,
-		"experimentalDecorators": true,
-		"outDir": "dist",
-		"sourceMap": false,
-    "moduleResolution": "node"
+  "compilerOptions": {
+    "module": "system",
+    "target": "es5",
+    "noImplicitAny": false,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "outDir": "dist",
+    "sourceMap": false,
+    "moduleResolution": "node",
+    "rootDir": "."
 	},
   "exclude": [
     "node_modules",

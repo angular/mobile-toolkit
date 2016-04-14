@@ -25,6 +25,11 @@ gulp.task('build', (done) => runSequence(
   'clean',
   '!build:system',
   done));
+  
+gulp.task('prepublish', done => runSequence(
+  'clean',
+  ['!bundle', 'copy:generator'],
+  done));
 
 gulp.task('!build:system', () => gulp
   .src([
@@ -42,6 +47,20 @@ gulp.task('!build:commonjs', () => gulp
   ])
   .pipe(ts(commonCompilerConfig))
   .pipe(gulp.dest('dist/src')));
+
+gulp.task('build:generator', () => gulp
+  .src([
+    'src/generator/**.ts',
+    'typings/main/**/*.d.ts'
+  ])
+  .pipe(ts(commonCompilerConfig))
+  .pipe(gulp.dest('dist/src/generator')));
+  
+gulp.task('copy:generator', ['build:generator'], () => gulp
+  .src([
+    'dist/src/generator/**/*.js'
+  ])
+  .pipe(gulp.dest('dist/generator')));
   
 gulp.task('build:test', (done) => runSequence(
   'clean',
@@ -57,7 +76,7 @@ gulp.task('test', ['build:test'], () => gulp
     verbose: true,
   })));
 
-gulp.task('bundle', ['build'], () => {
+gulp.task('!bundle', ['!build:system'], () => {
   var builder = new Builder();
   builder.config({
     map: {
