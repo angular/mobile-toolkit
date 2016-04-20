@@ -1,6 +1,11 @@
 import 'reflect-metadata';
-import {Injectable, Injector, provide} from 'angular2/core';
+import {Injectable, Injector, provide} from 'angular2/src/core/di';
 import {SW_PROVIDERS, WorkerScope, WorkerAdapter} from './index';
+import {ServiceWorker} from './worker';
+import './rxjs';
+
+
+//importScripts('worker.version.js');
 
 declare var global;
 
@@ -19,4 +24,4 @@ Injector.resolveAndCreate([
   SW_PROVIDERS,
   provide(WorkerAdapter, {useClass: BrowserAdapter}),
   provide(WorkerScope, {useValue: (typeof self !== 'undefined') ? self : global})
-]);
+]).get(ServiceWorker);

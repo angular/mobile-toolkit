@@ -12,13 +12,21 @@ const SIMPLE_MANIFEST = `CACHE MANIFEST
 /solong.txt
 `;
 
+const FALLBACK_MANIFEST = `CACHE MANIFEST
+CACHE:
+# sw.group.version: test
+/hello.txt
+
+FALLBACK:
+/goodbye.txt /hello.txt
+`;
+
 const HASHED_MANIFEST_1 = `CACHE MANIFEST
 # sw.hash: 12345
 /hello.txt
 # sw.hash: 67890
 /goodbye.txt
 `;
-
 
 const HASHED_MANIFEST_2 = `CACHE MANIFEST
 # sw.hash: abcde
@@ -29,8 +37,27 @@ const HASHED_MANIFEST_2 = `CACHE MANIFEST
 
 const DEV_MANIFEST = `CACHE MANIFEST
 # sw.dev: true
+# sw.group.version: test
 /hello.txt
-`
+`;
+
+const BUNDLE_MANIFEST_1 = `CACHE MANIFEST
+# sw.group: hello
+# sw.group.version: 12345
+/hello.txt
+# sw.group: goodbye
+# sw.group.version: 67890
+/goodbye.txt
+`;
+
+const BUNDLE_MANIFEST_2 = `CACHE MANIFEST
+# sw.group: hello
+# sw.group.version: 54321
+/hello.txt
+# sw.group: goodbye
+# sw.group.version: 67890
+/goodbye.txt
+`;
 
 function errored(err, done) {
   fail(err);
@@ -146,7 +173,51 @@ describe('ngsw', () => {
       .then(() => expectServed(driver, '/hello.txt', 'Hola mundo!'))
       .then(() => expectServed(driver, '/goodbye.txt', 'Goodbye world!'))
       .then(done, err => errored(err, done)));
+    then('deletes old caches', done => Promise
+      .resolve(null)
+      .then(() => driver.caches.keys())
+      .then(keys => expect(keys.length).toBe(3))
+      .then(done, err => errored(err, done)));
   });
+  sequence('upgrade without hashes', () => {
+    let driver: TestWorkerDriver = new TestWorkerDriver(ServiceWorker);
+    beforeAll(done => {
+      driver.mockUrl(MANIFEST_URL, BUNDLE_MANIFEST_1);
+      driver.mockUrl('/hello.txt', 'Hello world!');
+      driver.mockUrl('/goodbye.txt', 'Goodbye world!');
+      driver
+        .triggerInstall()
+        .then(() => driver.unmockAll())
+        .then(() => driver.triggerActivate())
+        .then(done, err => errored(err, done));
+    });
+    it('successfully activates', done => Promise
+      .resolve(null)
+      .then(() => expectServed(driver, '/hello.txt', 'Hello world!'))
+      .then(() => expectServed(driver, '/goodbye.txt', 'Goodbye world!'))
+      .then(done, err => errored(err, done)));
+    then('upgrades to new manifest', done => {
+      driver.refresh();
+      driver.mockUrl(MANIFEST_URL, BUNDLE_MANIFEST_2);
+      driver.mockUrl('/hello.txt', 'Hola mundo!');
+      driver.mockUrl('/goodbye.txt', 'Should not be reloaded from the server');
+      driver
+        .triggerInstall()
+        .then(() => driver.unmockAll())
+        .then(() => driver.triggerActivate())
+        .then(done, err => errored(err, done));
+    });
+    then('refreshes only the hello page', done => Promise
+      .resolve(null)
+      .then(() => expectServed(driver, '/hello.txt', 'Hola mundo!'))
+      .then(() => expectServed(driver, '/goodbye.txt', 'Goodbye world!'))
+      .then(done, err => errored(err, done)));
+    then('deletes old caches', done => Promise
+      .resolve(null)
+      .then(() => driver.caches.keys())
+      .then(keys => expect(keys.length).toBe(4))
+      .then(done, err => errored(err, done)));
+  })
   sequence('dev mode', () => {
     let driver: TestWorkerDriver = new TestWorkerDriver(ServiceWorker);
     beforeAll(done => {
@@ -169,5 +240,23 @@ describe('ngsw', () => {
       .then(() => driver.mockUrl('/hello.txt', 'Ciao mondo!'))
       .then(() => expectServed(driver, '/hello.txt', 'Ciao mondo!'))
       .then(done, err => errored(err, done)));
-  })
+  });
+  sequence('fallback', () => {
+    let driver: TestWorkerDriver = new TestWorkerDriver(ServiceWorker);
+    beforeAll(done => {
+      driver.mockUrl(MANIFEST_URL, FALLBACK_MANIFEST);
+      driver.mockUrl('/hello.txt', 'Hello world!');
+      driver.mockUrl('/goodbye.txt', 'Should never be fetched!');
+      driver
+        .triggerInstall()
+        .then(() => driver.unmockAll())
+        .then(() => driver.triggerActivate())
+        .then(done, err => errored(err, done));
+    });
+    it('successfully falls back', done => Promise
+      .resolve(null)
+      .then(() => expectServed(driver, '/hello.txt', 'Hello world!'))
+      .then(() => expectServed(driver, '/goodbye.txt', 'Hello world!'))
+      .then(done, err => errored(err, done)))
+  });;
 });

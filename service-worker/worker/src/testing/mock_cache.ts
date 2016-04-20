@@ -181,7 +181,7 @@ export class MockRequest extends MockBody implements Request {
       this.url = <string>req;
     } else {
       let other = <Request>req;
-      this.url = other.url;
+      this.url = init['url'] || other.url;
       this.method = other.method;
       this.cache = other.cache;
       this.headers = other.headers;

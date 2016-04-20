@@ -1,4 +1,4 @@
-import {Observable} from 'rxjs/Rx';
+import {Observable} from 'rxjs/Observable';
 
 import {Manifest, ManifestEntry, ManifestParser, ManifestDelta, GroupDelta, ManifestGroup} from './manifest';
 import {CacheManager} from './cache';
@@ -9,6 +9,7 @@ let EMPTY_GROUP = new ManifestGroup();
 
 interface SetupInstruction {
   execute(cache: CacheManager, fetch: Fetch): Observable<any>;
+  describe(): string;
 }
 
 class FetchFromCacheInstruction implements SetupInstruction {
@@ -20,6 +21,10 @@ class FetchFromCacheInstruction implements SetupInstruction {
       .load(this.fromCache, this.url)
       .flatMap(resp => cache.store(this.toCache, this.url, resp));
   }
+  
+  describe(): string {
+    return `fetchFromCache(${this.url}, ${this.fromCache}, ${this.toCache})`;
+  }
 }
 
 class FetchFromNetworkInstruction implements SetupInstruction {
@@ -30,6 +35,10 @@ class FetchFromNetworkInstruction implements SetupInstruction {
     return fetch
       .refresh(this.url)
       .flatMap(resp => cache.store(this.toCache, this.url, resp));
+  }
+  
+  describe(): string {
+    return `fetchFromNetwork(${this.url}, ${this.toCache})`;
   }
 }
 
@@ -122,7 +131,7 @@ export function buildCaches(cache: CacheManager, fetch: Fetch): any {
     .let<ManifestDelta>(doAsync((delta: ManifestDelta) => Observable
       .from(Object.keys(delta.current.group))
       .map((key: string) => delta.current.group[key])
-      .flatMap<any>((group: ManifestGroup) => {
+      .mergeMap<any>((group: ManifestGroup) => {
         // Process groups individually, in parallel.
         // Check whether this specific group has an entry in the previous manifest.
         let prevGroup: ManifestGroup = EMPTY_GROUP;
@@ -132,7 +141,7 @@ export function buildCaches(cache: CacheManager, fetch: Fetch): any {
         return Observable
           .from(Object.keys(group.cache))
           .map((key: string) => group.cache[key])
-          .flatMap<SetupInstruction>(entry => {
+          .mergeMap<SetupInstruction>(entry => {
             // Default is to fetch from the network.
             let action: SetupInstruction = new FetchFromNetworkInstruction(entry.url, cacheFor(group));
             // Check whether the entry was in the previous cache.
@@ -144,11 +153,31 @@ export function buildCaches(cache: CacheManager, fetch: Fetch): any {
                 action = new FetchFromCacheInstruction(entry.url, cacheFor(prevGroup), cacheFor(group));
               }
             }
-            // Return instructions, which will be flatMap'd and executed.
+            // Return instructions, which will be mergeMap'd and executed.
             return Observable.of<SetupInstruction>(action);
           })
-        .flatMap<any>(action => action.execute(cache, fetch));
+        .do(action => console.log('setup', action.describe()))
+        .mergeMap<any>(action => action.execute(cache, fetch));
       })
     ))
   );
 };
+
+export function cleanupCaches(cache: CacheManager): any {
+  return ((obs: Observable<ManifestDelta>): Observable<ManifestDelta> => obs
+    .let<ManifestDelta>(doAsync((delta: ManifestDelta) => Observable
+      .from(Object.keys(delta.previous.group))
+      .mergeMap((name: string) => {
+        let prevCache = cacheFor(delta.previous.group[name]);
+        let currCache = '';
+        if (delta.current.group.hasOwnProperty(name)) {
+          currCache = cacheFor(delta.current.group[name]);
+        }
+        if (currCache != prevCache) {
+          return cache.remove(prevCache);
+        }
+        return Observable.empty();
+      })
+      .ignoreElements()
+    )));
+}

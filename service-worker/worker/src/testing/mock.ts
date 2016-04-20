@@ -22,8 +22,8 @@ import {
 
 @Injectable()
 class TestAdapter extends WorkerAdapter {
-  newRequest(req: string | Request): Request {
-    return new MockRequest(req, {});
+  newRequest(req: string | Request, options = {}): Request {
+    return new MockRequest(req, options);
   }
   
   newResponse(body: string | Blob): Response {

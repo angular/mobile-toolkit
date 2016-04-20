@@ -1,4 +1,4 @@
-import {Observable} from 'rxjs/Rx';
+import {Observable} from 'rxjs/Observable';
 
 export function extractBody(obs: Observable<Response>): Observable<string> {
   return obs.flatMap(resp =>
@@ -21,4 +21,15 @@ export function concatLet(...operators: Function[]): any {
         .of(value)
         .let(op)))
     .concatMap(v => v);
+}
+
+export function timeoutTo<T>(timeout: number, value: T): any {
+  return (obs: Observable<T>) => Observable
+    .merge(
+      obs,
+      Observable
+        .timer(timeout, 1)
+        .map(_ => value)
+    )
+    .first<T>();
 }

@@ -1,12 +1,14 @@
 import 'reflect-metadata';
-import {ManifestParser, ManifestEntry} from '../src/manifest';
-/*
+import {ManifestParser, ManifestEntry, ManifestEntryMap} from '../src/manifest';
+
 const SIMPLE_MANIFEST = `CACHE MANIFEST
+# sw.group.version: test
 /test/url/alpha
 /test/url/beta
 `;
 
 const FULL_MANIFEST = `CACHE MANIFEST
+# sw.group.version: test
 /default
 CACHE:
 /cached
@@ -18,20 +20,16 @@ FALLBACK:
 const BUNDLED_MANIFEST = `CACHE MANIFEST
 CACHE:
 # sw.group: alpha
+# sw.group.version: 12345
 /alpha/a
 /alpha/b
 # sw.group: beta
+# sw.group.version: 67890
 /beta/a
 /beta/b`;
 
-function urls(entries: ManifestEntry[]): string[] {
-  return entries.map(entry => entry.url);
-}
-
-function grouped(name: string, entries: ManifestEntry[]): ManifestEntry[] {
-  return entries.filter(entry =>
-    entry.groupMetadata.hasOwnProperty('group') &&
-    entry.groupMetadata['group'] == name);
+function urls(entries: ManifestEntryMap): string[] {
+  return Object.keys(entries);
 }
 
 describe('ManifestParser', () => {
@@ -41,33 +39,32 @@ describe('ManifestParser', () => {
   });
   it('correctly parses a basic manifest', () => {
     let manifest = parser.parse(SIMPLE_MANIFEST);
-    expect(urls(manifest.cache)).toEqual([
+    expect(urls(manifest.group['default'].cache)).toEqual([
       '/test/url/alpha',
       '/test/url/beta'
     ]);
   });
   it('parses a manifest with all the sections', () => {
     let manifest = parser.parse(FULL_MANIFEST);
-    expect(urls(manifest.cache)).toEqual([
+    let defaultGroup = manifest.group['default'];
+    expect(urls(defaultGroup.cache)).toEqual([
       '/default',
       '/cached'
     ]);
-    expect(urls(manifest.network)).toEqual(['*']);
-    expect(urls(manifest.fallback)).toEqual(['/from']);
-    expect(manifest.fallback.map(entry => entry.fallbackTo)).toEqual(['/to']);
+    expect(urls(defaultGroup.network)).toEqual(['*']);
+    expect(urls(defaultGroup.fallback)).toEqual(['/from']);
+    expect(Object.keys(defaultGroup.fallback).map(url => defaultGroup.fallback[url].fallbackTo)).toEqual(['/to']);
   });
   it('splits files into groups when requested', () => {
     let manifest = parser.parse(BUNDLED_MANIFEST);
-    let alphaEntries = grouped('alpha', manifest.cache);
-    let betaEntries = grouped('beta', manifest.cache);
-    expect(urls(alphaEntries)).toEqual([
+    let defaultGroup = manifest.group['default'];
+    expect(urls(manifest.group['alpha'].cache)).toEqual([
       '/alpha/a',
       '/alpha/b'
     ]);
-    expect(urls(betaEntries)).toEqual([
+    expect(urls(manifest.group['beta'].cache)).toEqual([
       '/beta/a',
       '/beta/b'
     ]); 
   });
 });
-*/

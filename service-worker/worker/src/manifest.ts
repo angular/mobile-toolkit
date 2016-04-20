@@ -1,4 +1,4 @@
-import {Injectable} from 'angular2/core';
+import {Injectable} from 'angular2/src/core/di';
 import {stringStartsWith} from './builtins';
 import {SHA1} from 'jshashes';
 
@@ -92,9 +92,7 @@ function _computeAndSetVersion(group: ManifestGroup): void {
     group.version = group.metadata['version'];
     return;
   } else if (!allFilesHaveHash) {
-    // Construct a random version.
-    group.version = (new SHA1().hex(`${Math.random()}`));
-    return;
+    throw 'All files must have a hash, or the group must be versioned as a whole';
   }
   
   files.push(...Object
@@ -105,7 +103,7 @@ function _computeAndSetVersion(group: ManifestGroup): void {
   // Since the order of the array is determined by the enumeration
   // order of group.cache, sort the array to ensure consistent hashing.
   files.sort();
-  
+
   group.version = (new SHA1()).hex(files.join('::'));
 }
 
@@ -129,6 +127,8 @@ export class ManifestParser {
       case 'group.version':
         groupMetadata['version'] = value;
         break;
+      case 'group.timeout':
+        groupMetadata['timeout'] = +value;
       case 'hash':
         entryMetadata['hash'] = value;
         break;

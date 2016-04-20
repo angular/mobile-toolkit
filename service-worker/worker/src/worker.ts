@@ -1,10 +1,10 @@
-import {Injectable} from 'angular2/core';
-import {Observable} from 'rxjs/Rx';
+import {Injectable} from 'angular2/src/core/di';
+import {Observable} from 'rxjs/Observable';
 import {Events, InstallEvent, FetchEvent, WorkerAdapter} from './context';
-import {Manifest, ManifestEntry, ManifestGroup, ManifestParser, ManifestDelta} from './manifest';
+import {Manifest, ManifestEntry, FallbackManifestEntry, ManifestGroup, ManifestParser, ManifestDelta} from './manifest';
 import {Fetch} from './fetch';
 import {CacheManager} from './cache';
-import {diffManifests, buildCaches, cacheFor} from './setup';
+import {diffManifests, buildCaches, cleanupCaches, cacheFor} from './setup';
 
 import {extractBody, doAsync, concatLet} from './operator';
 
@@ -20,6 +20,7 @@ enum ManifestSource {
 
 export interface FetchInstruction {
   execute(sw: ServiceWorker): Observable<Response>;
+  describe(): string;
 }
 
 export class FetchFromCacheInstruction implements FetchInstruction {
@@ -28,24 +29,64 @@ export class FetchFromCacheInstruction implements FetchInstruction {
   execute(sw: ServiceWorker): Observable<Response> {
     return sw.cache.load(this.cache, this.request);
   }
+  
+  describe(): string {
+    return `fetchFromCache(${this.cache}, ${this.request.url})`;
+  }
 }
 
 export class FetchFromNetworkInstruction implements FetchInstruction {
-  constructor(private request: Request, private useHttpCache: boolean = true) {}
+  constructor(private request: Request, private useHttpCache: boolean = true, private timeout: number = null) {}
   
   execute(sw: ServiceWorker): Observable<Response> {
-    if (this.useHttpCache) {
-      return sw.fetch.request(this.request);
+    var result: Observable<Response> = sw.fetch.request(this.request);
+    if (!this.useHttpCache) {
+      result = sw.fetch.refresh(this.request);
     }
-    return sw.fetch.refresh(this.request);
+    if (this.timeout !== null) {
+      result = Observable
+        .merge(
+          result,
+          Observable
+            .timer(this.timeout, 1)
+            .map(v => undefined)
+        )
+        .first();
+    }
+    return result;
+  }
+  
+  describe(): string {
+    return `fetchFromNetwork(${this.request.url})`;
   }
 }
 
 export class FallbackInstruction implements FetchInstruction {
-  constructor(private request: Request) {}
+  constructor(private request: Request, private group: ManifestGroup) {}
   
   execute(sw: ServiceWorker): Observable<Response> {
-    throw 'Fallback not yet implemented.';
+    return Observable
+      // Look at all the fallback URLs in this group
+      .fromArray(Object.keys(this.group.fallback))
+      // Select the ones that match this request
+      .filter(url => this.request.url.indexOf(url) === 0)
+      // Grab the entry for it
+      .map(url => this.group.fallback[url] as FallbackManifestEntry)
+      .filter(entry => {
+        if (entry.fallbackTo === this.request.url) {
+          console.error(`ngsw: fallback loop! ${this.request.url}`);
+          return false;
+        }
+        return true;
+      })
+      // Craft a Request for the fallback destination
+      .map(entry => sw.adapter.newRequest(this.request, {url: entry.fallbackTo}))
+      // Jump back into processing
+      .concatMap(req => sw.handleFetch(req, {}));
+  }
+  
+  describe(): string {
+    return `fallback(${this.request.url})`;
   }
 }
 
@@ -53,19 +94,14 @@ function _cacheInstruction(request: Request, group: ManifestGroup): FetchInstruc
   return new FetchFromCacheInstruction(cacheFor(group), request);
 }
 
-function _devMode(request: Request): any {
-  return (obs: Observable<Manifest>) => {
-    return obs
-      .flatMap(manifest => {
-        if (!manifest.metadata.hasOwnProperty('dev') || !manifest.metadata['dev']) {
-          return Observable.empty();
-        }
-        return Observable.of(new FetchFromNetworkInstruction(request))
-      });
-  };
+function _devMode(request: Request, manifest: Manifest): any {
+  if (!manifest.metadata.hasOwnProperty('dev') || !manifest.metadata['dev']) {
+    return Observable.empty();
+  }
+  return Observable.of(new FetchFromNetworkInstruction(request));
 }
 
-function _handleRequest(request: Request): any {
+function _handleRequest(request: Request, options: Object): any {
   return (obs: Observable<Manifest>) => {
     return obs
       .flatMap(manifest => {
@@ -74,9 +110,14 @@ function _handleRequest(request: Request): any {
           .map(key => manifest.group[key])
           .cache();
         return Observable.concat(
-          // Firstly, serve requests from cache, if present.
-          groups.map(group => _cacheInstruction(request, group))
+          // Dev mode.
+          _devMode(request, manifest),
+          // Firstly, fall back if needed.
+          groups.map(group => new FallbackInstruction(request, group)),
+          // Then serve requests from cache.
+          groups.map(group => _cacheInstruction(request, group)),
           // Then from network.
+          groups.map(group => new FetchFromNetworkInstruction(request, undefined, options['timeout']))
         );
       });
   }
@@ -99,18 +140,22 @@ export class ServiceWorker {
     this.init = this.normalInit();
 
     events.install.subscribe((ev: InstallEvent) => {
+      console.log('ngsw: Event - install');
       this.init = this
         .checkDiffs(ManifestSource.NETWORK)
         .let(buildCaches(cache, fetch))
         .let(doAsync((delta: ManifestDelta) => cache.store(CACHE_INSTALLING, MANIFEST_URL, adapter.newResponse(delta.currentStr))))
         .map((delta: ManifestDelta) => delta.current)
+        .do(() => console.log('ngsw: Event - install complete'))
         .cache();
       ev.waitUntil(this.init.toPromise());
     });
     
     events.activate.subscribe((ev: InstallEvent) => {
+      console.log('ngsw: Event - activate');
       this.init = this
         .checkDiffs(ManifestSource.INSTALLING)
+        .let(cleanupCaches(cache))
         .let(doAsync((delta: ManifestDelta) => cache.store(CACHE_ACTIVE, MANIFEST_URL, adapter.newResponse(delta.currentStr))))
         .map((delta: ManifestDelta) => delta.current);
       ev.waitUntil(this.init.toPromise());
@@ -118,15 +163,18 @@ export class ServiceWorker {
     
     events.fetch.subscribe((ev: FetchEvent) => {
       let request = ev.request;
-      ev.respondWith(this
-        .init
-        .let<FetchInstruction>(concatLet(_devMode(request), _handleRequest(request)))
-        .concat(Observable.of(new FetchFromNetworkInstruction(request, true)))
-        .concatMap(instruction => instruction.execute(this))
-        .filter(resp => resp !== undefined)
-        .first()
-        .toPromise());
+      ev.respondWith(this.handleFetch(request, {}).toPromise());
     });
+  }
+  
+  handleFetch(request: Request, options: Object): Observable<Response> {
+    return this
+      .init
+      .let<FetchInstruction>(_handleRequest(request, options))
+      .do(instruction => console.log(`ngsw: executing ${instruction.describe()}`))
+      .concatMap(instruction => instruction.execute(this))
+      .filter(resp => resp !== undefined)
+      .first();
   }
   
   normalInit(): Observable<Manifest> {

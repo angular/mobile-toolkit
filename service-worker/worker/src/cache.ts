@@ -1,5 +1,5 @@
-import {Injectable} from 'angular2/core';
-import {Observable} from 'rxjs/Rx';
+import {Injectable} from 'angular2/src/core/di';
+import {Observable} from 'rxjs/Observable';
 
 import {WorkerScope, WorkerAdapter} from './context';
 
@@ -30,5 +30,11 @@ export class CacheManager {
       .caches
       .open(cache)
       .then(cache => cache.put(this.normalize(req), resp))));
+  }
+  
+  remove(cache: string): Observable<any> {
+    return Observable.defer(() => Observable.fromPromise(this
+      .caches
+      .delete(cache)));
   }
 }

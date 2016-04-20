@@ -1,5 +1,5 @@
-import {Injectable} from 'angular2/core';
-import {Observable} from 'rxjs/Rx';
+import {Injectable} from 'angular2/src/core/di';
+import {Observable} from 'rxjs/Observable';
 
 /**
  * Not actually inherited or instantiated, but used to provide typed injection of the global
