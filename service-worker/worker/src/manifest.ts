@@ -132,6 +132,9 @@ export class ManifestParser {
       case 'hash':
         entryMetadata['hash'] = value;
         break;
+      case 'index':
+        manifest.metadata['index'] = value;
+        break;
       default:
         throw `Unrecognized SW comment directive: '${assign[0]}'`
     }

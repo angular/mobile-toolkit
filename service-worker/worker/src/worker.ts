@@ -90,6 +90,21 @@ export class FallbackInstruction implements FetchInstruction {
   }
 }
 
+export class IndexInstruction implements FetchInstruction {
+  constructor(private request: Request, private manifest: Manifest) {}
+  
+  execute(sw: ServiceWorker): Observable<Response> {
+    if (this.request.url !== '/' || !this.manifest.metadata.hasOwnProperty('index')) {
+      return Observable.empty<Response>();
+    }
+    return sw.handleFetch(sw.adapter.newRequest(this.request, {url: this.manifest.metadata['index']}), {});
+  }
+  
+  describe(): string {
+    return `index(${this.request.url}, ${this.manifest.metadata['index']})`;
+  }
+}
+
 function _cacheInstruction(request: Request, group: ManifestGroup): FetchInstruction {
   return new FetchFromCacheInstruction(cacheFor(group), request);
 }
@@ -112,6 +127,7 @@ function _handleRequest(request: Request, options: Object): any {
         return Observable.concat(
           // Dev mode.
           _devMode(request, manifest),
+          Observable.of(new IndexInstruction(request, manifest)),
           // Firstly, fall back if needed.
           groups.map(group => new FallbackInstruction(request, group)),
           // Then serve requests from cache.

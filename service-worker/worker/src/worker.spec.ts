@@ -21,6 +21,13 @@ FALLBACK:
 /goodbye.txt /hello.txt
 `;
 
+const INDEX_MANIFEST = `CACHE MANIFEST
+CACHE:
+# sw.index: /hello.txt
+# sw.group.version: test
+/hello.txt
+`;
+
 const HASHED_MANIFEST_1 = `CACHE MANIFEST
 # sw.hash: 12345
 /hello.txt
@@ -257,6 +264,24 @@ describe('ngsw', () => {
       .resolve(null)
       .then(() => expectServed(driver, '/hello.txt', 'Hello world!'))
       .then(() => expectServed(driver, '/goodbye.txt', 'Hello world!'))
+      .then(done, err => errored(err, done)))
+  });;
+  sequence('index fallback', () => {
+    let driver: TestWorkerDriver = new TestWorkerDriver(ServiceWorker);
+    beforeAll(done => {
+      driver.mockUrl(MANIFEST_URL, INDEX_MANIFEST);
+      driver.mockUrl('/hello.txt', 'Hello world!');
+      driver.mockUrl('/', 'Should never be fetched!');
+      driver
+        .triggerInstall()
+        .then(() => driver.unmockAll())
+        .then(() => driver.triggerActivate())
+        .then(done, err => errored(err, done));
+    });
+    it('successfully serves the index', done => Promise
+      .resolve(null)
+      .then(() => expectServed(driver, '/hello.txt', 'Hello world!'))
+      .then(() => expectServed(driver, '/', 'Hello world!'))
       .then(done, err => errored(err, done)))
   });;
 });
