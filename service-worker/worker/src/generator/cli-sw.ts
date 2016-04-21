@@ -1,27 +1,18 @@
 declare var require;
 declare var module;
 
-
 import {ManifestWriter, SourceResolver} from './generator';
-
-
-declare class Promise<T> {
-  constructor(fn: Function);
-  static all<T>(promises: Promise<T>[]): Promise<T[]>;
-  static resolve<T>(val: T): Promise<T>;
-  then<V>(fn: (T) => V | Promise<V>): Promise<V>;
-}
 
 const fse           = require('fs-extra');
 const path          = require('path');
-const BroccoliPlugin:BroccoliPluginConstructor        = require('broccoli-caching-writer');;
 const MANIFEST_NAME = 'ngsw-manifest.json';
-const WORKER_NAME = 'worker.js';
+const WORKER_NAME   = 'worker.js';
+export const BroccoliPlugin: BroccoliPluginConstructor = require('broccoli-caching-writer');
 
-interface BroccoliPluginConstructor {
-    new(inputNodes:any[], options?:any): BroccoliPluginConstructor
-    inputPaths: string[];
-    outputPath: string;
+export interface BroccoliPluginConstructor {
+  new(inputNodes: any[], options?: any): BroccoliPluginConstructor;
+  inputPaths: string[];
+  outputPath: string;
 }
 
 class BroccoliSourceResolver implements SourceResolver {
@@ -35,7 +26,7 @@ class BroccoliSourceResolver implements SourceResolver {
 }
 
 export class ServiceWorkerPlugin extends BroccoliPlugin {
-  constructor(inputNodes:any, options?:any) {
+  constructor(inputNodes: any, options?: any) {
     super([inputNodes]);
   }
 
@@ -79,3 +70,4 @@ function recursiveReaddirSync(src) {
   })
   return files;
 }
+

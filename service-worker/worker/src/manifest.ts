@@ -1,4 +1,3 @@
-
 import {stringStartsWith} from './builtins';
 import {SHA1} from 'jshashes';
 
@@ -57,7 +56,7 @@ export interface CacheEntryMap {
 export interface CacheEntry {
   url: string;
   group: CacheGroup;
-  
+
   hash?: string;
 }
 
@@ -101,12 +100,12 @@ export function diffManifests(current: string, previous: string): ManifestDelta 
     return delta;
   }
   delta.previous = parseManifest(previous);
-  
+
   let groups = _mergeKeys(
     delta.current.group,
     delta.previous.group
   );
-  
+
   groups.forEach(name => {
     let prevGroup = _groupOrEmpty(delta.previous, name);
     let currGroup = _groupOrEmpty(delta.current, name);
@@ -178,3 +177,4 @@ function postProcessGroup(group: CacheGroup) {
       .join(':'));
   }
 }
+

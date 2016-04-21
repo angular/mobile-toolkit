@@ -17,7 +17,7 @@ function diffManifestsObs(obs: Observable<string[]>): Observable<ManifestDelta> 
     .map((contents: string[]) => diffManifests(contents[0], contents[1]));
 }
 
-enum ManifestSource {
+export enum ManifestSource {
   NETWORK,
   INSTALLING,
   ACTIVE
@@ -68,7 +68,7 @@ export class FetchFromNetworkInstruction implements FetchInstruction {
 
 export class FallbackInstruction implements FetchInstruction {
   constructor(private request: Request, private manifest: SwManifest) {}
-  
+
   execute(sw: ServiceWorker): Observable<Response> {
     return Observable
       // Look at all the fallback URLs in this group
@@ -96,7 +96,7 @@ export class FallbackInstruction implements FetchInstruction {
 
 export class IndexInstruction implements FetchInstruction {
   constructor(private request: Request, private manifest: SwManifest) {}
-  
+
   execute(sw: ServiceWorker): Observable<Response> {
     if (this.request.url !== '/' || !this.manifest.routing.index) {
       return Observable.empty<Response>();
@@ -145,7 +145,7 @@ function _handleRequest(request: Request, options: Object): any {
 
 export class ServiceWorker {
   _manifest: SwManifest = null;
-  
+
   get init(): Observable<SwManifest> {
     if (this._manifest != null) {
       return Observable.of(this._manifest);
@@ -200,7 +200,7 @@ export class ServiceWorker {
       .filter(resp => resp !== undefined)
       .first();
   }
-  
+
   normalInit(): Observable<SwManifest> {
     return this
       .loadFreshManifest(ManifestSource.ACTIVE)
@@ -263,3 +263,4 @@ export class ServiceWorker {
         Observable.from<string>(undefined));
   }
 }
+
