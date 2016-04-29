@@ -19,7 +19,7 @@
   },
   "homepage": "https://github.com/angular/progressive#readme",
   "devDependencies": {
-    "angular2": "^2.0.0-beta.11",
+    "angular2": "2.0.0-beta.11",
     "es6-shim": "^0.33.13",
     "gulp": "^3.9.0",
     "gulp-clean": "^0.3.1",
@@ -32,7 +32,7 @@
     "reflect-metadata": "0.1.2",
     "rimraf": "^2.5.2",
     "run-sequence": "^1.1.5",
-    "rxjs": "^5.0.0-beta.3",
+    "rxjs": "5.0.0-beta.6",
     "systemjs": "^0.19.17",
     "systemjs-builder": "^0.15.5",
     "ts-node": "^0.5.5",

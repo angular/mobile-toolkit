@@ -67,11 +67,11 @@ export class FallbackInstruction implements FetchInstruction {
   execute(sw: ServiceWorker): Observable<Response> {
     return Observable
       // Look at all the fallback URLs in this group
-      .fromArray(Object.keys(this.group.fallback))
+      .from(Object.keys(this.group.fallback))
       // Select the ones that match this request
-      .filter(url => this.request.url.indexOf(url) === 0)
+      .filter((url: string) => this.request.url.indexOf(url) === 0)
       // Grab the entry for it
-      .map(url => this.group.fallback[url] as FallbackManifestEntry)
+      .map((url: string) => this.group.fallback[url] as FallbackManifestEntry)
       .filter(entry => {
         if (entry.fallbackTo === this.request.url) {
           console.error(`ngsw: fallback loop! ${this.request.url}`);
@@ -142,8 +142,14 @@ function _handleRequest(request: Request, options: Object): any {
 @Injectable()
 export class ServiceWorker {
   
-  init: Observable<Manifest>;
+  _manifest: Manifest = null;
   
+  get init(): Observable<Manifest> {
+    if (this._manifest != null) {
+      return Observable.of(this._manifest);
+    }
+    return this.normalInit();
+  }
   
   manifestReq: Request;
   
@@ -153,29 +159,28 @@ export class ServiceWorker {
     public cache: CacheManager,
     public adapter: WorkerAdapter) {
     this.manifestReq = adapter.newRequest(MANIFEST_URL);
-    this.init = this.normalInit();
 
     events.install.subscribe((ev: InstallEvent) => {
       console.log('ngsw: Event - install');
-      this.init = this
+      let init = this
         .checkDiffs(ManifestSource.NETWORK)
         .let(buildCaches(cache, fetch))
         .let(doAsync((delta: ManifestDelta) => cache.store(CACHE_INSTALLING, MANIFEST_URL, adapter.newResponse(delta.currentStr))))
         .map((delta: ManifestDelta) => delta.current)
+        .do(manifest => this._manifest = manifest)
         .do(() => console.log('ngsw: Event - install complete'))
-        .cache();
-      ev.waitUntil(this.init.toPromise());
+      ev.waitUntil(init.toPromise());
     });
     
     events.activate.subscribe((ev: InstallEvent) => {
       console.log('ngsw: Event - activate');
-      this.init = this
+      let init = this
         .checkDiffs(ManifestSource.INSTALLING)
         .let(cleanupCaches(cache))
         .let(doAsync((delta: ManifestDelta) => cache.store(CACHE_ACTIVE, MANIFEST_URL, adapter.newResponse(delta.currentStr))))
         .map((delta: ManifestDelta) => delta.current)
-        .cache();
-      ev.waitUntil(this.init.toPromise());
+        .do(manifest => this._manifest = manifest);
+      ev.waitUntil(init.toPromise());
     });
     
     events.fetch.subscribe((ev: FetchEvent) => {
@@ -203,14 +208,13 @@ export class ServiceWorker {
         }
       })
       .map(data => (new ManifestParser()).parse(data))
-      .cache();
+      .do(manifest => this._manifest = manifest);
   }
   
   checkDiffs(source: ManifestSource): Observable<ManifestDelta> {
     return Observable
       .combineLatest(this.loadFreshManifest(source), this.loadCachedManifest())
       .let(diffManifests)
-      .cache();
   }
   
   loadFreshManifest(source: ManifestSource): Observable<string> {
