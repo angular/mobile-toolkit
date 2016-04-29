@@ -15,6 +15,7 @@ var process = require('process');
 var systemCompilerConfig = JSON.parse(fs.readFileSync('./tsconfig.json')).compilerOptions;
 var commonCompilerConfig = JSON.parse(fs.readFileSync('./tsconfig.cjs.json')).compilerOptions;
 
+commonCompilerConfig.typescript = require('typescript');
 gulp.task('default', ['build']);
 
 gulp.task('clean', (done) => {
