@@ -15,19 +15,19 @@ declare class Buffer {
   constructor(data: string);
 }
 
-export interface Manifest {
-  group: Group[];
-}
-
 export interface Routing {
   index: string;
   routes: string[];
 }
 
+export interface Manifest {
+  routing: Routing;
+  group: Group[];
+}
+
 export interface Group {
   name: string;
   sources: any;
-  routing: Routing;
 }
 
 export interface SourceResolver {
@@ -76,6 +76,10 @@ export class ManifestWriter {
       'CACHE:'
     ];
     
+    if (!!manifest.routing && !!manifest.routing.index) {
+      lines.push(`# sw.index: ${manifest.routing.index}`);
+    }
+    
     let linesPerGroup = Promise.all(
       manifest.group.map(group => this.writeGroup(group)));
     
@@ -87,8 +91,14 @@ export class ManifestWriter {
         '*',
         ''
       ]);
-      return lines.join('\n');
-    });
+    }).then(() => {
+      if (!!manifest.routing) {
+        lines.push('FALLBACK:');
+        manifest.routing.routes.forEach(route => {
+          lines.push(`${route} ${manifest.routing.index}`);
+        });
+      }
+    }).then(() => lines.join('\n'));
   }
 }
 

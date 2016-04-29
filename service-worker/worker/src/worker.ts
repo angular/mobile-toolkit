@@ -173,7 +173,8 @@ export class ServiceWorker {
         .checkDiffs(ManifestSource.INSTALLING)
         .let(cleanupCaches(cache))
         .let(doAsync((delta: ManifestDelta) => cache.store(CACHE_ACTIVE, MANIFEST_URL, adapter.newResponse(delta.currentStr))))
-        .map((delta: ManifestDelta) => delta.current);
+        .map((delta: ManifestDelta) => delta.current)
+        .cache();
       ev.waitUntil(this.init.toPromise());
     });
     

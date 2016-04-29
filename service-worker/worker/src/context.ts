@@ -40,8 +40,8 @@ export class Events {
   constructor(scope: WorkerScope) {
     var req: FetchEvent;
     
-    this.install = Observable.fromEvent<InstallEvent>(<any>scope, 'install').share();
-    this.activate = Observable.fromEvent<ActivateEvent>(<any>scope, 'activate').share();
-    this.fetch = Observable.fromEvent<FetchEvent>(<any>scope, 'fetch').share();
+    this.install = Observable.fromEvent<InstallEvent>(<any>scope, 'install');
+    this.activate = Observable.fromEvent<ActivateEvent>(<any>scope, 'activate');
+    this.fetch = Observable.fromEvent<FetchEvent>(<any>scope, 'fetch');
   }
 }

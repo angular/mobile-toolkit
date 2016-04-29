@@ -165,7 +165,7 @@ export function buildCaches(cache: CacheManager, fetch: Fetch): any {
 
 export function cleanupCaches(cache: CacheManager): any {
   return ((obs: Observable<ManifestDelta>): Observable<ManifestDelta> => obs
-    .let<ManifestDelta>(doAsync((delta: ManifestDelta) => Observable
+    .let<ManifestDelta>(doAsync((delta: ManifestDelta) => !!delta.previous ? Observable
       .from(Object.keys(delta.previous.group))
       .mergeMap((name: string) => {
         let prevCache = cacheFor(delta.previous.group[name]);
@@ -179,5 +179,5 @@ export function cleanupCaches(cache: CacheManager): any {
         return Observable.empty();
       })
       .ignoreElements()
-    )));
+    : Observable.empty())));
 }
