@@ -1,70 +1,133 @@
+import 'reflect-metadata';
 import {ServiceWorker, CACHE_INSTALLING, CACHE_ACTIVE, MANIFEST_URL} from './worker';
 import {TestWorkerDriver} from './testing/mock';
 import {Observable} from 'rxjs/Rx';
 import {MockRequest} from './testing/mock_cache';
+import {SwManifest} from './manifest';
 
-const SIMPLE_MANIFEST = `CACHE MANIFEST
-# sw.group.version: test
-/hello.txt
-# sw.group: secondary
-# sw.group.version: other
-/goodbye.txt
-/solong.txt
-`;
+let SIMPLE_MANIFEST = JSON.stringify({
+  group: {
+    'default': {
+      version: 'test',
+      url: {
+        '/hello.txt': {},
+      }
+    },
+    'secondary': {
+      version: 'other',
+      url: {
+        '/goodbye.txt': {},
+        '/solong.txt': {}
+      }
+    }
+  }
+});
 
-const FALLBACK_MANIFEST = `CACHE MANIFEST
-CACHE:
-# sw.group.version: test
-/hello.txt
+let FALLBACK_MANIFEST = JSON.stringify({
+  group: {
+    'default': {
+      version: 'test'
+    }
+  },
+  routing: {
+    index: '/hello.txt',
+    route: {
+      '/goodbye.txt': {
+        prefix: false
+      }
+    }
+  }
+});
 
-FALLBACK:
-/goodbye.txt /hello.txt
-`;
+let INDEX_MANIFEST = JSON.stringify({
+  group: {
+    'default': {
+      version: 'test',
+      url: {
+        '/hello.txt': {}
+      }
+    }
+  },
+  routing: {
+    index: '/hello.txt'
+  }
+});
 
-const INDEX_MANIFEST = `CACHE MANIFEST
-CACHE:
-# sw.index: /hello.txt
-# sw.group.version: test
-/hello.txt
-`;
+let HASHED_MANIFEST_1 = JSON.stringify({
+  group: {
+    'default': {
+      url: {
+        '/hello.txt': {
+          hash: '12345'
+        },
+        '/goodbye.txt': {
+          hash: '67890'
+        }
+      }
+    }
+  }
+});
 
-const HASHED_MANIFEST_1 = `CACHE MANIFEST
-# sw.hash: 12345
-/hello.txt
-# sw.hash: 67890
-/goodbye.txt
-`;
+let HASHED_MANIFEST_2 = JSON.stringify({
+  group: {
+    'default': {
+      url: {
+        '/hello.txt': {
+          hash: 'abcde'
+        },
+        '/goodbye.txt': {
+          hash: '67890'
+        }
+      }
+    }
+  }
+});
 
-const HASHED_MANIFEST_2 = `CACHE MANIFEST
-# sw.hash: abcde
-/hello.txt
-# sw.hash: 67890
-/goodbye.txt
-`;
+let DEV_MANIFEST = JSON.stringify({
+  dev: true,
+  group: {
+    'default': {
+      version: 'test',
+      url: {
+        '/hello.txt': {}
+      }
+    }
+  }
+});
 
-const DEV_MANIFEST = `CACHE MANIFEST
-# sw.dev: true
-# sw.group.version: test
-/hello.txt
-`;
+let BUNDLE_MANIFEST_1 = JSON.stringify({
+  group: {
+    'hello': {
+      version: '12345',
+      url: {
+        '/hello.txt': {}
+      }
+    },
+    'goodbye': {
+      version: '67890',
+      url: {
+        '/goodbye.txt': {}
+      }
+    }
+  }
+});
 
-const BUNDLE_MANIFEST_1 = `CACHE MANIFEST
-# sw.group: hello
-# sw.group.version: 12345
-/hello.txt
-# sw.group: goodbye
-# sw.group.version: 67890
-/goodbye.txt
-`;
-
-const BUNDLE_MANIFEST_2 = `CACHE MANIFEST
-# sw.group: hello
-# sw.group.version: 54321
-/hello.txt
-# sw.group: goodbye
-# sw.group.version: 67890
-/goodbye.txt
-`;
+let BUNDLE_MANIFEST_2 = JSON.stringify({
+  group: {
+    'hello': {
+      version: '54321',
+      url: {
+        '/hello.txt': {}
+      }
+    },
+    'goodbye': {
+      version: '67890',
+      url: {
+        '/goodbye.txt': {}
+      }
+    }
+  }
+});
 
 function errored(err, done) {
   fail(err);
@@ -186,7 +249,7 @@ describe('ngsw', () => {
       .then(keys => expect(keys.length).toBe(3))
       .then(done, err => errored(err, done)));
   });
-  sequence('upgrade without hashes', () => {
+  fsequence('upgrade without hashes', () => {
     let driver: TestWorkerDriver = new TestWorkerDriver(ServiceWorker);
     beforeAll(done => {
       driver.mockUrl(MANIFEST_URL, BUNDLE_MANIFEST_1);

@@ -1,16 +1,20 @@
-import {Injectable} from '@angular/core';
 import {Observable} from 'rxjs/Observable';
 import {Events, InstallEvent, FetchEvent, WorkerAdapter} from './context';
-import {Manifest, ManifestEntry, FallbackManifestEntry, ManifestGroup, ManifestParser, ManifestDelta} from './manifest';
+import {SwManifest, CacheEntry, CacheGroup, ManifestDelta, diffManifests, parseManifest, Route} from './manifest';
 import {Fetch} from './fetch';
 import {CacheManager} from './cache';
-import {diffManifests, buildCaches, cleanupCaches, cacheFor} from './setup';
+import {buildCaches, cleanupCaches, cacheFor} from './setup';
 
 import {extractBody, doAsync, concatLet} from './operator';
 
 export const MANIFEST_URL = '/manifest.appcache';
 export const CACHE_ACTIVE = 'ngsw.active';
 export const CACHE_INSTALLING = 'ngsw.installing';
+
+function diffManifestsObs(obs: Observable<string[]>): Observable<ManifestDelta> {
+  return obs
+    .map((contents: string[]) => diffManifests(contents[0], contents[1]));
+}
 
 enum ManifestSource {
   NETWORK,
@@ -62,25 +66,24 @@ export class FetchFromNetworkInstruction implements FetchInstruction {
 }
 
 export class FallbackInstruction implements FetchInstruction {
-  constructor(private request: Request, private group: ManifestGroup) {}
-
+  constructor(private request: Request, private manifest: SwManifest) {}
+  
   execute(sw: ServiceWorker): Observable<Response> {
     return Observable
       // Look at all the fallback URLs in this group
-      .from(Object.keys(this.group.fallback))
+      .from(Object.keys(this.manifest.routing.route))
       // Select the ones that match this request
-      .filter((url: string) => this.request.url.indexOf(url) === 0)
-      // Grab the entry for it
-      .map((url: string) => this.group.fallback[url] as FallbackManifestEntry)
-      .filter(entry => {
-        if (entry.fallbackTo === this.request.url) {
-          console.error(`ngsw: fallback loop! ${this.request.url}`);
-          return false;
+      .filter((url: string) => {
+        let route: Route = this.manifest.routing.route[url];
+        if (route.prefix && this.request.url.indexOf(url) === 0) {
+          return true;
         }
-        return true;
+        return this.request.url === url;
       })
+      // Grab the entry for it
+      .map((url: string) => this.manifest.routing.route[url] as Route)
       // Craft a Request for the fallback destination
-      .map(entry => sw.adapter.newRequest(this.request, {url: entry.fallbackTo}))
+      .map(entry => sw.adapter.newRequest(this.request, {url: this.manifest.routing.index}))
       // Jump back into processing
       .concatMap(req => sw.handleFetch(req, {}));
   }
@@ -91,36 +94,36 @@ export class FallbackInstruction implements FetchInstruction {
 }
 
 export class IndexInstruction implements FetchInstruction {
-  constructor(private request: Request, private manifest: Manifest) {}
-
+  constructor(private request: Request, private manifest: SwManifest) {}
+  
   execute(sw: ServiceWorker): Observable<Response> {
-    if (this.request.url !== '/' || !this.manifest.metadata.hasOwnProperty('index')) {
+    if (this.request.url !== '/' || !this.manifest.routing.index) {
       return Observable.empty<Response>();
     }
-    return sw.handleFetch(sw.adapter.newRequest(this.request, {url: this.manifest.metadata['index']}), {});
+    return sw.handleFetch(sw.adapter.newRequest(this.request, {url: this.manifest.routing.index}), {});
   }
 
   describe(): string {
-    return `index(${this.request.url}, ${this.manifest.metadata['index']})`;
+    return `index(${this.request.url}, ${this.manifest.routing.index})`;
   }
 }
 
-function _cacheInstruction(request: Request, group: ManifestGroup): FetchInstruction {
+function _cacheInstruction(request: Request, group: CacheGroup): FetchInstruction {
   return new FetchFromCacheInstruction(cacheFor(group), request);
 }
 
-function _devMode(request: Request, manifest: Manifest): any {
-  if (!manifest.metadata.hasOwnProperty('dev') || !manifest.metadata['dev']) {
+function _devMode(request: Request, manifest: SwManifest): any {
+  if (!manifest.dev) {
     return Observable.empty();
   }
   return Observable.of(new FetchFromNetworkInstruction(request));
 }
 
 function _handleRequest(request: Request, options: Object): any {
-  return (obs: Observable<Manifest>) => {
+  return (obs: Observable<SwManifest>) => {
     return obs
       .flatMap(manifest => {
-        let groups: Observable<ManifestGroup> = Observable
+        let groups: Observable<CacheGroup> = Observable
           .from<string>(Object.keys(manifest.group))
           .map(key => manifest.group[key])
           .cache();
@@ -129,7 +132,7 @@ function _handleRequest(request: Request, options: Object): any {
           _devMode(request, manifest),
           Observable.of(new IndexInstruction(request, manifest)),
           // Firstly, fall back if needed.
-          groups.map(group => new FallbackInstruction(request, group)),
+          Observable.of(new FallbackInstruction(request, manifest)),
           // Then serve requests from cache.
           groups.map(group => _cacheInstruction(request, group)),
           // Then from network.
@@ -139,12 +142,10 @@ function _handleRequest(request: Request, options: Object): any {
   }
 }
 
-@Injectable()
 export class ServiceWorker {
-
-  _manifest: Manifest = null;
-
-  get init(): Observable<Manifest> {
+  _manifest: SwManifest = null;
+  
+  get init(): Observable<SwManifest> {
     if (this._manifest != null) {
       return Observable.of(this._manifest);
     }
@@ -198,8 +199,8 @@ export class ServiceWorker {
       .filter(resp => resp !== undefined)
       .first();
   }
-
-  normalInit(): Observable<Manifest> {
+  
+  normalInit(): Observable<SwManifest> {
     return this
       .loadFreshManifest(ManifestSource.ACTIVE)
       .do(data => {
@@ -207,14 +208,14 @@ export class ServiceWorker {
           throw 'Unable to load manifest!';
         }
       })
-      .map(data => (new ManifestParser()).parse(data))
+      .map(data => parseManifest(data))
       .do(manifest => this._manifest = manifest);
   }
 
   checkDiffs(source: ManifestSource): Observable<ManifestDelta> {
     return Observable
       .combineLatest(this.loadFreshManifest(source), this.loadCachedManifest())
-      .let(diffManifests)
+      .let(diffManifestsObs)
   }
 
   loadFreshManifest(source: ManifestSource): Observable<string> {

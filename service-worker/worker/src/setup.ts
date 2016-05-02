@@ -1,11 +1,10 @@
 import {Observable} from 'rxjs/Observable';
 
-import {Manifest, ManifestEntry, ManifestParser, ManifestDelta, GroupDelta, ManifestGroup} from './manifest';
+import {SwManifest, CacheGroup, CacheEntry, ManifestDelta, EMPTY_CACHE_GROUP} from './manifest';
 import {CacheManager} from './cache';
 import {Fetch} from './fetch';
 import {doAsync} from './operator';
 
-let EMPTY_GROUP = new ManifestGroup();
 
 interface SetupInstruction {
   execute(cache: CacheManager, fetch: Fetch): Observable<any>;
@@ -50,78 +49,17 @@ function _keys(...objs: Object[]): string[] {
   return Object.keys(keys);
 }
 
-function _groupOrEmpty(manifest: Manifest, name: string): ManifestGroup {
-  if (!manifest.group.hasOwnProperty(name)) {
-    return EMPTY_GROUP
-  }
-  return manifest.group[name];
-}
-
-interface DiffArrayResult {
-  added: string[];
-  removed: string[];
-}
-
-function _diffArray(prev: string[], curr: string[]): DiffArrayResult {
-  return <DiffArrayResult>{
-    added: curr.filter(value => prev.indexOf(value) == -1),
-    removed: prev.filter(value => curr.indexOf(value) == -1)
-  };
-}
-
-function _diffGroups(prev: ManifestGroup, curr: ManifestGroup): GroupDelta {
-  let cacheDiff = _diffArray(_keys(prev.cache), _keys(curr.cache));
-  let networkDiff = _diffArray(_keys(prev.network), _keys(curr.network));
-  let fallbackDiff = _diffArray(_keys(prev.fallback), _keys(curr.fallback));
-  return <GroupDelta> {
-    cacheAdded: cacheDiff.added,
-    cacheRemoved: cacheDiff.removed,
-    networkAdded: networkDiff.added,
-    networkRemoved: networkDiff.removed,
-    fallbackAdded: fallbackDiff.added,
-    fallbackRemoved: fallbackDiff.removed
-  };
-}
-
-export function diffManifests(obs: Observable<string[]>): Observable<any> {
-  let parser = new ManifestParser();
-  return obs
-    .map(manifests => {
-      let [liveManifestData, cachedManifestData] = manifests;
-      let delta = new ManifestDelta(liveManifestData);
-      let current = parser.parse(liveManifestData);
-      delta.current = current;
-      // Fast path for identical manifests.
-      if (cachedManifestData && cachedManifestData == liveManifestData) {
-        delta.changed = false;
-        return delta;
-      }
-      delta.changed = true;
-
-      let previous = parser.parse(cachedManifestData);
-      delta.previous = previous;
-      
-      let groups = _keys(current.group, previous.group);
-      groups.forEach(name => {
-        let prevGroup = _groupOrEmpty(previous, name);
-        let currGroup = _groupOrEmpty(current, name);
-        delta.delta[name] = _diffGroups(prevGroup, currGroup);
-      });
-      return delta;
-    });
-}
-
-export function cacheFor(group: ManifestGroup): string {
+export function cacheFor(group: CacheGroup): string {
   return `${group.name}:${group.version}`;
 }
 
-function _presentAndEqual(prop: string, a: Object, b: Object): boolean {
-  return a.hasOwnProperty(prop) && b.hasOwnProperty(prop) && a[prop] == b[prop];
+function _presentAndEqual(a: string, b: string): boolean {
+  return a && b && a === b;
 }
 
-function _entryHasNotChanged(previous: ManifestEntry, current: ManifestEntry): boolean {
-  let sameHash = _presentAndEqual('hash', previous.metadata, current.metadata);
-  let sameVersion = _presentAndEqual('version', previous.group.metadata, current.group.metadata);
+function _entryHasNotChanged(previous: CacheEntry, current: CacheEntry): boolean {
+  let sameHash = _presentAndEqual(previous.hash, current.hash);
+  let sameVersion = _presentAndEqual(previous.group.version, current.group.version);
   return sameHash || sameVersion;
 }
 
@@ -131,23 +69,23 @@ export function buildCaches(cache: CacheManager, fetch: Fetch): any {
     .let<ManifestDelta>(doAsync((delta: ManifestDelta) => Observable
       .from(Object.keys(delta.current.group))
       .map((key: string) => delta.current.group[key])
-      .mergeMap<any>((group: ManifestGroup) => {
+      .mergeMap<any>((group: CacheGroup) => {
         // Process groups individually, in parallel.
         // Check whether this specific group has an entry in the previous manifest.
-        let prevGroup: ManifestGroup = EMPTY_GROUP;
+        let prevGroup: CacheGroup = EMPTY_CACHE_GROUP;
         if (delta.changed && delta.previous.group.hasOwnProperty(group.name)) {
           prevGroup = delta.previous.group[group.name];
         }
         return Observable
-          .from(Object.keys(group.cache))
-          .map((key: string) => group.cache[key])
+          .from(Object.keys(group.url))
+          .map((key: string) => group.url[key])
           .mergeMap<SetupInstruction>(entry => {
             // Default is to fetch from the network.
             let action: SetupInstruction = new FetchFromNetworkInstruction(entry.url, cacheFor(group));
             // Check whether the entry was in the previous cache.
-            if (prevGroup.cache.hasOwnProperty(entry.url)) {
+            if (prevGroup.url.hasOwnProperty(entry.url)) {
               // It was, see if it's valid to use (no change).
-              let prevEntry: ManifestEntry = prevGroup.cache[entry.url];
+              let prevEntry: CacheEntry = prevGroup.url[entry.url];
               if (_entryHasNotChanged(prevEntry, entry)) {
                 // This entry hasn't changed - can use the previous cached value.
                 action = new FetchFromCacheInstruction(entry.url, cacheFor(prevGroup), cacheFor(group));

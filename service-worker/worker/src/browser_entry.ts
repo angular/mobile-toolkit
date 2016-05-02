@@ -4,8 +4,7 @@ import {SW_PROVIDERS, WorkerScope, WorkerAdapter} from './index';
 import {ServiceWorker} from './worker';
 import './rxjs';
 
-
-//importScripts('worker.version.js');
+importScripts('ngsw-manifest.json');
 
 declare var global;
 
