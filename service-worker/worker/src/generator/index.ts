@@ -1,4 +1,5 @@
 declare var module;
 
-export * from './broccoli-service-worker';
+export * from './cli-sw';
 export * from './generator';
+export * from './appcache';

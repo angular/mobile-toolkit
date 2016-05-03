@@ -8,7 +8,7 @@ let sha1 = new SHA1();
 declare class Promise<T> {
   constructor(fn: Function);
   static all<T>(promises: Promise<T>[]): Promise<T[]>;
-  then<V>(fn: (T) => V | Promise<V>): Promise<V>;
+  then<V>(fn: (T) => V | Promise<V>, errFn?: any): Promise<V>;
 }
 
 declare class Buffer {
@@ -17,7 +17,12 @@ declare class Buffer {
 
 export interface Routing {
   index: string;
-  routes: string[];
+  routes: Route[];
+}
+
+export interface Route {
+  prefix: boolean;
+  url: string;
 }
 
 export interface Manifest {
@@ -34,19 +39,29 @@ export interface SourceResolver {
   resolve(sources: any): Promise<Object>;
 }
 
-export function gulpGenManifest(manifest: Manifest): any {
+function _mergeObjects(fromObj, toObj) {
+  Object.keys(fromObj).forEach(key => {
+    if (typeof fromObj[key] === 'object' && fromObj[key] != null && toObj.hasOwnProperty(key)) {
+      _mergeObjects(fromObj[key], toObj[key]);
+    } else {
+      toObj[key] = fromObj[key];
+    }
+  });
+}
+
+export function gulpGenManifest(manifest: Manifest, base?: string): any {
   let out = new stream.Readable({read: function() {}, objectMode: true});
   (new ManifestWriter(new GulpSourceResolver()))
-    .generate(manifest)
+    .generate(manifest, base)
     .then(contents => {
       out.push(new File({
         cwd: '/',
         base: '/',
-        path: '/manifest.appcache',
+        path: '/ngsw-manifest.json',
         contents: new Buffer(contents)
       }));
       out.push(null);
-    });
+    }, err => console.error(err));
   return out;
 }
 
@@ -54,51 +69,64 @@ export class ManifestWriter {
   
   constructor(private resolver: SourceResolver) {}
   
-  writeGroup(group: Group): Promise<string[]> {
+  processRoute(out: any, route: Route): void {
+    if (!out.routing.hasOwnPropert('route')) {
+      out.routing.route = {};
+    }
+    out.routing.route[route.url] = {
+      prefix: route.prefix
+    };
+  }
+  
+  processGroup(out: any, group: Group): Promise<any> {
+    if (!out.group.hasOwnProperty(group.name)) {
+      out.group[group.name] = {
+        url: {}
+      };
+    }
+    let outGroup = out.group[group.name];
     return this
       .resolver
       .resolve(group.sources)
-      .then(map => {
-        let lines: string[] = [];
-        lines.push(`# sw.group: ${group.name}`);
-        Object.keys(map).forEach(path => {
+      .then(map => Object
+        .keys(map)
+        .forEach(path => {
           let hash = sha1.hex(map[path]);
-          lines.push(`# sw.hash: ${hash}`);
-          lines.push(path);
-        });
-        return lines;
-      });
+          outGroup.url[path] = {
+            'hash': hash
+          };
+        })
+      );
   }
   
-  generate(manifest: Manifest): Promise<string> {
-    let lines: string[] = [
-      'CACHE MANIFEST',
-      'CACHE:'
-    ];
+  process(manifest: Manifest, base?: string): Promise<string> {
+    let baseObj = base ? JSON.parse(base) : '';
+    let out = <any>{
+      group: {},
+      routing: {
+        index: '/index.html'
+      }
+    };
     
     if (!!manifest.routing && !!manifest.routing.index) {
-      lines.push(`# sw.index: ${manifest.routing.index}`);
+      out.routing.index = manifest.routing.index;
     }
     
-    let linesPerGroup = Promise.all(
-      manifest.group.map(group => this.writeGroup(group)));
-    
-    return linesPerGroup.then(groups => {
-      groups.forEach(group => lines.push(...group));
-    }).then(() => {
-      lines.push(...[
-        'NETWORK:',
-        '*',
-        ''
-      ]);
-    }).then(() => {
-      if (!!manifest.routing) {
-        lines.push('FALLBACK:');
-        manifest.routing.routes.forEach(route => {
-          lines.push(`${route} ${manifest.routing.index}`);
-        });
-      }
-    }).then(() => lines.join('\n'));
+    if (!!manifest.routing && !!manifest.routing.routes) {
+      manifest.routing.routes.forEach(route => this.processRoute(out, route));
+    }
+    return Promise
+      .all(manifest
+        .group
+        .map(group => this.processGroup(out, group)))
+      .then(() => _mergeObjects(baseObj, out))
+      .then(() => out);
+  }
+  
+  generate(manifest: Manifest, base?: string): Promise<string> {
+    return this
+      .process(manifest, base)
+      .then(out => JSON.stringify(out));
   }
 }
 

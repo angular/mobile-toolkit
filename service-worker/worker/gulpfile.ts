@@ -1,5 +1,7 @@
 declare var require;
 
+import {gulpGenManifest, gulpGenAppCacheManifest} from './src/generator';
+
 var gulp = require('gulp');
 var util = require('gulp-util');
 var ts = require('gulp-typescript');
@@ -15,6 +17,7 @@ var systemCompilerConfig = JSON.parse(fs.readFileSync('./tsconfig.json')).compil
 var commonCompilerConfig = JSON.parse(fs.readFileSync('./tsconfig.cjs.json')).compilerOptions;
 
 commonCompilerConfig.typescript = require('typescript');
+
 gulp.task('default', ['build']);
 
 gulp.task('clean', (done) => {
@@ -104,3 +107,4 @@ gulp.task('!bundle', ['!build:system'], () => {
   });
   builder.buildStatic('worker/browser_entry', 'dist/worker.js');
 });
+

@@ -1,15 +1,5 @@
-
-import {stringStartsWith} from './builtins';
+import {ManifestDelta, SwManifest, CacheGroup, CacheGroupMap, CacheEntryMap} from './manifest';
 import {SHA1} from 'jshashes';
-
-function _mergeKeys(...objs: Object[]): string[] {
-  let keys = {};
-  objs
-    .forEach(obj => Object
-    .keys(obj)
-    .forEach(key => keys[key] = true));
-  return Object.keys(keys);
-}
 
 interface DiffArrayResult {
   added: string[];
@@ -34,62 +24,14 @@ export var EMPTY_CACHE_GROUP = <CacheGroup>{
   url: <CacheEntryMap>{}
 }
 
-export interface SwManifest {
-  dev?: boolean;
-  group: CacheGroupMap;
-  routing?: Routing;
-}
 
-export interface CacheGroupMap {
-  [name: string]: CacheGroup;
-}
-
-export interface CacheGroup {
-  name: string;
-  url: CacheEntryMap;
-  version?: string
-}
-
-export interface CacheEntryMap {
-  [url: string]: CacheEntry;
-}
-
-export interface CacheEntry {
-  url: string;
-  group: CacheGroup;
-  
-  hash?: string;
-}
-
-export interface Routing {
-  index: string;
-  route?: RouteMap;
-}
-
-export interface RouteMap {
-  [url: string]: Route;
-}
-
-export interface Route {
-  url: string;
-  prefix?: boolean;
-}
-
-export class ManifestDelta {
-  current: SwManifest;
-  currentStr: string;
-  previous: SwManifest;
-  changed: boolean = true;
-  delta: CacheGroupDeltaMap = {};
-}
-
-export interface CacheGroupDeltaMap {
-  [url: string]: CacheGroupDelta;
-}
-
-export class CacheGroupDelta {
-  added: string[] = [];
-  removed: string[] = [];
+function _mergeKeys(...objs: Object[]): string[] {
+  let keys = {};
+  objs
+    .forEach(obj => Object
+    .keys(obj)
+    .forEach(key => keys[key] = true));
+  return Object.keys(keys);
 }
 
 export function diffManifests(current: string, previous: string): ManifestDelta {
@@ -130,7 +72,6 @@ export function parseManifest(data: string): SwManifest {
   return parsed;
 }
 
-
 function postProcessManifest(manifest: SwManifest) {
   if (manifest.routing !== null) {
     manifest.routing = {
@@ -140,7 +81,6 @@ function postProcessManifest(manifest: SwManifest) {
   } else if (!manifest.routing.route) {
     manifest.routing.route = {};
   }
-
   Object
     .keys(manifest.group)
     .map(name => {
