@@ -36,7 +36,8 @@
     "ts-node": "^0.5.5",
     "tsd": "^0.6.5",
     "typescript": "^1.8.9",
-    "zone.js": "^0.6.6"
+    "vinyl": "^1.1.1",
+    "zone.js": "^0.6.5"
   },
   "dependencies": {
     "@angular/core": "^2.0.0-rc.1",
