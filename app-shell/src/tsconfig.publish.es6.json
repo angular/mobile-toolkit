@@ -1,0 +1,21 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "declaration": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noEmitOnError": true,
+    "noImplicitAny": true,
+    "outDir": "../dist/esm",
+    "rootDir": "./app",
+    "sourceMap": true,
+    "target": "es6",
+    "inlineSources": true
+  },
+
+  "files": [
+    "app/index.ts"
+  ]
+}

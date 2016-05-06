@@ -1,0 +1,25 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "declaration": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noEmitOnError": true,
+    "noImplicitAny": true,
+    "outDir": "../dist/",
+    "rootDir": "./app",
+    "sourceMap": true,
+    "target": "es5",
+    "inlineSources": true
+  },
+
+  "files": [
+    "app/index.ts",
+    "app/is-prerender.service.spec.ts",
+    "app/shell-no-render.directive.spec.ts",
+    "app/shell-render.directive.spec.ts",
+    "typings.d.ts"
+  ]
+}
