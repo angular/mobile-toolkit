@@ -1,6 +1,6 @@
 {
   "name": "angular2-service-worker",
-  "version": "0.1.10",
+  "version": "0.1.12",
   "description": "Experimental service worker by the Angular Mobile team",
   "main": "dist/generator/index.js",
   "scripts": {
