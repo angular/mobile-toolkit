@@ -38,7 +38,7 @@ gulp.task('!build:system', () => gulp
     'typings/browser/**/*.d.ts'
   ])
   .pipe(ts(systemCompilerConfig))
-  .pipe(gulp.dest('dist/src')));
+  .pipe(gulp.dest('dist')));
 
 gulp.task('!build:commonjs', () => gulp
   .src([
@@ -81,7 +81,7 @@ gulp.task('!bundle', ['!build:system'], () => {
   builder.config({
     map: {
       'worker': 'dist/src',
-      'angular2': 'node_modules/angular2',
+      '@angular': 'node_modules/@angular',
       'rxjs': 'node_modules/rxjs',
       'reflect-metadata': 'node_modules/reflect-metadata/temp/Reflect.js',
       'jshashes': 'node_modules/jshashes/hashes.js'
@@ -93,8 +93,9 @@ gulp.task('!bundle', ['!build:system'], () => {
       'rxjs': {
         defaultExtension: 'js'
       },
-      'angular2': {
-        defaultExtension: 'js'
+      '@angular/core': {
+        defaultExtension: 'js',
+        main: 'index.js'
       },
       'reflect-metadata': {
         format: 'global'
