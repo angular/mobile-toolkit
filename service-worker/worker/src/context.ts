@@ -1,4 +1,4 @@
-import {Injectable} from 'angular2/src/core/di';
+import {Injectable} from '@angular/core';
 import {Observable} from 'rxjs/Observable';
 
 /**
@@ -36,10 +36,10 @@ export class Events {
   install: Observable<InstallEvent>;
   activate: Observable<ActivateEvent>;
   fetch: Observable<FetchEvent>;
-  
+
   constructor(scope: WorkerScope) {
     var req: FetchEvent;
-    
+
     this.install = Observable.fromEvent<InstallEvent>(<any>scope, 'install');
     this.activate = Observable.fromEvent<ActivateEvent>(<any>scope, 'activate');
     this.fetch = Observable.fromEvent<FetchEvent>(<any>scope, 'fetch');

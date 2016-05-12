@@ -19,8 +19,7 @@
   },
   "homepage": "https://github.com/angular/progressive#readme",
   "devDependencies": {
-    "angular2": "2.0.0-beta.11",
-    "es6-shim": "^0.33.13",
+    "es6-shim": "^0.35.0",
     "gulp": "^3.9.0",
     "gulp-clean": "^0.3.1",
     "gulp-concat": "^2.6.0",
@@ -38,14 +37,15 @@
     "ts-node": "^0.5.5",
     "tsd": "^0.6.5",
     "typescript": "^1.8.9",
-    "zone.js": "^0.6.5"
+    "zone.js": "^0.6.6"
   },
   "dependencies": {
-    "angular2": "^2.0.0-beta.1",
+    "@angular/core": "^2.0.0-rc.1",
     "broccoli-caching-writer": "^2.2.1",
     "es6-promise": "^3.0.2",
     "es6-shim": "^0.33.13",
     "fs-extra": "^0.30.0",
-    "jshashes": "^1.0.5"
+    "jshashes": "^1.0.5",
+    "vinyl": "^1.1.1"
   }
 }

@@ -1,13 +1,13 @@
-import {Injectable} from 'angular2/src/core/di';
+import {Injectable} from '@angular/core';
 import {Observable} from 'rxjs/Observable';
 import {WorkerScope, WorkerAdapter} from './context';
 import {timeoutTo} from './operator';
 
 @Injectable()
 export class Fetch {
-  
+
   constructor(private scope: WorkerScope, private adapter: WorkerAdapter) {}
-  
+
   request(req: Request, timeout: number = null): Observable<Response> {
     let result: Observable<Response> = Observable.defer(() => Observable
       .fromPromise<Response>(this
@@ -18,7 +18,7 @@ export class Fetch {
     }
     return result;
   }
-  
+
   refresh(req: string | Request, timeout: number = null): Observable<Response> {
     let request: Request;
     if (typeof req == 'string') {
@@ -28,7 +28,7 @@ export class Fetch {
     }
     return this.request(request, timeout);
   }
-  
+
   private _cacheBust(url: string): string {
     var bust = Math.random();
     if (url.indexOf('?') == -1) {

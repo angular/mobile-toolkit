@@ -9,7 +9,6 @@ var rimraf = require('rimraf');
 var concat = require('gulp-concat');
 let jsmn = require('gulp-jasmine');
 var runSequence = require('run-sequence');
-var logger = require('gulp-logger');
 var process = require('process');
 
 var systemCompilerConfig = JSON.parse(fs.readFileSync('./tsconfig.json')).compilerOptions;
@@ -26,7 +25,7 @@ gulp.task('build', (done) => runSequence(
   'clean',
   '!build:system',
   done));
-  
+
 gulp.task('prepublish', done => runSequence(
   'clean',
   ['!bundle', 'copy:generator'],
@@ -40,7 +39,7 @@ gulp.task('!build:system', () => gulp
   ])
   .pipe(ts(systemCompilerConfig))
   .pipe(gulp.dest('dist/src')));
-  
+
 gulp.task('!build:commonjs', () => gulp
   .src([
     'src/**/*.ts',
@@ -56,13 +55,13 @@ gulp.task('build:generator', () => gulp
   ])
   .pipe(ts(commonCompilerConfig))
   .pipe(gulp.dest('dist/src/generator')));
-  
+
 gulp.task('copy:generator', ['build:generator'], () => gulp
   .src([
     'dist/src/generator/**/*.js'
   ])
   .pipe(gulp.dest('dist/generator')));
-  
+
 gulp.task('build:test', (done) => runSequence(
   'clean',
   '!build:commonjs',

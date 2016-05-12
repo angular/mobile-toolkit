@@ -1,4 +1,4 @@
-import {Injectable} from 'angular2/src/core/di';
+import {Injectable} from '@angular/core';
 import {stringStartsWith} from './builtins';
 import {SHA1} from 'jshashes';
 
@@ -62,9 +62,9 @@ export class Manifest {
 }
 
 export class ManifestDelta {
-  
+
   constructor(public currentStr: string) {}
-  
+
   changed: boolean;
   current: Manifest;
   previous: Manifest;
@@ -81,12 +81,12 @@ function _entryVersion(entry: ManifestEntry): string {
 
 function _computeAndSetVersion(group: ManifestGroup): void {
   let files: string[] = [];
-  
+
   let allFilesHaveHash = Object
     .keys(group.cache)
     .map(key => group.cache[key].metadata.hasOwnProperty('hash'))
     .reduce((state, hasHash) => state && hasHash, true);
-    
+
   // If the group has a version already set, use that.
   if (group.metadata.hasOwnProperty('version')) {
     group.version = group.metadata['version'];
@@ -94,12 +94,12 @@ function _computeAndSetVersion(group: ManifestGroup): void {
   } else if (!allFilesHaveHash) {
     throw 'All files must have a hash, or the group must be versioned as a whole';
   }
-  
+
   files.push(...Object
     .keys(group.cache)
     .map(key => group.cache[key])
     .map(entry => _entryVersion(entry)));
-    
+
   // Since the order of the array is determined by the enumeration
   // order of group.cache, sort the array to ensure consistent hashing.
   files.sort();
@@ -109,13 +109,13 @@ function _computeAndSetVersion(group: ManifestGroup): void {
 
 @Injectable()
 export class ManifestParser {
-  
+
   _processComment(manifest: Manifest, state: ParserState, entryMetadata: Object, groupMetadata: Object, line: string): Object {
     let assign = line.split(': ', 2);
     if (assign.length !== 2) {
       throw `Invalid SW comment directive: '${line}', missing value. Expected format 'sw.key: value'`;
     }
-    
+
     let value = assign[1];
     switch (assign[0].toLowerCase()) {
       case 'dev':
@@ -140,7 +140,7 @@ export class ManifestParser {
     }
     return groupMetadata;
   }
-  
+
   _parseFallbackEntry(entry: ManifestEntry): FallbackManifestEntry {
     var split = entry.url.split(' ', 2);
     if (split.length !== 2) {
@@ -153,13 +153,13 @@ export class ManifestParser {
       group: entry.group,
     };
   }
-  
+
   _throwIfDefinedMetadata(metadata: Object): void {
     if (Object.keys(metadata).length !== 0) {
       throw 'Orphan metadata!';
     }
   }
-  
+
   _group(manifest: Manifest, name: string, metadata: Object): ManifestGroup {
     if (!manifest.group.hasOwnProperty(name)) {
       let group = new ManifestGroup();
@@ -169,7 +169,7 @@ export class ManifestParser {
     }
     return manifest.group[name];
   }
-  
+
   parse(manifest: string): Manifest {
     let parsed = new Manifest();
     if (manifest === undefined) {

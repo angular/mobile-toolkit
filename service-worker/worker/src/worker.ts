@@ -1,4 +1,4 @@
-import {Injectable} from 'angular2/src/core/di';
+import {Injectable} from '@angular/core';
 import {Observable} from 'rxjs/Observable';
 import {Events, InstallEvent, FetchEvent, WorkerAdapter} from './context';
 import {Manifest, ManifestEntry, FallbackManifestEntry, ManifestGroup, ManifestParser, ManifestDelta} from './manifest';
@@ -25,11 +25,11 @@ export interface FetchInstruction {
 
 export class FetchFromCacheInstruction implements FetchInstruction {
   constructor(private cache: string, private request: Request) {}
-  
+
   execute(sw: ServiceWorker): Observable<Response> {
     return sw.cache.load(this.cache, this.request);
   }
-  
+
   describe(): string {
     return `fetchFromCache(${this.cache}, ${this.request.url})`;
   }
@@ -37,7 +37,7 @@ export class FetchFromCacheInstruction implements FetchInstruction {
 
 export class FetchFromNetworkInstruction implements FetchInstruction {
   constructor(private request: Request, private useHttpCache: boolean = true, private timeout: number = null) {}
-  
+
   execute(sw: ServiceWorker): Observable<Response> {
     var result: Observable<Response> = sw.fetch.request(this.request);
     if (!this.useHttpCache) {
@@ -55,7 +55,7 @@ export class FetchFromNetworkInstruction implements FetchInstruction {
     }
     return result;
   }
-  
+
   describe(): string {
     return `fetchFromNetwork(${this.request.url})`;
   }
@@ -63,7 +63,7 @@ export class FetchFromNetworkInstruction implements FetchInstruction {
 
 export class FallbackInstruction implements FetchInstruction {
   constructor(private request: Request, private group: ManifestGroup) {}
-  
+
   execute(sw: ServiceWorker): Observable<Response> {
     return Observable
       // Look at all the fallback URLs in this group
@@ -84,7 +84,7 @@ export class FallbackInstruction implements FetchInstruction {
       // Jump back into processing
       .concatMap(req => sw.handleFetch(req, {}));
   }
-  
+
   describe(): string {
     return `fallback(${this.request.url})`;
   }
@@ -92,14 +92,14 @@ export class FallbackInstruction implements FetchInstruction {
 
 export class IndexInstruction implements FetchInstruction {
   constructor(private request: Request, private manifest: Manifest) {}
-  
+
   execute(sw: ServiceWorker): Observable<Response> {
     if (this.request.url !== '/' || !this.manifest.metadata.hasOwnProperty('index')) {
       return Observable.empty<Response>();
     }
     return sw.handleFetch(sw.adapter.newRequest(this.request, {url: this.manifest.metadata['index']}), {});
   }
-  
+
   describe(): string {
     return `index(${this.request.url}, ${this.manifest.metadata['index']})`;
   }
@@ -141,18 +141,18 @@ function _handleRequest(request: Request, options: Object): any {
 
 @Injectable()
 export class ServiceWorker {
-  
+
   _manifest: Manifest = null;
-  
+
   get init(): Observable<Manifest> {
     if (this._manifest != null) {
       return Observable.of(this._manifest);
     }
     return this.normalInit();
   }
-  
+
   manifestReq: Request;
-  
+
   constructor(
     private events: Events,
     public fetch: Fetch,
@@ -171,7 +171,7 @@ export class ServiceWorker {
         .do(() => console.log('ngsw: Event - install complete'))
       ev.waitUntil(init.toPromise());
     });
-    
+
     events.activate.subscribe((ev: InstallEvent) => {
       console.log('ngsw: Event - activate');
       let init = this
@@ -182,13 +182,13 @@ export class ServiceWorker {
         .do(manifest => this._manifest = manifest);
       ev.waitUntil(init.toPromise());
     });
-    
+
     events.fetch.subscribe((ev: FetchEvent) => {
       let request = ev.request;
       ev.respondWith(this.handleFetch(request, {}).toPromise());
     });
   }
-  
+
   handleFetch(request: Request, options: Object): Observable<Response> {
     return this
       .init
@@ -198,7 +198,7 @@ export class ServiceWorker {
       .filter(resp => resp !== undefined)
       .first();
   }
-  
+
   normalInit(): Observable<Manifest> {
     return this
       .loadFreshManifest(ManifestSource.ACTIVE)
@@ -210,13 +210,13 @@ export class ServiceWorker {
       .map(data => (new ManifestParser()).parse(data))
       .do(manifest => this._manifest = manifest);
   }
-  
+
   checkDiffs(source: ManifestSource): Observable<ManifestDelta> {
     return Observable
       .combineLatest(this.loadFreshManifest(source), this.loadCachedManifest())
       .let(diffManifests)
   }
-  
+
   loadFreshManifest(source: ManifestSource): Observable<string> {
     let respSource: Observable<Response>;
     switch (source) {
@@ -246,14 +246,14 @@ export class ServiceWorker {
       })
       .let(extractBody);
   }
-  
+
   loadCachedManifest(): Observable<string> {
     return this
       .cache
       .load(CACHE_ACTIVE, MANIFEST_URL)
       .let(extractBody);
   }
-  
+
   bodyFn(obs: Observable<Response>): Observable<string> {
     return obs.flatMap(resp =>
       resp != undefined ?
