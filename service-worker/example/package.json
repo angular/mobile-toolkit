@@ -1,5 +1,5 @@
 {
-  "name": "angular2-service-worker-example",
+  "name": "@angular/service-worker-example",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -9,7 +9,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "angular2-service-worker": "^0.1.0",
+    "@angular/service-worker": "^0.1.0",
     "gulp": "^3.9.1",
     "jshashes": "^1.0.5",
     "ts-node": "^0.7.2",

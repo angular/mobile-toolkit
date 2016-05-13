@@ -1,7 +1,7 @@
 declare var require;
 
 let gulp = require('gulp');
-let ngsw = require('angular2-service-worker');
+let ngsw = require('@angular/service-worker');
 
 gulp.task('default', ['copy:static', 'copy:sw', 'build:manifest'])
 
@@ -19,10 +19,10 @@ gulp.task('copy:static', () => gulp
 
 gulp.task('copy:sw', () => gulp
   .src([
-    'node_modules/angular2-service-worker/dist/worker.js'
+    'node_modules/@angular/service-worker/dist/worker.js'
   ])
   .pipe(gulp.dest('webroot')));
-  
+
 gulp.task('build:manifest', () => ngsw
   .gulpGenManifest({
     group: [

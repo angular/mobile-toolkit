@@ -52,7 +52,7 @@ export class ServiceWorkerPlugin extends BroccoliPlugin {
         fse.writeFileSync(path.join(this.outputPath, MANIFEST_NAME), manifest);
       })
       .then(() => {
-        fse.writeFileSync(path.resolve(this.outputPath, WORKER_NAME), fse.readFileSync(path.resolve(this.inputPaths[0], 'vendor/angular2-service-worker/dist/worker.js')));
+        fse.writeFileSync(path.resolve(this.outputPath, WORKER_NAME), fse.readFileSync(path.resolve(this.inputPaths[0], 'vendor/@angular/service-worker/dist/worker.js')));
       });
   }
 }

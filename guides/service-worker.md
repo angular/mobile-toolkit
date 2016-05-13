@@ -6,12 +6,12 @@ and [App Shell](./app-shell.md) guides.
 The first step is to install the Service Worker from the Angular Mobile Toolkit.
 
 ```
-npm install --save-dev angular2-service-worker
+npm install --save-dev @angular/service-worker
 ```
 
 This package contains two important pieces, which we'll use later:
 
- 1. The Service Worker script itself, located at `node_modules/angular2-service-worker/dist/worker.js`
+ 1. The Service Worker script itself, located at `node_modules/@angular/service-worker/dist/worker.js`
 
  2. The CLI plugin that will generate a manifest - the list of all files that should be cached in your app - automatically.
 
@@ -23,13 +23,13 @@ Open up `angular-cli-build.js`. We'll make three changes here:
  * Create an instance of the Service Worker plugin at the very end of the build flow (we want to capture all the files).
  * Merge the Service Worker [Broccoli](http://broccolijs.com/) tree with the rest of the app.
 
-First, find the section creating `Angular2App` and add `angular2-service-worker/dist/worker.js` to the `vendorNpmFiles` section:
+First, find the section creating `Angular2App` and add `@angular/service-worker/dist/worker.js` to the `vendorNpmFiles` section:
 
 ```js
 var ngTree = new Angular2App(defaults, {
   vendorNpmFiles: [
     // ...
-    'angular2-service-worker/dist/worker.js',
+    '@angular/service-worker/dist/worker.js',
     // ...
   ]
 });
@@ -56,7 +56,7 @@ To:
 Before this can run, we'll need to add the import for `ServiceWorkerPlugin` to the top of the file:
 
 ```js
-const ServiceWorkerPlugin = require('angular2-service-worker').ServiceWorkerPlugin;
+const ServiceWorkerPlugin = require('@angular/service-worker').ServiceWorkerPlugin;
 ```
 
 Great! Now run ng build, and there should be a `dist/manifest.appcache` file generated with your manifest. This is the file that the Service Worker script parses to know what files it should cache. It also can be included in index.html to act as a fallback to add some basic offline functionality for browsers that don't yet support Service Worker. Browsers that support Service Worker will automatically ignore the App Cache Manifest if a Service Worker is installed.
