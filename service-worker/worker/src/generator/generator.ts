@@ -60,6 +60,12 @@ export function gulpGenManifest(manifest: Manifest, base?: string): any {
         path: '/ngsw-manifest.json',
         contents: new Buffer(contents)
       }));
+      out.push(new File({
+        cwd: '/',
+        base: '/',
+        path: '/ngsw-manifest.json.js',
+        contents: new Buffer(`/* ${contents} */`)
+      }));
       out.push(null);
     }, err => console.error(err));
   return out;

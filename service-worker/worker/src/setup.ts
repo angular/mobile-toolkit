@@ -1,6 +1,7 @@
 import {Observable} from 'rxjs/Observable';
 
-import {SwManifest, CacheGroup, CacheEntry, ManifestDelta, EMPTY_CACHE_GROUP} from './manifest';
+import {SwManifest, CacheGroup, CacheEntry, ManifestDelta} from './manifest';
+import {EMPTY_CACHE_GROUP} from './manifest-parser';
 import {CacheManager} from './cache';
 import {Fetch} from './fetch';
 import {doAsync} from './operator';
@@ -94,7 +95,7 @@ export function buildCaches(cache: CacheManager, fetch: Fetch): any {
             // Return instructions, which will be mergeMap'd and executed.
             return Observable.of<SetupInstruction>(action);
           })
-        .do(action => console.log('setup', action.describe()))
+        .do(action => console.log('ngsw: setup', action.describe()))
         .mergeMap<any>(action => action.execute(cache, fetch));
       })
     ))

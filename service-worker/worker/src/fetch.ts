@@ -1,9 +1,7 @@
-import {Injectable} from '@angular/core';
 import {Observable} from 'rxjs/Observable';
 import {WorkerScope, WorkerAdapter} from './context';
 import {timeoutTo} from './operator';
 
-@Injectable()
 export class Fetch {
 
   constructor(private scope: WorkerScope, private adapter: WorkerAdapter) {}

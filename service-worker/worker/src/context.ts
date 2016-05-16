@@ -1,4 +1,3 @@
-import {Injectable} from '@angular/core';
 import {Observable} from 'rxjs/Observable';
 
 /**
@@ -31,7 +30,6 @@ export interface FetchEvent extends ExtendableEvent {
   respondWith(response: Promise<Response>);
 }
 
-@Injectable()
 export class Events {
   install: Observable<InstallEvent>;
   activate: Observable<ActivateEvent>;

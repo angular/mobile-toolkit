@@ -15,7 +15,7 @@ declare class Promise<T> {
 const fse           = require('fs-extra');
 const path          = require('path');
 const BroccoliPlugin:BroccoliPluginConstructor        = require('broccoli-caching-writer');;
-const MANIFEST_NAME = 'manifest.appcache';
+const MANIFEST_NAME = 'ngsw-manifest.json';
 const WORKER_NAME = 'worker.js';
 
 interface BroccoliPluginConstructor {
@@ -52,15 +52,16 @@ export class ServiceWorkerPlugin extends BroccoliPlugin {
           .filter(p => {
             var relativePath = path.relative(this.inputPaths[0], p);
             // TODO(alxhub): better detection of worker script.
-            return relativePath !== MANIFEST_NAME && relativePath !== WORKER_NAME;
+            return relativePath !== MANIFEST_NAME && relativePath !== 'vendor/@angular/service-worker/dist/worker.js';
           })
         }]
       })
       .then(manifest => {
         fse.writeFileSync(path.join(this.outputPath, MANIFEST_NAME), manifest);
+        fse.writeFileSync(path.join(this.outputPath, `${MANIFEST_NAME}.js`), `/* ${manifest} */`);
       })
       .then(() => {
-        fse.writeFileSync(path.resolve(this.outputPath, WORKER_NAME), fse.readFileSync(path.resolve(this.inputPaths[0], 'vendor/angular2-service-worker/dist/worker.js')));
+        fse.writeFileSync(path.resolve(this.outputPath, WORKER_NAME), fse.readFileSync(path.resolve(this.inputPaths[0], 'vendor/@angular/service-worker/dist/worker.js')));
       });
   }
 }

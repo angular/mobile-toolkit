@@ -1,7 +1,5 @@
 declare var require;
 
-import {gulpGenManifest, gulpGenAppCacheManifest} from './src/generator';
-
 var gulp = require('gulp');
 var util = require('gulp-util');
 var ts = require('gulp-typescript');
@@ -41,7 +39,7 @@ gulp.task('!build:system', () => gulp
     'typings/browser/**/*.d.ts'
   ])
   .pipe(ts(systemCompilerConfig))
-  .pipe(gulp.dest('dist')));
+  .pipe(gulp.dest('dist/src')));
 
 gulp.task('!build:commonjs', () => gulp
   .src([

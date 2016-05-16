@@ -1,18 +1,14 @@
 import {
-  Injectable,
-  ReflectiveInjector,
-  provide,
-  Type
-} from '@angular/core';
-import {
-  SW_PROVIDERS,
   WorkerScope,
   ExtendableEvent,
   InstallEvent,
   ActivateEvent,
   FetchEvent,
   ServiceWorker,
-  WorkerAdapter
+  WorkerAdapter,
+  CacheManager,
+  Fetch,
+  Events
 } from '../index';
 import {
   MockCacheStorage,
@@ -20,7 +16,6 @@ import {
   MockResponse
 } from './mock_cache';
 
-@Injectable()
 class TestAdapter extends WorkerAdapter {
   newRequest(req: string | Request, options = {}): Request {
     return new MockRequest(req, options);
@@ -101,13 +96,17 @@ interface TestInstallEvent extends TestExtendableEvent, InstallEvent {}
 interface TestActivateEvent extends TestExtendableEvent, ActivateEvent {}
 interface TestFetchEvent extends TestExtendableEvent, FetchEvent {}
 
+export interface TestWorkerCreationFn {
+  (scope: WorkerScope, adapter: WorkerAdapter, cache: CacheManager, fetch: Fetch, events: Events): any;
+}
+
 export class TestWorkerDriver {
   instance: any;
   scope: TestWorkerScope;
   caches: MockCacheStorage = new MockCacheStorage();
   lifecycle: Promise<any> = Promise.resolve(null);
-
-  constructor(public swType: Type) {
+  
+  constructor(private createWorker: TestWorkerCreationFn) {
     this.refresh();
   }
 
@@ -129,13 +128,13 @@ export class TestWorkerDriver {
 
   refresh(): void {
     this.scope = new TestWorkerScope(this.caches);
-    var injector = ReflectiveInjector.resolveAndCreate([
-      SW_PROVIDERS,
-      provide(WorkerAdapter, {useClass: TestAdapter}),
-      provide(WorkerScope, {useValue: this.scope}),
-      this.swType
-    ]);
-    this.instance = injector.get(this.swType)
+    
+    let workerAdapter = new TestAdapter();
+    let cache = new CacheManager(this.scope, workerAdapter);
+    let fetch = new Fetch(this.scope, workerAdapter);
+    let events = new Events(this.scope);
+    
+    this.instance = this.createWorker(this.scope, workerAdapter, cache, fetch, events);
   }
 
   triggerInstall(): Promise<any> {
