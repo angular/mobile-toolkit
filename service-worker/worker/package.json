@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/angular/progressive#readme",
   "devDependencies": {
+    "es6-shim": "^0.33.13",
     "gulp": "^3.9.0",
     "gulp-clean": "^0.3.1",
     "gulp-concat": "^2.6.0",

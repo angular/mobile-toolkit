@@ -1,7 +1,5 @@
 declare var require;
 
-import {gulpGenManifest, gulpGenAppCacheManifest} from './src/generator';
-
 var gulp = require('gulp');
 var util = require('gulp-util');
 var ts = require('gulp-typescript');

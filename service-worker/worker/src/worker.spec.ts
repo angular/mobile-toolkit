@@ -26,7 +26,10 @@ let SIMPLE_MANIFEST = JSON.stringify({
 let FALLBACK_MANIFEST = JSON.stringify({
   group: {
     'default': {
-      version: 'test'
+      version: 'test',
+      url: {
+        '/hello.txt': {}
+      }
     }
   },
   routing: {
@@ -167,10 +170,14 @@ function then(desc, fn) {
 let sequence = describe;
 let fsequence = fdescribe;
 
+function createServiceWorker(scope, adapter, cache, fetch, events) {
+  return new ServiceWorker(events, fetch, cache, adapter);
+}
+
 describe('ngsw', () => {
-  let driver: TestWorkerDriver = new TestWorkerDriver(ServiceWorker);
+  let driver: TestWorkerDriver = new TestWorkerDriver(createServiceWorker);
   beforeEach(() => {
-    driver = new TestWorkerDriver(ServiceWorker);
+    driver = new TestWorkerDriver(createServiceWorker);
   });
   describe('initial load', () => {
     beforeEach(() => {
@@ -211,7 +218,7 @@ describe('ngsw', () => {
       .then(done, err => errored(err, done)));
   });
   sequence('upgrade load', () => {
-    let driver: TestWorkerDriver = new TestWorkerDriver(ServiceWorker);
+    let driver: TestWorkerDriver = new TestWorkerDriver(createServiceWorker);
     beforeAll(done => {
       driver.mockUrl(MANIFEST_URL, HASHED_MANIFEST_1);
       driver.mockUrl('/hello.txt', 'Hello world!');
@@ -249,8 +256,8 @@ describe('ngsw', () => {
       .then(keys => expect(keys.length).toBe(3))
       .then(done, err => errored(err, done)));
   });
-  fsequence('upgrade without hashes', () => {
-    let driver: TestWorkerDriver = new TestWorkerDriver(ServiceWorker);
+  sequence('upgrade without hashes', () => {
+    let driver: TestWorkerDriver = new TestWorkerDriver(createServiceWorker);
     beforeAll(done => {
       driver.mockUrl(MANIFEST_URL, BUNDLE_MANIFEST_1);
       driver.mockUrl('/hello.txt', 'Hello world!');
@@ -289,7 +296,7 @@ describe('ngsw', () => {
       .then(done, err => errored(err, done)));
   })
   sequence('dev mode', () => {
-    let driver: TestWorkerDriver = new TestWorkerDriver(ServiceWorker);
+    let driver: TestWorkerDriver = new TestWorkerDriver(createServiceWorker);
     beforeAll(done => {
       driver.mockUrl(MANIFEST_URL, DEV_MANIFEST);
       driver.mockUrl('/hello.txt', 'Hello world!');
@@ -312,7 +319,7 @@ describe('ngsw', () => {
       .then(done, err => errored(err, done)));
   });
   sequence('fallback', () => {
-    let driver: TestWorkerDriver = new TestWorkerDriver(ServiceWorker);
+    let driver: TestWorkerDriver = new TestWorkerDriver(createServiceWorker);
     beforeAll(done => {
       driver.mockUrl(MANIFEST_URL, FALLBACK_MANIFEST);
       driver.mockUrl('/hello.txt', 'Hello world!');
@@ -321,6 +328,7 @@ describe('ngsw', () => {
         .triggerInstall()
         .then(() => driver.unmockAll())
         .then(() => driver.triggerActivate())
+        .then(() => driver.unmockAll())
         .then(done, err => errored(err, done));
     });
     it('successfully falls back', done => Promise
@@ -330,7 +338,7 @@ describe('ngsw', () => {
       .then(done, err => errored(err, done)))
   });;
   sequence('index fallback', () => {
-    let driver: TestWorkerDriver = new TestWorkerDriver(ServiceWorker);
+    let driver: TestWorkerDriver = new TestWorkerDriver(createServiceWorker);
     beforeAll(done => {
       driver.mockUrl(MANIFEST_URL, INDEX_MANIFEST);
       driver.mockUrl('/hello.txt', 'Hello world!');

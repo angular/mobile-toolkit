@@ -10,10 +10,3 @@ export * from './context';
 export * from './manifest';
 export * from './worker';
 export * from './fetch';
-
-export var SW_PROVIDERS = [
-  CacheManager,
-  Events,
-  Fetch,
-  ServiceWorker
-];

@@ -73,12 +73,15 @@ export function parseManifest(data: string): SwManifest {
 }
 
 function postProcessManifest(manifest: SwManifest) {
-  if (manifest.routing !== null) {
+  if (!manifest.routing) {
     manifest.routing = {
-      index: '/index.html',
-      route: {}
+      index: '/index.html'
     };
-  } else if (!manifest.routing.route) {
+  }
+  if (!manifest.routing.index) {
+    manifest.routing.index = '/index.html';
+  }
+  if (!manifest.routing.route) {
     manifest.routing.route = {};
   }
   Object
@@ -92,7 +95,7 @@ function postProcessManifest(manifest: SwManifest) {
   Object
     .keys(manifest.routing.route)
     .forEach(url => {
-      let route = manifest.routing[url];
+      let route = manifest.routing.route[url];
       route.url = url;
     });
 }

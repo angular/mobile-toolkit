@@ -1,13 +1,14 @@
 import {Observable} from 'rxjs/Observable';
 import {Events, InstallEvent, FetchEvent, WorkerAdapter} from './context';
-import {SwManifest, CacheEntry, CacheGroup, ManifestDelta, diffManifests, parseManifest, Route} from './manifest';
+import {SwManifest, CacheEntry, CacheGroup, ManifestDelta, Route} from './manifest';
+import {diffManifests, parseManifest} from './manifest-parser';
 import {Fetch} from './fetch';
 import {CacheManager} from './cache';
 import {buildCaches, cleanupCaches, cacheFor} from './setup';
 
 import {extractBody, doAsync, concatLet} from './operator';
 
-export const MANIFEST_URL = '/manifest.appcache';
+export const MANIFEST_URL = '/ngsw-manifest.json';
 export const CACHE_ACTIVE = 'ngsw.active';
 export const CACHE_INSTALLING = 'ngsw.installing';
 

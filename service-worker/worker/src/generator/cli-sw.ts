@@ -15,7 +15,7 @@ declare class Promise<T> {
 const fse           = require('fs-extra');
 const path          = require('path');
 const BroccoliPlugin:BroccoliPluginConstructor        = require('broccoli-caching-writer');;
-const MANIFEST_NAME = 'manifest.appcache';
+const MANIFEST_NAME = 'ngsw-manifest.json';
 const WORKER_NAME = 'worker.js';
 
 interface BroccoliPluginConstructor {

@@ -1,9 +1,7 @@
-import {Injectable} from '@angular/core';
 import {Observable} from 'rxjs/Observable';
 
 import {WorkerScope, WorkerAdapter} from './context';
 
-@Injectable()
 export class CacheManager {
   private caches: CacheStorage;
 
