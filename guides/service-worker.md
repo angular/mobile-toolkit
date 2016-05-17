@@ -1,78 +1,70 @@
-# Add a Service Worker to an [Angular CLI](https://cli.angular.io) App
+# Service Worker
 
-This guide assumes you've already completed the [Setup](./cli-setup.md)
-and [App Shell](./app-shell.md) guides.
+This guide assumes you've already completed the [Setup](./cli-setup.md) guide.
 
-The first step is to install the Service Worker from the Angular Mobile Toolkit.
+The `hello-mobile` app by default comes with a fully-functional
+[ServiceWorker](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API) script, which is automatically installed when the
+app is built in production mode (`ng build --prod` or `ng serve --prod`).
 
-```
-npm install --save-dev @angular/service-worker
-```
+Service Worker is a relatively new addition to the Web Platform,
+and is a critical component to building true Progressive Web Apps.
+Not only does Service Worker make it possible to make apps load without an internet connection, it also makes it possible to push notifications and updates to a user's device while the app isn't even running.
 
-This package contains two important pieces, which we'll use later:
+The Angular Mobile Toolkit comes with support for generating a service worker that will automatically pre-fetch and cache all
+static assets for an application, making it possible for the app
+to work without an internet connection. Even if an internet connection is available, the app will load more quickly because
+all of its assets are available in cache next time the app loads.
 
- 1. The Service Worker script itself, located at `node_modules/@angular/service-worker/dist/worker.js`
+At this point in time, there aren't any additional configuration options to control how the worker script works.
 
- 2. The CLI plugin that will generate a manifest - the list of all files that should be cached in your app - automatically.
+To see the files that the Service Worker will be pre-fetching and caching to make
+available offline, run a prod build of the `hello-mobile` app:
 
-So next, we need to configure the CLI to generate the manifest at build time.
+`$ ng build --prod`
 
-Open up `angular-cli-build.js`. We'll make three changes here:
+Then open dist/ngsw-manifest.json:
 
- * Add the Service Worker script to the `vendorNpmFiles` section of the `Angular2App`.
- * Create an instance of the Service Worker plugin at the very end of the build flow (we want to capture all the files).
- * Merge the Service Worker [Broccoli](http://broccolijs.com/) tree with the rest of the app.
+`dist/ngsw-manifest.json`:
 
-First, find the section creating `Angular2App` and add `@angular/service-worker/dist/worker.js` to the `vendorNpmFiles` section:
+```json
+"{
+  "group": {
+    "app": {
+      "url": {
+        "/app-concat.js": {
+          "hash": "2431d95f572a2a23ee6df7d619d2b68ad65f1084"
+        },
+        "/favicon.ico": {
+          "hash": "164f9754ba7b676197a4974992da8fc3d3606dbf"
+        },
+        "/icons/android-chrome-144x144.png": {
+          "hash": "2eb2986d6c5050612d99e6a0fb93815942c63b02"
+        },
 
-```js
-var ngTree = new Angular2App(defaults, {
-  vendorNpmFiles: [
-    // ...
-    '@angular/service-worker/dist/worker.js',
-    // ...
-  ]
-});
-```
 
-Great! This ensures the Service Worker is available for the rest of the pipeline.
+        "and-many": "more-icons",
 
-Next, we need to capture the rest of the tree for the Service Worker to read.
 
-Change:
-
-```js
-  return mergeTrees([ngTree, appShell, jsBundleTree], { overwrite: true })
-```
-
-To:
-
-```js
-  var mergedTree = mergeTrees([ngTree, appShell, jsBundleTree], { overwrite: true });
-  var swTree = new ServiceWorkerPlugin(mergedTree);
-  return mergeTrees([mergedTree, swTree], { overwrite: true });
-```
-
-Before this can run, we'll need to add the import for `ServiceWorkerPlugin` to the top of the file:
-
-```js
-const ServiceWorkerPlugin = require('@angular/service-worker').ServiceWorkerPlugin;
-```
-
-Great! Now run ng build, and there should be a `dist/manifest.appcache` file generated with your manifest. This is the file that the Service Worker script parses to know what files it should cache. It also can be included in index.html to act as a fallback to add some basic offline functionality for browsers that don't yet support Service Worker. Browsers that support Service Worker will automatically ignore the App Cache Manifest if a Service Worker is installed.
-
-```html
-<html manifest="manifest.appcache">
-```
-
-The last step is to uncomment the `<script>` tag that’s already included in `index.html` to enable the Service Worker:
-
-<script type="text/javascript">
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/worker.js').catch(function(err) {
-        console.log('Error installing service worker: ', err);
-      });
+        "/index.html": {
+          "hash": "c536103ca1836310c60f7cc94b6fa14debcf2ddf"
+        },
+        "/manifest.webapp": {
+          "hash": "a020306797abb92fe29c90bb2832b6f5783e2487"
+        }
+      }
     }
-</script>
+  },
+  "routing": {
+    "index": "/index.html"
+  }
+}"
+```
+
+The `group.app.url` objects are the configuration the Service Worker script uses to pre-fetch
+and cache assets when the application is loaded. If a file's hash ever changes, the Service Worker
+knows it needs to fetch the latest version of that file.
+
+The `routing` config tells the service worker which URLs map to application routes, and should be
+served with index.html.
 
 Now to check that the Service Worker is installed correctly, open Chrome Developer Tools, click the Resources tab, and then click Service Workers. You should see our installed Service Worker! Now to really test that it works, go to the Network tab in Chrome Developer Tools, and change the Throttling dropdown to select Offline. Now refresh the page, and it should still load.

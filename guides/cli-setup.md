@@ -1,12 +1,17 @@
-# Create a Mobile Web App with [Angular CLI](https://cli.angular.io)
+# Create a Progressive Web App with [Angular CLI](https://cli.angular.io)
 
-Start by installing [Angular CLI](https://cli.angular.io).
+Progressive Web Apps are web apps that combine the benefits of the Web
+with the capabilities and performance of native Apps. Angular makes it
+easy to get started building progressive Web apps with our Angular Mobile
+Toolkit, which is integrated with [Angular CLI](https://cli.angular.io).
+
+To get started, install Angular CLI from [npm](https://www.npmjs.com/).
 
 ```
 $ npm install -g angular-cli
 ```
 
-(Note: this recipe is based on version 0.0.35 of Angular CLI.)
+(Note: this recipe is based on version 1.0.0-beta.4 of Angular CLI.)
 
 Then create a new project:
 
@@ -21,11 +26,21 @@ Then serve the app:
 $ ng serve
 ```
 
-Navigate to [localhost:4200](http://localhost:4200) in your browser, and you should see a simple page that says “hello-mobile works!”.
+Navigate to [localhost:4200](http://localhost:4200) in your browser, and you should see a simple page that says "hello-mobile works!".
 
-## App Manifest
+## --mobile
 
-Passing the `--mobile` flag when creating a new app will create an App Manifest with metadata about the app that browsers can use to make the
-app installable to home screens on mobile devices. The file is stored in src/manifest.webapp. See [this article](https://developers.google.com/web/updates/2014/11/Support-for-installable-web-apps-with-webapp-manifest-in-chrome-38-for-Android?hl=en) for more information about Web App Manifest, and how you can make use of it.
+Passing the `--mobile` flag when creating a new app will set up a few extra things
+to help get your [Progressive Web App](https://developers.google.com/web/progressive-web-apps?hl=en)
+started on the right foot:
+ * A **Web Application Manifest** to give browsers information to properly install your app
+ to the home screen.
+ * A build step to generate an **App Shell** from your app's root component.
+ * A **Service Worker** script to automatically cache your app for fast loading,
+   with or without an internet connection. Note: the Service Worker is only installed in production mode, i.e. via `ng serve --prod` or `ng build --prod`.
 
-Next, let's add an [App Shell](./app-shell.md) to our app.
+We'll go deeper into these concepts in subsequent guides.
+
+For reference, see the example app created by Angular CLI in this repository at [/hello-mobile](../hello-mobile)
+
+[Next, let's learn how to take advantage of the Web App Manifest.](./web-app-manifest.md)
