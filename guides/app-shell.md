@@ -24,16 +24,17 @@ There are a couple of steps to let the CLI know how to serve the Angular Materia
 
 ```typescript
 // Add your custom SystemJS configuration here.
-export const config: any = {
-  map: {
-    '@angular2-material': 'vendor/@angular2-material'
-  },
-  packages: Object.assign({
-    '@angular2-material/toolbar': {
-      defaultExtension: 'js',
-      main: 'toolbar.js'
-    }
-  }, createPackageConfig(barrels))
+/** Map relative paths to URLs. */
+const map: any = {
+  '@angular2-material': 'vendor/@angular2-material'
+};
+
+/** User packages configuration. */
+const packages: any = {
+  '@angular2-material/toolbar': {
+    defaultExtension: 'js',
+    main: 'toolbar.js'
+  }
 };
 ```
 
