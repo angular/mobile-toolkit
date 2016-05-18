@@ -4,7 +4,7 @@ This repo is a series of tools and guides to help build Progressive
 Web Apps. All guides are currently based on Angular CLI, and all tools
 should be considered alpha quality. In the future, more guides and recipes
 to cover different tools and use cases will be added here and on
-[mobile.angular.io].
+[mobile.angular.io](https://mobile.angular.io).
 
 ## Guides
 
