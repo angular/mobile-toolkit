@@ -5,6 +5,10 @@ with the capabilities and performance of native Apps. Angular makes it
 easy to get started building progressive Web apps with our Angular Mobile
 Toolkit, which is integrated with [Angular CLI](https://cli.angular.io).
 
+These guides will help get started on the right foot building Progressive
+Web Apps, so you can focus more on building a great user experience, and
+less on getting the underlying tooling and technology set up.
+
 To get started, install Angular CLI from [npm](https://www.npmjs.com/).
 
 ```

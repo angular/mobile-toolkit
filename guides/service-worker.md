@@ -68,3 +68,13 @@ The `routing` config tells the service worker which URLs map to application rout
 served with index.html.
 
 Now to check that the Service Worker is installed correctly, open Chrome Developer Tools, click the Resources tab, and then click Service Workers. You should see our installed Service Worker! Now to really test that it works, go to the Network tab in Chrome Developer Tools, and change the Throttling dropdown to select Offline. Now refresh the page, and it should still load.
+
+## The End
+
+This is the end of the guides for now. Our work is in an alpha state, and we'd love feedback.
+Please open issues on [angular/mobile-toolkit](https://github.com/angular/mobile-toolkit),
+and tweet at the Angular Mobile Team [@jeffbcross](https://twitter.com/jeffbcross),
+[@robwormald](https://twitter.com/robwormald), [@synalx](https://twitter.com/synalx).
+
+And to dive deeper into Progresive Web Apps, check out [Progressive Web Apps](https://developers.google.com/web/progressive-web-apps/?hl=en)
+on Google Developers.
