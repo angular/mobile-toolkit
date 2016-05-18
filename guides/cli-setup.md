@@ -43,4 +43,6 @@ We'll go deeper into these concepts in subsequent guides.
 
 For reference, see the example app created by Angular CLI in this repository at [/hello-mobile](../hello-mobile)
 
-[Next, let's learn how to take advantage of the Web App Manifest.](./web-app-manifest.md)
+---
+
+## [Next, let's learn how to take advantage of the Web App Manifest.](./web-app-manifest.md)

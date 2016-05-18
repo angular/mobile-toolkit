@@ -295,4 +295,6 @@ the page is fully rendered.
 Now if we navigate to [localhost:4200/hello] in our browser, the spinner should render when the app shell is displayed,
 and the "App is Fully Rendered" test should render when Angular bootstraps the app.
 
-Next, let's make the app offline-ready by [adding a Service Worker](./service-worker.md).
+---
+
+## [Next, let's make the app offline-ready with Service Worker.](./service-worker.md)
