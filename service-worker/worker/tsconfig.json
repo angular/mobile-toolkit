@@ -5,14 +5,13 @@
     "noImplicitAny": false,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
+    "declaration": true,
     "outDir": "dist",
     "sourceMap": false,
     "moduleResolution": "node",
     "rootDir": "."
 	},
   "exclude": [
-    "node_modules",
-    "typings/main.d.ts",
-    "typings/main"
+    "node_modules"
   ]
 }

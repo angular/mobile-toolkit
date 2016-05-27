@@ -105,7 +105,7 @@ export class TestWorkerDriver {
   scope: TestWorkerScope;
   caches: MockCacheStorage = new MockCacheStorage();
   lifecycle: Promise<any> = Promise.resolve(null);
-  
+
   constructor(private createWorker: TestWorkerCreationFn) {
     this.refresh();
   }
@@ -128,12 +128,12 @@ export class TestWorkerDriver {
 
   refresh(): void {
     this.scope = new TestWorkerScope(this.caches);
-    
+
     let workerAdapter = new TestAdapter();
     let cache = new CacheManager(this.scope, workerAdapter);
     let fetch = new Fetch(this.scope, workerAdapter);
     let events = new Events(this.scope);
-    
+
     this.instance = this.createWorker(this.scope, workerAdapter, cache, fetch, events);
   }
 

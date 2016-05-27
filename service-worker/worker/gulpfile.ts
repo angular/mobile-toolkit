@@ -10,11 +10,13 @@ var concat = require('gulp-concat');
 let jsmn = require('gulp-jasmine');
 var runSequence = require('run-sequence');
 var process = require('process');
+var merge = require('merge-stream');
 
 var systemCompilerConfig = JSON.parse(fs.readFileSync('./tsconfig.json')).compilerOptions;
 var commonCompilerConfig = JSON.parse(fs.readFileSync('./tsconfig.cjs.json')).compilerOptions;
 
 commonCompilerConfig.typescript = require('typescript');
+systemCompilerConfig.typescript = require('typescript');
 
 gulp.task('default', ['build']);
 
@@ -32,27 +34,37 @@ gulp.task('prepublish', done => runSequence(
   ['!bundle', 'copy:generator'],
   done));
 
-gulp.task('!build:system', () => gulp
-  .src([
-    'src/**/*.ts',
-    '!src/**/*.spec.ts',
-    'typings/browser/**/*.d.ts'
-  ])
-  .pipe(ts(systemCompilerConfig))
-  .pipe(gulp.dest('dist/src')));
+gulp.task('!build:system', () => {
+  const stream = gulp
+    .src([
+      'src/**/*.ts',
+      '!src/**/*.spec.ts',
+      'typings/globals/**/*.d.ts'
+    ])
+    .pipe(ts(systemCompilerConfig));
+  return merge([
+    stream.js.pipe(gulp.dest(systemCompilerConfig.outDir)),
+    stream.dts.pipe(gulp.dest(systemCompilerConfig.outDir))
+  ]);
+});
 
-gulp.task('!build:commonjs', () => gulp
-  .src([
-    'src/**/*.ts',
-    'typings/browser/**/*.d.ts'
-  ])
-  .pipe(ts(commonCompilerConfig))
-  .pipe(gulp.dest('dist/src')));
+gulp.task('!build:commonjs', () => {
+  const stream = gulp
+    .src([
+      'src/**/*.ts',
+      'typings/globals/**/*.d.ts'
+    ])
+    .pipe(ts(commonCompilerConfig));
+  return merge([
+    stream.js.pipe(gulp.dest(commonCompilerConfig.outDir)),
+    stream.dts.pipe(gulp.dest(commonCompilerConfig.outDir))
+  ]);
+});
 
 gulp.task('build:generator', () => gulp
   .src([
     'src/generator/**.ts',
-    'typings/main/**/*.d.ts'
+    'typings/globals/**/*.d.ts'
   ])
   .pipe(ts(commonCompilerConfig))
   .pipe(gulp.dest('dist/src/generator')));
@@ -71,7 +83,7 @@ gulp.task('build:test', (done) => runSequence(
 
 gulp.task('test', ['build:test'], () => gulp
   .src([
-    'dist/src/**/*.spec.js'
+    'dist/**/*.spec.js'
   ], {base: '.'})
   .pipe(jsmn({
     verbose: true,

@@ -17,7 +17,7 @@ export class CacheManager {
   }
 
   load(cache: string, req: string | Request): Observable<Response> {
-    return Observable.defer(() => Observable.fromPromise(this
+    return <Observable<Response>>Observable.defer(() => Observable.fromPromise(this
       .caches
       .open(cache)
       .then(cache => cache.match(this.normalize(req)))));

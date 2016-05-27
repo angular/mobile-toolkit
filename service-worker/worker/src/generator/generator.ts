@@ -5,12 +5,6 @@ let File = require('vinyl');
 
 let sha1 = new SHA1();
 
-declare class Promise<T> {
-  constructor(fn: Function);
-  static all<T>(promises: Promise<T>[]): Promise<T[]>;
-  then<V>(fn: (T) => V | Promise<V>, errFn?: any): Promise<V>;
-}
-
 declare class Buffer {
   constructor(data: string);
 }
@@ -72,9 +66,9 @@ export function gulpGenManifest(manifest: Manifest, base?: string): any {
 }
 
 export class ManifestWriter {
-  
+
   constructor(private resolver: SourceResolver) {}
-  
+
   processRoute(out: any, route: Route): void {
     if (!out.routing.hasOwnPropert('route')) {
       out.routing.route = {};
@@ -83,7 +77,7 @@ export class ManifestWriter {
       prefix: route.prefix
     };
   }
-  
+
   processGroup(out: any, group: Group): Promise<any> {
     if (!out.group.hasOwnProperty(group.name)) {
       out.group[group.name] = {
@@ -104,7 +98,7 @@ export class ManifestWriter {
         })
       );
   }
-  
+
   process(manifest: Manifest, base?: string): Promise<string> {
     let baseObj = base ? JSON.parse(base) : '';
     let out = <any>{
@@ -113,11 +107,11 @@ export class ManifestWriter {
         index: '/index.html'
       }
     };
-    
+
     if (!!manifest.routing && !!manifest.routing.index) {
       out.routing.index = manifest.routing.index;
     }
-    
+
     if (!!manifest.routing && !!manifest.routing.routes) {
       manifest.routing.routes.forEach(route => this.processRoute(out, route));
     }
@@ -128,7 +122,7 @@ export class ManifestWriter {
       .then(() => _mergeObjects(baseObj, out))
       .then(() => out);
   }
-  
+
   generate(manifest: Manifest, base?: string): Promise<string> {
     return this
       .process(manifest, base)
