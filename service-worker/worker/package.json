@@ -30,6 +30,7 @@
     "gulp-util": "^3.0.7",
     "jasmine": "^2.4.1",
     "merge-stream": "^1.0.0",
+    "protractor": "^3.3.0",
     "reflect-metadata": "0.1.2",
     "rimraf": "^2.5.2",
     "run-sequence": "^1.1.5",
