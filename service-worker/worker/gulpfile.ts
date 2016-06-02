@@ -18,7 +18,7 @@ var commonCompilerConfig = JSON.parse(fs.readFileSync('./tsconfig.cjs.json')).co
 commonCompilerConfig.typescript = require('typescript');
 systemCompilerConfig.typescript = require('typescript');
 
-gulp.task('default', ['build']);
+gulp.task('default', ['prepublish']);
 
 gulp.task('clean', (done) => {
   rimraf('./dist', done);
@@ -68,6 +68,76 @@ gulp.task('build:generator', () => gulp
   ])
   .pipe(ts(commonCompilerConfig))
   .pipe(gulp.dest('dist/src/generator')));
+
+gulp.task('build:test_harness', done => runSequence(
+  'clean',
+  [
+    '!build:test_harness:client',
+    '!build:test_harness:tests'
+  ],
+  done));
+  
+gulp.task('!build:test_harness:client', done => runSequence(
+  [
+    '!bundle',
+    '!build:test_harness:client:compile',
+    'copy:test_harness:client:local',
+    'copy:test_harness:client:modules'
+  ],
+  'copy:test_harness:client:worker',
+  done
+));
+
+gulp.task('!build:test_harness:client:compile', () => gulp
+  .src([
+    'typings/globals/**/*.d.ts',
+    'src/testing/harness/client/**/*.ts'
+  ])
+  .pipe(ts(systemCompilerConfig))
+  .pipe(gulp.dest('dist/harness/client')));
+
+gulp.task('copy:test_harness:client:local', () => gulp
+  .src([
+    'src/testing/harness/client/index.html'
+  ], {base: 'src/testing/harness/client'})
+  .pipe(gulp.dest('dist/harness/client')));
+
+gulp.task('copy:test_harness:client:modules', () => gulp
+  .src([
+    'node_modules/@angular/**/*.js',
+    'node_modules/systemjs/dist/system.js',
+    'node_modules/reflect-metadata/Reflect.js',
+    'node_modules/zone.js/dist/zone.js',
+    'node_modules/rxjs/**/*.js'
+  ], {base: '.'})
+  .pipe(gulp.dest('dist/harness/client')))
+  
+gulp.task('copy:test_harness:client:worker', () => gulp
+  .src([
+    'dist/worker.js'
+  ])
+  .pipe(gulp.dest('dist/harness/client')));
+  
+gulp.task('!build:test_harness:tests', [
+  '!copy:test_harness:tests:protractor',
+  '!build:test_harness:tests:compile'
+]);
+  
+gulp.task('!build:test_harness:tests:compile', () => gulp
+  .src([
+    'typings/globals/**/*.d.ts',
+    'src/typings/*.d.ts',
+    'src/e2e/**/*.ts',
+    'src/testing/harness/server/**/*.ts',
+  ], {base: '.'})
+  .pipe(ts(commonCompilerConfig))
+  .pipe(gulp.dest('dist/e2e')));
+
+gulp.task('!copy:test_harness:tests:protractor', () => gulp
+  .src([
+    'src/e2e/**/protractor.config.js'
+  ], {base: '.'})
+  .pipe(gulp.dest('dist/e2e')));
 
 gulp.task('copy:generator', ['build:generator'], () => gulp
   .src([
