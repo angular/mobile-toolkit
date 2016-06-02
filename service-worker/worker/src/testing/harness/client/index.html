@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Service Worker Test Harness</title>
+    <script src="/node_modules/zone.js/dist/zone.js"></script>
+    <script src="/node_modules/reflect-metadata/Reflect.js"></script>
+    <script src="/node_modules/systemjs/dist/system.js"></script>
+    <script type="text/javascript">
+      System.config({
+        map: {
+          '@angular': '/node_modules/@angular',
+          'rxjs': '/node_modules/rxjs',
+          'harness': '/src/testing/harness/client'
+        },
+        packages: {
+          '@angular/core': {
+            main: 'core.umd.js',
+            defaultExtension: 'js'
+          },
+          '@angular/common': {
+            main: 'common.umd.js',
+            defaultExtension: 'js'
+          },
+          '@angular/compiler': {
+            main: 'compiler.umd.js',
+            defaultExtension: 'js'
+          },
+          '@angular/platform-browser': {
+            main: 'platform-browser.umd.js',
+            defaultExtension: 'js'
+          },
+          '@angular/platform-browser-dynamic': {
+            main: 'platform-browser-dynamic.umd.js',
+            defaultExtension: 'js'
+          },
+          'rxjs': {
+            defaultExtension: 'js'
+          },
+          'harness': {
+            main: './main.js',
+            defaultExtension: 'js'
+          }
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <sw-testing-harness></sw-testing-harness>
+    <script type="text/javascript">
+      System.import('harness');
+    </script>
+  </body>
+</html>

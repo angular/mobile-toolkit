@@ -20,7 +20,12 @@
   },
   "homepage": "https://github.com/angular/progressive#readme",
   "devDependencies": {
+    "@angular/common": "^2.0.0-rc.1",
+    "@angular/compiler": "^2.0.0-rc.1",
+    "@angular/platform-browser": "^2.0.0-rc.1",
+    "@angular/platform-browser-dynamic": "^2.0.0-rc.1",
     "es6-shim": "^0.33.13",
+    "express": "^4.13.4",
     "gulp": "^3.9.0",
     "gulp-clean": "^0.3.1",
     "gulp-concat": "^2.6.0",

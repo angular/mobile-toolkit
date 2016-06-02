@@ -1,10 +1,13 @@
 {
-  "name": "@angular/service-worker",
-  "dependencies": {},
   "globalDependencies": {
     "es6-collections": "registry:dt/es6-collections#0.5.1+20160316155526",
     "es6-promise": "registry:dt/es6-promise#0.0.0+20160423074304",
+    "express": "registry:dt/express#4.0.0+20160317120654",
+    "express-serve-static-core": "registry:dt/express-serve-static-core#0.0.0+20160602151406",
     "jasmine": "registry:dt/jasmine#2.2.0+20160505161446",
+    "mime": "registry:dt/mime#0.0.0+20160316155526",
+    "node": "registry:dt/node#6.0.0+20160613154055",
+    "serve-static": "registry:dt/serve-static#0.0.0+20160606155157",
     "whatwg-fetch": "registry:dt/whatwg-fetch#0.0.0+20160524142046"
   }
 }
