@@ -8,7 +8,7 @@ module.exports = function(defaults) {
       'systemjs/dist/system-polyfills.js',
       'systemjs/dist/system.src.js',
       'zone.js/dist/*.js',
-      'es6-shim/es6-shim.js',
+      'core-js/client/shim.min.js',
       'reflect-metadata/*.js',
       'rxjs/**/*.js',
       '@angular/**/*.js',
