@@ -21,6 +21,7 @@
     "@angular/platform-browser-dynamic": "2.0.0-rc.0",
     "@angular/router": "2.0.0-rc.0",
     "es6-shim": "^0.35.0",
+    "parse5": "https://github.com/mgechev/parse5",
     "reflect-metadata": "0.1.3",
     "rxjs": "5.0.0-beta.6",
     "systemjs": "0.19.26",

@@ -1,3 +1,3 @@
 /// <reference path="../typings/index.d.ts" />
+/// <reference path="./manual_typings/service-worker.d.ts" />
 
-declare var module: { id: string };

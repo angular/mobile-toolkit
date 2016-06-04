@@ -20,6 +20,7 @@
     "app/is-prerender.service.spec.ts",
     "app/shell-no-render.directive.spec.ts",
     "app/shell-render.directive.spec.ts",
+    "app/shell-parser/shell-parser.spec.ts",
     "typings.d.ts"
   ]
 }

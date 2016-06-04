@@ -16,6 +16,7 @@
   },
 
   "files": [
-    "app/index.ts"
+    "app/index.ts",
+    "typings.es6.d.ts"
   ]
 }
