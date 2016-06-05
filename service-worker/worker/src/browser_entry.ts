@@ -1,9 +1,8 @@
-import 'reflect-metadata';
-import {WorkerScope, WorkerAdapter} from './index';
-import {ServiceWorker} from './worker';
-import {Events} from './context';
-import {Fetch} from './fetch';
-import {CacheManager} from './cache';
+import { WorkerScope, WorkerAdapter } from './index';
+import { ServiceWorker } from './worker';
+import { Events } from './context';
+import { Fetch } from './fetch';
+import { CacheManager } from './cache';
 
 import './rxjs';
 
