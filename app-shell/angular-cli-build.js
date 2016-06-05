@@ -9,7 +9,6 @@ module.exports = function(defaults) {
       'systemjs/dist/system.src.js',
       'zone.js/dist/*.js',
       'core-js/client/shim.min.js',
-      'reflect-metadata/*.js',
       'rxjs/**/*.js',
       '@angular/**/*.js'
     ]
