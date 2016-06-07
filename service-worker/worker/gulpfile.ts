@@ -96,7 +96,6 @@ gulp.task('!bundle', ['!build:system'], () => {
       'worker': 'dist/src',
       '@angular': 'node_modules/@angular',
       'rxjs': 'node_modules/rxjs',
-      'reflect-metadata': 'node_modules/reflect-metadata/temp/Reflect.js',
       'jshashes': 'node_modules/jshashes/hashes.js'
     },
     packages: {
@@ -109,9 +108,6 @@ gulp.task('!bundle', ['!build:system'], () => {
       '@angular/core': {
         defaultExtension: 'js',
         main: 'index.js'
-      },
-      'reflect-metadata': {
-        format: 'global'
       }
     }
   });
