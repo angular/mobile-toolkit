@@ -166,7 +166,7 @@ export class MockRequest extends MockBody implements Request {
   cache: RequestCache = "default";
 
   headers: any;
-  redirect: RequestRedirect;
+  redirect: any;
   get body(): any {
     return this;
   }

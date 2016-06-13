@@ -7,13 +7,15 @@ const fse           = require('fs-extra');
 const path          = require('path');
 const MANIFEST_NAME = 'ngsw-manifest.json';
 const WORKER_NAME   = 'worker.js';
-export const BroccoliPlugin: BroccoliPluginConstructor = require('broccoli-caching-writer');
 
 export interface BroccoliPluginConstructor {
   new(inputNodes: any[], options?: any): BroccoliPluginConstructor;
   inputPaths: string[];
   outputPath: string;
 }
+
+export type BroccoliPlugin = BroccoliPluginConstructor;
+export const BroccoliPlugin: BroccoliPluginConstructor = require('broccoli-caching-writer');
 
 class BroccoliSourceResolver implements SourceResolver {
   constructor(public inputPaths:string[]) {}
