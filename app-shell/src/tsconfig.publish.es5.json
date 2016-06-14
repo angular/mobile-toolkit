@@ -17,6 +17,6 @@
 
   "files": [
     "app/index.ts",
-    "../typings/browser/ambient/es6-shim/index.d.ts"
+    "typings.d.ts"
   ]
 }
