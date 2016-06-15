@@ -289,7 +289,7 @@ the page is fully rendered.
   {{title}}
 </md-toolbar>
 <md-spinner *shellRender></md-spinner>
-<h1>App is Fully Rendered</h1>
+<h1 *shellNoRender>App is Fully Rendered</h1>
 ```
 
 Now if we navigate to [localhost:4200/hello] in our browser, the spinner should render when the app shell is displayed,
