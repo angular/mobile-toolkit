@@ -48,7 +48,8 @@ export class CssNodeMatcher extends NodeMatcher {
     if (!classAttr) {
       return false;
     }
-    const classMap = classAttr.value.split(' ')
+    const classMap = classAttr.value
+      .toLowerCase().split(' ')
       .reduce((accum: any, val: string) => {
         accum[val] = true;
         return accum;

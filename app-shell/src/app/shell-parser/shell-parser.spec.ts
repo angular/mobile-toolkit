@@ -1,7 +1,6 @@
 import {
   beforeEach,
   it,
-  xit,
   describe,
   expect,
   inject
@@ -131,7 +130,6 @@ describe('ShellParserImpl', () => {
   describe('parseDoc', () => {
 
     it('should strip with default selector', (done: any) => {
-      debugger;
       const mockScope = new MockWorkerScope();
       const parser = createMockedWorker(mockScope);
       const response = new MockResponse(prerenderedTemplate);
