@@ -1,9 +1,9 @@
 import 'reflect-metadata';
-import {ServiceWorker, CACHE_INSTALLING, CACHE_ACTIVE, MANIFEST_URL} from './worker';
-import {TestWorkerDriver} from './testing/mock';
+import {ServiceWorker, CACHE_INSTALLING, CACHE_ACTIVE, MANIFEST_URL} from '../../worker/worker';
+import {TestWorkerDriver} from '../../testing/mock';
 import {Observable} from 'rxjs/Rx';
-import {MockRequest} from './testing/mock_cache';
-import {SwManifest} from './manifest';
+import {MockRequest} from '../../testing/mock_cache';
+import {SwManifest} from '../../worker/manifest';
 
 let SIMPLE_MANIFEST = JSON.stringify({
   group: {

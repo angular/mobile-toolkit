@@ -12,24 +12,24 @@ export class Server {
   server: any;
   
   responses: Object = {};
-  
+
   constructor(port: number, harnessPath: string, readyCallback: Function) {
     this.app = express();
     this.app.use(express.static(harnessPath));
     this.server = this.app.listen(port, () => readyCallback());
   }
-  
+
   addResponse(url: string, response: string) {
     let urlExisted = this.responses.hasOwnProperty(url);
-    
+
     // Add the response.
     this.responses[url] = response;
-   
+
     if (urlExisted) {
       // A handler for this URL is already registered.
       return;
     }
-   
+
     // Register a handler for the URL, that doesn't use the response
     // passed but instead return  
     this.app.get(url, (req, resp) => {
@@ -40,11 +40,11 @@ export class Server {
       resp.send(response);
     });
   }
-  
+
   clearResponses() {
     this.responses = {};
   }
-  
+
   shutdown() {
     this.server.close();
   }

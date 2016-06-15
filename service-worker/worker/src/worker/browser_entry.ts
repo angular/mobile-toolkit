@@ -1,4 +1,3 @@
-import 'reflect-metadata';
 import {WorkerScope, WorkerAdapter} from './index';
 import {ServiceWorker} from './worker';
 import {Events} from './context';

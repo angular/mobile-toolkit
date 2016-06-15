@@ -1,5 +1,5 @@
-import {create, Server} from '../../testing/harness/server/server';
-import {HarnessPageObject} from '../page-object';
+import {create, Server} from '../harness/server/server';
+import {HarnessPageObject} from '../harness/server/page-object';
 declare var browser;
 declare var element;
 declare var by;
@@ -20,7 +20,7 @@ const SIMPLE_MANIFEST = {
 };
 
 beforeAll(done => {
-  create(8080, 'dist/harness/client').then(s => {
+  create(8080, 'dist/src/test/e2e/harness/client').then(s => {
     server = s;
     done();
   });

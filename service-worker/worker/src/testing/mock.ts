@@ -9,7 +9,7 @@ import {
   CacheManager,
   Fetch,
   Events
-} from '../index';
+} from '../worker/index';
 import {
   MockCacheStorage,
   MockRequest,
