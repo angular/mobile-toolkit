@@ -59,6 +59,15 @@ describe('CssNodeMatcher', () => {
       expect(complexSelector.match(node)).toBe(true);
     });
 
+    it('should match case insensitive class selector', () => {
+      const classSelector = CssSelector.parse('.DIALOG');
+      const selector = new CssNodeMatcher(classSelector);
+      expect(selector.match(node)).toBe(true);
+      const complexClassSelector = CssSelector.parse('.dialog.modal--drop');
+      const complexSelector = new CssNodeMatcher(complexClassSelector);
+      expect(complexSelector.match(node)).toBe(true);
+    });
+
     it('should match element by id', () => {
       const idSelector = CssSelector.parse('#dialog-id');
       const selector = new CssNodeMatcher(idSelector);
