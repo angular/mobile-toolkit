@@ -11,34 +11,74 @@ let jsmn = require('gulp-jasmine');
 var runSequence = require('run-sequence');
 var process = require('process');
 var merge = require('merge-stream');
+var exec = require('child_process').exec;
+var uglify = require('gulp-uglify');
+var rename = require('gulp-rename');
 
-var systemCompilerConfig = JSON.parse(fs.readFileSync('./tsconfig.json')).compilerOptions;
-var commonCompilerConfig = JSON.parse(fs.readFileSync('./tsconfig.cjs.json')).compilerOptions;
+let assign = (dest, ...sources) => {
+  sources.forEach(source => {
+    Object.keys(source).forEach(key => {
+      dest[key] = source[key];
+    });
+  });
+  return dest;
+}
 
-commonCompilerConfig.typescript = require('typescript');
-systemCompilerConfig.typescript = require('typescript');
+var systemCompilerConfig = assign({}, 
+  JSON.parse(fs.readFileSync('./tsconfig.json')).compilerOptions,
+  {
+    typescript: require('typescript')
+  }
+);
 
-gulp.task('default', ['prepublish']);
+var commonCompilerConfig = assign({},
+  systemCompilerConfig,
+  {
+    "module": "commonjs"
+  }
+);
+
+gulp.task('default', ['worker:build']);
 
 gulp.task('clean', (done) => {
   rimraf('./dist', done);
 });
 
-gulp.task('build', (done) => runSequence(
-  'clean',
-  '!build:system',
-  done));
+gulp.task('prepublish', ['build']);
 
-gulp.task('prepublish', done => runSequence(
+gulp.task('build', done => runSequence(
   'clean',
-  ['!bundle', 'copy:generator'],
-  done));
+  [
+    'task:generator:build',
+    'task:worker:build'
+  ],
+  done
+));
 
-gulp.task('!build:system', () => {
+gulp.task('worker:build', done => runSequence(
+  'clean',
+  'task:worker:build',
+  done));
+  
+gulp.task('generator:build', done => runSequence(
+  'clean',
+  'task:generator:build',
+  done
+));
+
+
+gulp.task('task:worker:build', done => 
+  runSequence(
+    'task:worker:compile_system',
+    'task:worker:bundle',
+    done
+  ));
+
+gulp.task('task:worker:compile_system', () => {
   const stream = gulp
     .src([
-      'src/**/*.ts',
-      '!src/**/*.spec.ts',
+      'src/worker/**/*.ts',
+      'src/typings/**/*.d.ts',
       'typings/globals/**/*.d.ts'
     ])
     .pipe(ts(systemCompilerConfig));
@@ -48,10 +88,11 @@ gulp.task('!build:system', () => {
   ]);
 });
 
-gulp.task('!build:commonjs', () => {
+gulp.task('task:worker:compile_common', () => {
   const stream = gulp
     .src([
-      'src/**/*.ts',
+      'src/worker/**/*.ts',
+      'src/typings/**/*.d.ts',
       'typings/globals/**/*.d.ts'
     ])
     .pipe(ts(commonCompilerConfig));
@@ -61,112 +102,12 @@ gulp.task('!build:commonjs', () => {
   ]);
 });
 
-gulp.task('build:generator', () => gulp
-  .src([
-    'src/generator/**.ts',
-    'typings/globals/**/*.d.ts'
-  ])
-  .pipe(ts(commonCompilerConfig))
-  .pipe(gulp.dest('dist/src/generator')));
-
-gulp.task('build:test_harness', done => runSequence(
-  'clean',
-  [
-    '!build:test_harness:client',
-    '!build:test_harness:tests'
-  ],
-  done));
-  
-gulp.task('!build:test_harness:client', done => runSequence(
-  [
-    '!bundle',
-    '!build:test_harness:client:compile',
-    'copy:test_harness:client:local',
-    'copy:test_harness:client:modules'
-  ],
-  'copy:test_harness:client:worker',
-  done
-));
-
-gulp.task('!build:test_harness:client:compile', () => gulp
-  .src([
-    'typings/globals/**/*.d.ts',
-    'src/testing/harness/client/**/*.ts'
-  ])
-  .pipe(ts(systemCompilerConfig))
-  .pipe(gulp.dest('dist/harness/client')));
-
-gulp.task('copy:test_harness:client:local', () => gulp
-  .src([
-    'src/testing/harness/client/index.html'
-  ], {base: 'src/testing/harness/client'})
-  .pipe(gulp.dest('dist/harness/client')));
-
-gulp.task('copy:test_harness:client:modules', () => gulp
-  .src([
-    'node_modules/@angular/**/*.js',
-    'node_modules/systemjs/dist/system.js',
-    'node_modules/reflect-metadata/Reflect.js',
-    'node_modules/zone.js/dist/zone.js',
-    'node_modules/rxjs/**/*.js'
-  ], {base: '.'})
-  .pipe(gulp.dest('dist/harness/client')))
-  
-gulp.task('copy:test_harness:client:worker', () => gulp
-  .src([
-    'dist/worker.js'
-  ])
-  .pipe(gulp.dest('dist/harness/client')));
-  
-gulp.task('!build:test_harness:tests', [
-  '!copy:test_harness:tests:protractor',
-  '!build:test_harness:tests:compile'
-]);
-  
-gulp.task('!build:test_harness:tests:compile', () => gulp
-  .src([
-    'typings/globals/**/*.d.ts',
-    'src/typings/*.d.ts',
-    'src/e2e/**/*.ts',
-    'src/testing/harness/server/**/*.ts',
-  ], {base: '.'})
-  .pipe(ts(commonCompilerConfig))
-  .pipe(gulp.dest('dist/e2e')));
-
-gulp.task('!copy:test_harness:tests:protractor', () => gulp
-  .src([
-    'src/e2e/**/protractor.config.js'
-  ], {base: '.'})
-  .pipe(gulp.dest('dist/e2e')));
-
-gulp.task('copy:generator', ['build:generator'], () => gulp
-  .src([
-    'dist/src/generator/**/*.js'
-  ])
-  .pipe(gulp.dest('dist/generator')));
-
-gulp.task('build:test', (done) => runSequence(
-  'clean',
-  '!build:commonjs',
-  done
-));
-
-gulp.task('test', ['build:test'], () => gulp
-  .src([
-    'dist/**/*.spec.js'
-  ], {base: '.'})
-  .pipe(jsmn({
-    verbose: true,
-  })));
-
-gulp.task('!bundle', ['!build:system'], () => {
+gulp.task('task:worker:bundle', done => {
   var builder = new Builder();
   builder.config({
     map: {
-      'worker': 'dist/src',
-      '@angular': 'node_modules/@angular',
+      'worker': 'dist/src/worker',
       'rxjs': 'node_modules/rxjs',
-      'reflect-metadata': 'node_modules/reflect-metadata/temp/Reflect.js',
       'jshashes': 'node_modules/jshashes/hashes.js'
     },
     packages: {
@@ -175,16 +116,160 @@ gulp.task('!bundle', ['!build:system'], () => {
       },
       'rxjs': {
         defaultExtension: 'js'
-      },
-      '@angular/core': {
-        defaultExtension: 'js',
-        main: 'index.js'
-      },
-      'reflect-metadata': {
-        format: 'global'
       }
     }
   });
-  builder.buildStatic('worker/browser_entry', 'dist/worker.js');
+  builder
+    .buildStatic('worker/browser_entry', 'dist/worker.js')
+    .then(() => done());
 });
 
+gulp.task('task:worker:minify', () => gulp
+  .src([
+    'dist/worker.js'
+  ], {base: 'dist'})
+  .pipe(uglify())
+  .pipe(rename({suffix: '.min'}))
+  .pipe(gulp.dest('dist')));
+
+gulp.task('task:generator:build', done => runSequence(
+  'task:generator:compile',
+  'task:generator:copy_deploy',
+  done));
+
+gulp.task('task:generator:compile', () => gulp
+  .src([
+    'src/generator/**.ts',
+    'typings/globals/**/*.d.ts'
+  ])
+  .pipe(ts(commonCompilerConfig))
+  .pipe(gulp.dest('dist')));
+
+gulp.task('task:generator:copy_deploy', () => gulp
+  .src([
+    'dist/src/generator/**/*.js'
+  ])
+  .pipe(gulp.dest('dist/generator')));
+
+gulp.task('e2e_harness:build', done => runSequence(
+  'clean',
+  'task:e2e_harness:build',
+  done
+));
+
+gulp.task('task:e2e_harness:build', done => runSequence([
+  'task:e2e_harness:build_worker',
+  'task:e2e_harness:compile',
+  'task:e2e_harness:copy_modules',
+  'task:e2e_harness:copy_index'
+], done));
+
+gulp.task('task:e2e_harness:build_worker', done => runSequence(
+  'task:worker:build',
+  'task:e2e_harness:copy_worker',
+  done
+));
+
+gulp.task('task:e2e_harness:compile', () => gulp
+  .src([,
+    'src/test/e2e/harness/client/**/*.ts',
+    'typings/globals/**/*.d.ts'
+  ], {base: '.'})
+  .pipe(ts(systemCompilerConfig))
+  .pipe(gulp.dest('dist')));
+  
+gulp.task('task:e2e_harness:copy_modules', () => gulp
+  .src([
+    'node_modules/@angular/**/*.js',
+    'node_modules/systemjs/dist/system.js',
+    'node_modules/reflect-metadata/Reflect.js',
+    'node_modules/zone.js/dist/zone.js',
+    'node_modules/rxjs/**/*.js'
+  ], {base: '.'})
+  .pipe(gulp.dest('dist/src/test/e2e/harness/client')));
+
+  
+gulp.task('task:e2e_harness:copy_worker', () => gulp
+  .src([
+    'dist/worker.js',
+  ], {base: 'dist'})
+  .pipe(gulp.dest('dist/src/test/e2e/harness/client')));
+  
+gulp.task('task:e2e_harness:copy_index', () => gulp
+  .src([
+    'src/test/e2e/harness/client/index.html'
+  ], {base: '.'})
+  .pipe(gulp.dest('dist')));
+
+gulp.task('task:e2e_tests:build', done => runSequence([
+  'task:e2e_tests:compile',
+  'task:e2e_tests:copy_protractor',
+], done));
+
+gulp.task('task:e2e_tests:compile', () => gulp
+  .src([
+    'src/test/e2e/spec/**/*.ts',
+    'src/test/e2e/harness/server/**/*.ts',
+    'src/typings/**/*.d.ts',
+    'typings/globals/**/*.d.ts'
+  ], {base: '.'})
+  .pipe(ts(commonCompilerConfig))
+  .pipe(gulp.dest('dist')));
+
+gulp.task('task:e2e_tests:copy_protractor', () => gulp
+  .src([
+    'src/test/e2e/spec/protractor.config.js'
+  ], {base: '.'})
+  .pipe(gulp.dest('dist')));
+
+gulp.task('task:unit_tests:compile', () => gulp
+  .src([
+    'src/test/unit/**/*.ts',
+    'src/testing/**/*.ts',
+    'src/typings/**/*.d.ts',
+    'typings/globals/**/*.d.ts'
+  ], {base: '.'})
+  .pipe(ts(commonCompilerConfig))
+  .pipe(gulp.dest('dist')));
+
+gulp.task('test', done => runSequence(
+  'test:unit',
+  'test:e2e',
+  done
+));
+
+gulp.task('test:unit', done => runSequence(
+  'clean',
+  [
+    'task:unit_tests:compile',
+    'task:worker:compile_common'
+  ],
+  'task:unit_tests:run',
+  done
+));
+
+gulp.task('task:unit_tests:run', () => gulp
+  .src([
+    'dist/**/*.spec.js'
+  ], {base: '.'})
+  .pipe(jsmn({
+    verbose: true,
+  })));
+
+gulp.task('test:e2e', done => runSequence(
+  'clean',
+  [
+    'task:e2e_tests:build',
+    'task:e2e_harness:build',
+  ],
+  'task:e2e_tests:run',
+  done
+));
+
+gulp.task('task:e2e_tests:run', done => {
+  exec('protractor dist/src/test/e2e/spec/protractor.config.js', (err, stdout, stderr) => {
+    console.log(stdout);
+    console.log(stderr);
+    done();
+  });
+});
