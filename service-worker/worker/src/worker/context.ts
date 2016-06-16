@@ -9,6 +9,7 @@ export abstract class WorkerScope {
   caches: CacheStorage;
   abstract addEventListener(type: string, listener: Function, useCapture?: boolean): void;
   abstract removeEventListener(type: string, listener: Function, last?: any): void;
+  registration: ServiceWorkerRegistration;
 }
 
 export abstract class WorkerAdapter {
@@ -30,10 +31,23 @@ export interface FetchEvent extends ExtendableEvent {
   respondWith(response: Promise<Response>);
 }
 
+export interface PushMessageData {
+  arrayBuffer(): ArrayBuffer;
+  blob(): Blob;
+  json(): Object;
+  text(): string;
+}
+
+export interface PushEvent extends ExtendableEvent {
+    data: PushMessageData;
+}
+
 export class Events {
   install: Observable<InstallEvent>;
   activate: Observable<ActivateEvent>;
   fetch: Observable<FetchEvent>;
+  message: Observable<MessageEvent>;
+  push: Observable<PushEvent>;
 
   constructor(scope: WorkerScope) {
     var req: FetchEvent;
@@ -41,5 +55,7 @@ export class Events {
     this.install = Observable.fromEvent<InstallEvent>(<any>scope, 'install');
     this.activate = Observable.fromEvent<ActivateEvent>(<any>scope, 'activate');
     this.fetch = Observable.fromEvent<FetchEvent>(<any>scope, 'fetch');
+    this.message = Observable.fromEvent<MessageEvent>(<any>scope, 'message');
+    this.push = Observable.fromEvent<PushEvent>(<any>scope, 'push');
   }
 }

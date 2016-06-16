@@ -2,7 +2,7 @@
   "name": "@angular/service-worker",
   "version": "0.2.0",
   "description": "Experimental service worker by the Angular Mobile team",
-  "main": "dist/generator/index.js",
+  "main": "dist/companion/index.js",
   "typings": "dist/src/worker.d.ts",
   "scripts": {
     "prepublish": "typings install && gulp prepublish",
@@ -20,11 +20,11 @@
   },
   "homepage": "https://github.com/angular/progressive#readme",
   "devDependencies": {
-    "@angular/common": "^2.0.0-rc.1",
-    "@angular/compiler": "^2.0.0-rc.1",
-    "@angular/platform-browser": "^2.0.0-rc.1",
-    "@angular/platform-browser-dynamic": "^2.0.0-rc.1",
-    "es6-shim": "^0.33.13",
+    "@angular/common": "^2.0.0-rc.4",
+    "@angular/compiler": "^2.0.0-rc.4",
+    "@angular/platform-browser": "^2.0.0-rc.4",
+    "@angular/platform-browser-dynamic": "^2.0.0-rc.4",
+    "es6-promise": "^3.0.2",
     "express": "^4.13.4",
     "gulp": "^3.9.0",
     "gulp-clean": "^0.3.1",
@@ -48,15 +48,14 @@
     "typescript": "1.9.0-dev.20160527-1.0",
     "typings": "^1.0.4",
     "vinyl": "^1.1.1",
+    "web-push": "^2.1.1",
     "zone.js": "^0.6.5"
   },
   "dependencies": {
-    "@angular/core": "^2.0.0-rc.1",
+    "@angular/core": "^2.0.0-rc.4",
+    "base64-js": "^1.1.2",
     "broccoli-caching-writer": "^2.2.1",
-    "es6-promise": "^3.0.2",
-    "es6-shim": "^0.35.0",
     "fs-extra": "^0.30.0",
-    "jshashes": "^1.0.5",
-    "vinyl": "^1.1.1"
+    "jshashes": "^1.0.5"
   }
 }

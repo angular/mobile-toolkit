@@ -1,9 +1,12 @@
 import {create, Server} from '../harness/server/server';
+import {sendPush, setGCMAPIKey} from '../harness/server/push';
 import {HarnessPageObject} from '../harness/server/page-object';
+
+import fs = require('fs');
+
 declare var browser;
 declare var element;
 declare var by;
-
 
 let server: Server;
 let po: HarnessPageObject;
@@ -16,6 +19,9 @@ const SIMPLE_MANIFEST = {
         '/hello.txt': {}
       }
     }
+  },
+  push: {
+    showNotifications: true
   }
 };
 
@@ -31,14 +37,38 @@ beforeEach(() => {
   po = new HarnessPageObject();
 });
 
+afterAll(done => {
+  po
+    .ping()
+    .then(() => po.log())
+    .then(entries => setTimeout(() => entries.forEach(entry => console.log(entry)), 0))
+    .then(() => server.shutdown())
+    .then(done);
+});
+
 function expectNoServiceWorker(): Promise<void> {
   return po
     .hasServiceWorker()
     .then(workerPresent => {
       expect(workerPresent).toBeFalsy();
-      console.log('expectation', workerPresent);
     });
 }
+
+beforeAll(done => {
+  fs.exists('./ngsw-config.json', exists => {
+    if (!exists) {
+      throw 'Must have a ngsw-config.json file with a gcm_key property';
+    }
+    fs.readFile('./ngsw-config.json', 'utf8', (err, data) => {
+      let config = JSON.parse(data);
+      if (!config.hasOwnProperty('gcm_key')) {
+        throw 'Must have a ngsw-config.json file with a gcm_key property';
+      }
+      setGCMAPIKey(config['gcm_key']);
+      return done();
+    });
+  });
+});
 
 describe('world sanity', () => {
   it('starts without a service worker', done => {
@@ -90,9 +120,34 @@ describe('world sanity', () => {
       })
       .then(done);
   });
-});
-
-afterAll(done => {
-  server.shutdown();
-  done();
+  it('worker responds to ping', done => {
+    po
+      .ping()
+      .then(result => {
+        expect(result).toBe('pong');
+      })
+      .then(done);
+  });
+  it('sends push notifications', done => {
+    po
+      .registerForPush()
+      .then(result => JSON.parse(result))
+      .then(reg => po
+        .waitForPush()
+        .then(() => sendPush(reg, {
+          notification: {
+            title: 'push notification test',
+            body: 'this is a test of push notifications',
+            requireInteraction: true
+          },
+          message: 'hello from the server'
+        }))
+      )
+      .then(() => po.asyncResult)
+      .then(result => JSON.parse(result))
+      .then(result => {
+        expect(result['message']).toBe('hello from the server');
+      })
+      .then(done);
+  });
 });

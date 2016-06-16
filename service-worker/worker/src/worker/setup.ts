@@ -5,6 +5,7 @@ import {EMPTY_CACHE_GROUP} from './manifest-parser';
 import {CacheManager} from './cache';
 import {Fetch} from './fetch';
 import {doAsync} from './operator';
+import {log, Verbosity} from './logging';
 
 
 interface SetupInstruction {
@@ -95,7 +96,7 @@ export function buildCaches(cache: CacheManager, fetch: Fetch): any {
             // Return instructions, which will be mergeMap'd and executed.
             return Observable.of<SetupInstruction>(action);
           })
-        .do(action => console.log('ngsw: setup', action.describe()))
+        .do(action => log(Verbosity.DETAIL, `ngsw: setup ${action.describe()}`))
         .mergeMap<any>(action => action.execute(cache, fetch));
       })
     ))

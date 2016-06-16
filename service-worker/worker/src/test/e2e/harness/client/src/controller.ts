@@ -1,9 +1,13 @@
 import {Component} from '@angular/core';
+import {Observable} from 'rxjs/Observable';
+import {NgServiceWorker} from '@angular/service-worker';
+
+import 'rxjs/add/operator/scan';
+import 'rxjs/add/operator/startWith';
 
 @Component({
   selector: 'controller',
   template: `
- 
 <!-- Action selection -->
 <div>
   <label for="actionSelect">
@@ -15,7 +19,11 @@ import {Component} from '@angular/core';
     <option value="CACHE_KEYS">Get cache keys</option>
     <option value="SW_CHECK">Check service worker</option>
     <option value="SW_INSTALL">Install service worker</option>
+    <option value="COMPANION_PING">Ping from the companion</option>
+    <option value="COMPANION_REG_PUSH">Register for push notifications</option>
+    <option value="RESET">Reset</option>
   </select>
+  <span *ngIf="alert" id="alert">ASYNC ALERT</span>
   <input id="actionInput" #actionInput [(ngModel)]="action">
   <button id="actionExec" (click)="refresh(actionInput.value)">Exec</button>
 </div>
@@ -43,12 +51,21 @@ import {Component} from '@angular/core';
 </div>
 
 <pre id="result">{{result}}</pre>
+<pre id="log">{{log | json}}</pre>
 `
 })
 export class ControllerCmp {
-  result: string = '';
+  result: string = null;
   action: string = '';
-  
+  alert: boolean = false;
+  log: string[] = [];
+
+  pushSub = null;
+  pushes = [];
+
+  constructor(public sw: NgServiceWorker) {
+    sw.log().subscribe(message => this.log.push(message));
+  }
   
   actionSelected(action): void {
     this.action = action;
@@ -61,15 +78,57 @@ export class ControllerCmp {
   }
   
   refresh(action) {
+    this.result = null;
+    if (this.pushSub !== null) {
+      this.pushSub.unsubscribe();
+      this.pushSub = null;
+    }
     switch (action) {
+      case 'RESET':
+        this.alert = false;
+        this.result = 'reset';
+        break;
       case 'CACHE_KEYS':
         this.loadCacheKeys();
         break;
       case 'SW_CHECK':
         this.checkServiceWorker();
         break;
+      case 'COMPANION_PING':
+        this
+          .sw
+          .ping()
+          .subscribe(undefined, undefined, () => {
+            this.result = 'pong';
+            this.alert = true;
+          });
+        break;
+      case 'COMPANION_REG_PUSH':
+        this
+          .sw
+          .registerForPush()
+          .subscribe(handler => {
+            this.result = JSON.stringify({
+              id: handler.id,
+              url: handler.url,
+              key: handler.key(),
+              auth: handler.auth()
+            });
+            this.alert = true;
+          });
+          break;
+        case 'COMPANION_WAIT_FOR_PUSH':
+          this.pushSub = this
+            .sw
+            .push
+            .take(1)
+            .map(value => JSON.stringify(value))
+            .subscribe(value => {
+              this.result = value;
+              this.alert = true;
+            });
       default:
-        this.result = '';
+        this.result = null;
     }
   }
   
@@ -99,7 +158,6 @@ export class ControllerCmp {
     navigator['serviceWorker']
       .getRegistrations()
       .then(registrations => {
-        console.log(window['Zone'].current);
         return registrations
           .map(reg => {
             return {
