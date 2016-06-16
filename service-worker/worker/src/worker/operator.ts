@@ -7,7 +7,7 @@ export function extractBody(obs: Observable<Response>): Observable<string> {
       Observable.of<string>(undefined));
 }
 
-export function doAsync<T>(fn: (T) => Observable<void>): any {
+export function doAsync<T>(fn: (T) => Observable<any>): any {
   return (obs: Observable<T>) => obs
     .concatMap(value => fn(value)
       .reduce(() => value, value));

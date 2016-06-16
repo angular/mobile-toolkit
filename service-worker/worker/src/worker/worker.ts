@@ -1,5 +1,8 @@
 import {Observable} from 'rxjs/Observable';
-import {Events, InstallEvent, FetchEvent, WorkerAdapter} from './context';
+import {Subject} from 'rxjs/Subject';
+
+import {log,readLog, Verbosity} from './logging';
+import {Events, WorkerScope, InstallEvent, FetchEvent, PushEvent, WorkerAdapter} from './context';
 import {SwManifest, CacheEntry, CacheGroup, ManifestDelta, Route} from './manifest';
 import {diffManifests, parseManifest} from './manifest-parser';
 import {Fetch} from './fetch';
@@ -11,6 +14,19 @@ import {extractBody, doAsync, concatLet} from './operator';
 export const MANIFEST_URL = '/ngsw-manifest.json';
 export const CACHE_ACTIVE = 'ngsw.active';
 export const CACHE_INSTALLING = 'ngsw.installing';
+
+const NOTIFICATION_OPTION_NAMES = [
+  'actions',
+  'body',
+  'dir',
+  'icon',
+  'lang',
+  'renotify',
+  'requireInteraction',
+  'tag',
+  'vibrate',
+  'data'
+];
 
 function diffManifestsObs(obs: Observable<string[]>): Observable<ManifestDelta> {
   return obs
@@ -146,6 +162,11 @@ function _handleRequest(request: Request, options: Object): any {
 export class ServiceWorker {
   _manifest: SwManifest = null;
 
+  pushBuffer: Object[] = [];
+  pushSubject: Subject<Object> = new Subject();
+
+  pushes: Observable<Object>;
+
   get init(): Observable<SwManifest> {
     if (this._manifest != null) {
       return Observable.of(this._manifest);
@@ -156,26 +177,39 @@ export class ServiceWorker {
   manifestReq: Request;
 
   constructor(
+    private scope: WorkerScope,
     private events: Events,
     public fetch: Fetch,
     public cache: CacheManager,
     public adapter: WorkerAdapter) {
     this.manifestReq = adapter.newRequest(MANIFEST_URL);
 
+    this.pushes = Observable
+      .create(observer => {
+        this.pushBuffer.forEach(item => observer.next(item));
+        this.pushBuffer = null;
+        let sub = this.pushSubject.subscribe(observer);
+        return () => {
+          sub.unsubscribe();
+          this.pushBuffer = [];
+        };
+      })
+      .share();
+
     events.install.subscribe((ev: InstallEvent) => {
-      console.log('ngsw: Event - install');
+      log(Verbosity.INFO, 'ngsw: Event - install');
       let init = this
         .checkDiffs(ManifestSource.NETWORK)
         .let(buildCaches(cache, fetch))
         .let(doAsync((delta: ManifestDelta) => cache.store(CACHE_INSTALLING, MANIFEST_URL, adapter.newResponse(delta.currentStr))))
         .map((delta: ManifestDelta) => delta.current)
         .do(manifest => this._manifest = manifest)
-        .do(() => console.log('ngsw: Event - install complete'))
+        .do(() => log(Verbosity.INFO, 'ngsw: Event - install complete'))
       ev.waitUntil(init.toPromise());
     });
 
     events.activate.subscribe((ev: InstallEvent) => {
-      console.log('ngsw: Event - activate');
+      log(Verbosity.INFO, 'ngsw: Event - activate');
       let init = this
         .checkDiffs(ManifestSource.INSTALLING)
         .let(cleanupCaches(cache))
@@ -189,16 +223,73 @@ export class ServiceWorker {
       let request = ev.request;
       ev.respondWith(this.handleFetch(request, {}).toPromise());
     });
+
+    events
+      .message
+      .filter(event =>
+        event.ports.length === 1 &&
+        event.data &&
+        event.data.hasOwnProperty('$ngsw')
+      )
+      .flatMap(event => {
+        let respond: MessagePort = event.ports[0];
+        return this
+          .handleMessage(event.data)
+          .do(
+            response => respond.postMessage(response),
+            undefined,
+            () => respond.postMessage(null)
+          )
+          .ignoreElements()
+      })
+      .subscribe();
+
+      events
+        .push
+        .map(ev => ev.data)
+        .map(data => data.json())
+        .catch(_ => Observable.of({}))
+        .subscribe(json => this
+          .init
+          .do(manifest => {
+            if (!json || typeof json !== 'object' || !json.hasOwnProperty('notification')) {
+              return;
+            }
+            this.showNotification(manifest, json['notification']);
+          })
+          .subscribe(_ => {
+            if (this.pushBuffer !== null) {
+              this.pushBuffer.push(json);
+            } else {
+              this.pushSubject.next(json);
+            }
+          })
+        );
   }
 
   handleFetch(request: Request, options: Object): Observable<Response> {
     return this
       .init
       .let<FetchInstruction>(_handleRequest(request, options))
-      .do(instruction => console.log(`ngsw: executing ${instruction.describe()}`))
+      .do(instruction => log(Verbosity.DETAIL, `ngsw: executing ${instruction.describe()}`))
       .concatMap(instruction => instruction.execute(this))
       .filter(resp => resp !== undefined)
       .first();
+  }
+
+  handleMessage(message: Object): Observable<Object> {
+    switch (message['cmd']) {
+      case 'ping':
+        return Observable.empty();
+      case 'log':
+        let level = Verbosity.DETAIL;
+        return readLog(level);
+      case 'push':
+        return this.pushes;
+      default:
+        log(Verbosity.TECHNICAL, `Unknown postMessage received: ${JSON.stringify(message)}`)
+        return Observable.empty();
+    }
   }
 
   normalInit(): Observable<SwManifest> {
@@ -262,5 +353,28 @@ export class ServiceWorker {
         resp.text() :
         Observable.from<string>(undefined));
   }
-}
 
+  showNotification(manifest: SwManifest, desc: Object) {
+    if (!manifest.push || !manifest.push.showNotifications) {
+      return;
+    }
+
+    if (!!manifest.push.backgroundOnly && this.pushBuffer === null) {
+      return;
+    }
+
+    if (!desc.hasOwnProperty('title')) {
+      return;
+    }
+
+    let options = {};
+    NOTIFICATION_OPTION_NAMES
+      .filter(name => desc.hasOwnProperty(name))
+      .forEach(name => options[name] = desc[name]);
+
+    this
+      .scope
+      .registration
+      .showNotification(desc['title'], options);
+  }
+}

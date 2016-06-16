@@ -1,6 +1,7 @@
 declare var browser;
 declare var element;
 declare var by;
+declare var protractor;
 
 export class HarnessPageObject {
   
@@ -12,7 +13,7 @@ export class HarnessPageObject {
     this.sendKeysSlow(element(by.css('#actionInput')).clear(), action);
     element(by.css('#actionExec'))
       .click();
-  }
+    }
   
   setTextOn(id: string, text: string) {
     this.sendKeysSlow(element(by.css(`#${id}`)).clear(), text);
@@ -25,6 +26,11 @@ export class HarnessPageObject {
   
   get result(): Promise<string> {
     return element(by.css('#result')).getText();
+  }
+
+  get asyncResult(): Promise<string> {
+    browser.wait(protractor.ExpectedConditions.presenceOf(element(by.id('alert'))));
+    return this.result;
   }
   
   request(url: string): Promise<string> {
@@ -57,5 +63,39 @@ export class HarnessPageObject {
         return value;
       })
       .then(value => value !== '[]');
+  }
+
+  ping(): Promise<string> {
+    this.reset();
+    this.selectAction('COMPANION_PING');
+    return this.asyncResult;
+  }
+
+  waitForPush(): Promise<string> {
+    this.reset();
+    this.selectAction('COMPANION_WAIT_FOR_PUSH');
+    return this.result;
+  }
+
+  log(): Promise<string[]> {
+    return element(by.css('#log'))
+      .getText()
+      .then(v => JSON.parse(v))
+      .then(log => {
+        this.selectAction('RESET');
+        return log;
+      });
+  }
+
+  reset() {
+    this.selectAction('RESET');
+    browser.wait(protractor.ExpectedConditions.not(
+        protractor.ExpectedConditions.presenceOf(element(by.id('alert')))));
+  }
+
+  registerForPush(): Promise<string> {
+    this.reset();
+    this.selectAction('COMPANION_REG_PUSH');
+    return this.asyncResult;
   }
 }

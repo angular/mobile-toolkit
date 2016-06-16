@@ -37,6 +37,12 @@ export interface SwManifest {
   dev?: boolean;
   group: CacheGroupMap;
   routing?: Routing;
+  push?: Push;
+}
+
+export interface Push {
+  showNotifications?: boolean;
+  backgroundOnly?: boolean;
 }
 
 export interface CacheGroupMap {

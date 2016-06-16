@@ -2,6 +2,7 @@
 <html>
   <head>
     <title>Service Worker Test Harness</title>
+    <link rel="manifest" href="/manifest.webapp">
     <script src="/node_modules/zone.js/dist/zone.js"></script>
     <script src="/node_modules/reflect-metadata/Reflect.js"></script>
     <script src="/node_modules/systemjs/dist/system.js"></script>
@@ -10,30 +11,39 @@
         map: {
           '@angular': '/node_modules/@angular',
           'rxjs': '/node_modules/rxjs',
+          'base64-js': '/node_modules/base64-js',
           'harness': '/'
         },
         packages: {
           '@angular/core': {
-            main: 'core.umd.js',
+            main: 'bundles/core.umd.js',
             defaultExtension: 'js'
           },
           '@angular/common': {
-            main: 'common.umd.js',
+            main: 'bundles/common.umd.js',
             defaultExtension: 'js'
           },
           '@angular/compiler': {
-            main: 'compiler.umd.js',
+            main: 'bundles/compiler.umd.js',
             defaultExtension: 'js'
           },
           '@angular/platform-browser': {
-            main: 'platform-browser.umd.js',
+            main: 'bundles/platform-browser.umd.js',
             defaultExtension: 'js'
           },
           '@angular/platform-browser-dynamic': {
-            main: 'platform-browser-dynamic.umd.js',
+            main: 'bundles/platform-browser-dynamic.umd.js',
+            defaultExtension: 'js'
+          },
+          '@angular/service-worker': {
+            main: 'dist/companion/index.js',
             defaultExtension: 'js'
           },
           'rxjs': {
+            defaultExtension: 'js'
+          },
+          'base64-js': {
+            main: 'base64js.min.js',
             defaultExtension: 'js'
           },
           'harness': {

@@ -9,7 +9,11 @@
     "outDir": "dist",
     "sourceMap": false,
     "moduleResolution": "node",
-    "rootDir": "."
+    "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "@angular/service-worker": ["dist/companion"]
+    }
 	},
   "exclude": [
     "node_modules"

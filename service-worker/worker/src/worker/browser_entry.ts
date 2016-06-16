@@ -33,4 +33,4 @@ let cacheManager = new CacheManager(workerScope, workerAdapter);
 
 // Finally, construct the service worker. The side effects of the constructor will
 // wire up events.
-let worker = new ServiceWorker(events, fetch, cacheManager, workerAdapter);
+let worker = new ServiceWorker(workerScope, events, fetch, cacheManager, workerAdapter);

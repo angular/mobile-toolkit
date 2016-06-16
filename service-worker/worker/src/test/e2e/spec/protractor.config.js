@@ -4,7 +4,20 @@ exports.config = {
     directConnect: true,
     exclude: [],
     multiCapabilities: [{
-        browserName: 'chrome'
+        browserName: 'chrome',
+        chromeOptions: {
+            prefs: {
+                'profile.content_settings.exceptions.push_messaging': {
+                    'http://localhost:8080,http://localhost:8080': { 'setting': 1 }
+                },
+                'profile.content_settings.exceptions.notifications': {
+                    'http://localhost:8080,*': {
+                        'setting': 1,
+                        'last_used': '1467058850.735089'
+                    }
+                }
+            }
+        }
     }],
     allScriptsTimeout: 110000,
     getPageTimeout: 100000,
@@ -23,5 +36,5 @@ exports.config = {
      * `rootEl`
      *
      */
-     useAllAngular2AppRoots: true
+     useAllAngular2AppRoots: true,
 };
