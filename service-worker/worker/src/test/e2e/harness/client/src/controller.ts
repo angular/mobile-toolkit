@@ -15,6 +15,7 @@ import {Component} from '@angular/core';
     <option value="CACHE_KEYS">Get cache keys</option>
     <option value="SW_CHECK">Check service worker</option>
     <option value="SW_INSTALL">Install service worker</option>
+    <option value="COMPANION_PING">Ping from the companion</option>
   </select>
   <input id="actionInput" #actionInput [(ngModel)]="action">
   <button id="actionExec" (click)="refresh(actionInput.value)">Exec</button>
@@ -49,6 +50,7 @@ export class ControllerCmp {
   result: string = '';
   action: string = '';
   
+  constructor(public sw) {}
   
   actionSelected(action): void {
     this.action = action;
@@ -67,6 +69,8 @@ export class ControllerCmp {
         break;
       case 'SW_CHECK':
         this.checkServiceWorker();
+        break;
+      case 'COMPANION_PING':
         break;
       default:
         this.result = '';

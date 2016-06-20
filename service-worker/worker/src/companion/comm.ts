@@ -43,12 +43,44 @@ export class NgServiceWorker {
       .take(1);
   }
 
-  private send(message: Object): Observable<Object> {
-    let channel = new MessageChannel();
-    return null;
+  // Sends a single message to the worker, and awaits one (or more) responses.
+  private sendToWorker(worker: ServiceWorkerRegistration, message: Object): Observable<any> {
+    // A MessageChannel is sent with the message so responses can be correlated.
+    let channel = new MessageChannel()
+    // Observe replies.
+    let result = Observable
+      // Subscribe to port1's message event, which will deliver any response(s).
+      .fromEvent(channel.port1, 'message')
+      // Instead of complicating this with 'close' events, complete on a null value.
+      .takeWhile(v => !!v)
+      // The message will be sent before the consumer has a chance to subscribe to
+      // the response Observable, so publishReplay() records any responses and ensures
+      // they arrive properly.
+      .publishReplay();
+
+    // Connecting actually creates the event subscription and starts recording
+    // for replay.
+    result.connect();
+
+    message['$ngsw'] = true;
+
+    worker.postMessage(message, [channel.port2]);
+    return result;
   }
 
-  ping(): Observable<void> {
-    return null;
+  // Send a message to the current controlling worker, waiting for one if needed.
+  private send(message: Object): Observable<Object> {
+    let channel = new MessageChannel();
+    
+    return this
+      // Wait for a controlling worker to exist.
+      .awaitSingleControllingWorker
+      // Send the message and await any replies. switchMap is chosen so if a new
+      // controlling worker arrives somehow, the message will still get through. 
+      .switchMap(worker => this.sendToWorker(worker, message));
+  }
+
+  ping(): Observable<any> {
+    return this.send(null);
   }
 }

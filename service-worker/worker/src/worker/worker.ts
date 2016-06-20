@@ -189,6 +189,26 @@ export class ServiceWorker {
       let request = ev.request;
       ev.respondWith(this.handleFetch(request, {}).toPromise());
     });
+
+    events
+      .message
+      .filter(event =>
+        event.ports.length === 1 &&
+        event.data &&
+        event.data.hasOwnProperty('$ngsw')
+      )
+      .flatMap(event => {
+        let respond: MessagePort = event.ports[0];
+        return this
+          .handleMessage(event)
+          .do(
+            response => respond.postMessage(response),
+            undefined,
+            () => respond.postMessage(null)
+          )
+          .ignoreElements()
+      })
+      .subscribe();
   }
 
   handleFetch(request: Request, options: Object): Observable<Response> {
@@ -199,6 +219,10 @@ export class ServiceWorker {
       .concatMap(instruction => instruction.execute(this))
       .filter(resp => resp !== undefined)
       .first();
+  }
+
+  handleMessage(message: Object): Observable<Object> {
+    return Observable.empty();
   }
 
   normalInit(): Observable<SwManifest> {

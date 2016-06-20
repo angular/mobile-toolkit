@@ -90,6 +90,9 @@ describe('world sanity', () => {
       })
       .then(done);
   });
+  it('worker responds to ping', done => {
+    done();
+  });
 });
 
 afterAll(done => {

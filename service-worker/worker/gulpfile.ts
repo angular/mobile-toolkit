@@ -59,13 +59,21 @@ gulp.task('worker:build', done => runSequence(
   'clean',
   'task:worker:build',
   done));
+
+gulp.task('companion:build', done => runSequence(
+  'clean',
+  'task:companion:build',
+  done));
   
 gulp.task('generator:build', done => runSequence(
   'clean',
   'task:generator:build',
-  done
-));
+  done));
 
+gulp.task('task:companion:build', done => runSequence(
+  'task:companion:compile',
+  'task:companion:copy_deploy',
+  done));
 
 gulp.task('task:worker:build', done => 
   runSequence(
@@ -101,6 +109,27 @@ gulp.task('task:worker:compile_common', () => {
     stream.dts.pipe(gulp.dest(commonCompilerConfig.outDir))
   ]);
 });
+
+gulp.task('task:companion:compile', () => {
+  const stream = gulp
+    .src([
+      'src/companion/**/*.ts',
+      'src/typings/**/*.d.ts',
+      'typings/global/**/*.d.ts'
+    ])
+    .pipe(ts(commonCompilerConfig));
+  return merge([
+    stream.js.pipe(gulp.dest(commonCompilerConfig.outDir)),
+    stream.dts.pipe(gulp.dest(commonCompilerConfig.outDir))
+  ]);
+});
+
+gulp.task('task:companion:copy_deploy', () => gulp
+  .src([
+    'dist/src/companion/**/*.js',
+    'dist/src/companion/**/*.d.ts'
+  ])
+  .pipe(gulp.dest('dist/companion')));
 
 gulp.task('task:worker:bundle', done => {
   var builder = new Builder();
@@ -159,7 +188,8 @@ gulp.task('e2e_harness:build', done => runSequence(
 
 gulp.task('task:e2e_harness:build', done => runSequence([
   'task:e2e_harness:build_worker',
-  'task:e2e_harness:compile',
+  'task:e2e_harness:build_companion',
+  'task:e2e_harness:compile', 
   'task:e2e_harness:copy_modules',
   'task:e2e_harness:copy_index'
 ], done));
@@ -167,8 +197,12 @@ gulp.task('task:e2e_harness:build', done => runSequence([
 gulp.task('task:e2e_harness:build_worker', done => runSequence(
   'task:worker:build',
   'task:e2e_harness:copy_worker',
-  done
-));
+  done));
+
+gulp.task('task:e2e_harness:build_companion', done => runSequence(
+  'task:companion:compile',
+  'task:e2e_harness:copy_companion',
+  done));
 
 gulp.task('task:e2e_harness:compile', () => gulp
   .src([,
@@ -188,7 +222,12 @@ gulp.task('task:e2e_harness:copy_modules', () => gulp
   ], {base: '.'})
   .pipe(gulp.dest('dist/src/test/e2e/harness/client')));
 
-  
+gulp.task('task:e2e_harness:copy_companion', () => gulp
+  .src([
+    'dist/src/companion/**/*.js'
+  ], {base: 'dist/src'})
+  .pipe(gulp.dest('dist/src/test/e2e/harness/client/node_modules/@angular/service-worker/dist')));
+
 gulp.task('task:e2e_harness:copy_worker', () => gulp
   .src([
     'dist/worker.js',
