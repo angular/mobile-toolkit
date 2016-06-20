@@ -1,6 +1,7 @@
 declare var browser;
 declare var element;
 declare var by;
+declare var protractor;
 
 export class HarnessPageObject {
   
@@ -12,7 +13,7 @@ export class HarnessPageObject {
     this.sendKeysSlow(element(by.css('#actionInput')).clear(), action);
     element(by.css('#actionExec'))
       .click();
-  }
+    }
   
   setTextOn(id: string, text: string) {
     this.sendKeysSlow(element(by.css(`#${id}`)).clear(), text);
@@ -57,5 +58,13 @@ export class HarnessPageObject {
         return value;
       })
       .then(value => value !== '[]');
+  }
+
+  ping(): Promise<string> {
+    this.selectAction('RESET');
+    browser.wait(protractor.ExpectedConditions.not(protractor.ExpectedConditions.presenceOf(element(by.id('result')))));
+    this.selectAction('COMPANION_PING');
+    browser.wait(protractor.ExpectedConditions.presenceOf(element(by.id('result'))));
+    return this.result;
   }
 }

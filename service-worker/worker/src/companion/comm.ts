@@ -51,6 +51,8 @@ export class NgServiceWorker {
     let result = Observable
       // Subscribe to port1's message event, which will deliver any response(s).
       .fromEvent(channel.port1, 'message')
+      // Extract the data from the MessageEvent.
+      .map((event: MessageEvent) => event.data)
       // Instead of complicating this with 'close' events, complete on a null value.
       .takeWhile(v => !!v)
       // The message will be sent before the consumer has a chance to subscribe to
@@ -62,6 +64,10 @@ export class NgServiceWorker {
     // for replay.
     result.connect();
 
+    // Start receiving message(s).
+    channel.port1.start();
+
+    // Set a magic value in the message.
     message['$ngsw'] = true;
 
     worker.postMessage(message, [channel.port2]);
@@ -81,6 +87,8 @@ export class NgServiceWorker {
   }
 
   ping(): Observable<any> {
-    return this.send(null);
+    return this.send({
+      cmd: 'ping'
+    });
   }
 }

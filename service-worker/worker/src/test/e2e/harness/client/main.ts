@@ -2,6 +2,7 @@
 import {Component} from '@angular/core';
 import {bootstrap} from '@angular/platform-browser-dynamic';
 import {ControllerCmp} from './src/controller';
+import {NgServiceWorker} from '@angular/service-worker';
 
 
 @Component({
@@ -14,4 +15,6 @@ import {ControllerCmp} from './src/controller';
 })
 class SwTestingHarnessCmp {}
 
-bootstrap(SwTestingHarnessCmp);
+bootstrap(SwTestingHarnessCmp, [
+  NgServiceWorker
+]);

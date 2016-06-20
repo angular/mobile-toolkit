@@ -91,6 +91,11 @@ describe('world sanity', () => {
       .then(done);
   });
   it('worker responds to ping', done => {
+    po
+      .ping()
+      .then(result => {
+        expect(result).toBe('pong');
+      });
     done();
   });
 });

@@ -1,9 +1,9 @@
 import {Component} from '@angular/core';
+import {NgServiceWorker} from '@angular/service-worker';
 
 @Component({
   selector: 'controller',
   template: `
- 
 <!-- Action selection -->
 <div>
   <label for="actionSelect">
@@ -16,6 +16,7 @@ import {Component} from '@angular/core';
     <option value="SW_CHECK">Check service worker</option>
     <option value="SW_INSTALL">Install service worker</option>
     <option value="COMPANION_PING">Ping from the companion</option>
+    <option value="RESET">Reset</option>
   </select>
   <input id="actionInput" #actionInput [(ngModel)]="action">
   <button id="actionExec" (click)="refresh(actionInput.value)">Exec</button>
@@ -43,14 +44,14 @@ import {Component} from '@angular/core';
   </div>
 </div>
 
-<pre id="result">{{result}}</pre>
+<pre *ngIf="!!result" id="result">{{result}}</pre>
 `
 })
 export class ControllerCmp {
-  result: string = '';
+  result: string = null;
   action: string = '';
   
-  constructor(public sw) {}
+  constructor(public sw: NgServiceWorker) {}
   
   actionSelected(action): void {
     this.action = action;
@@ -63,7 +64,11 @@ export class ControllerCmp {
   }
   
   refresh(action) {
+    this.result = null;
     switch (action) {
+      case 'RESET':
+        this.result = null;
+        break;
       case 'CACHE_KEYS':
         this.loadCacheKeys();
         break;
@@ -71,6 +76,12 @@ export class ControllerCmp {
         this.checkServiceWorker();
         break;
       case 'COMPANION_PING':
+        this
+          .sw
+          .ping()
+          .subscribe(undefined, undefined, () => {
+            this.result = 'pong';
+          });
         break;
       default:
         this.result = '';
