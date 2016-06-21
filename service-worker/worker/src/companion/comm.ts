@@ -12,8 +12,6 @@ export class NgServiceWorker {
   // if it does not.
   private awaitSingleControllingWorker: Observable<ServiceWorkerRegistration>;
 
-  postMessage: Observable<any>;
-
   constructor() {
     // Extract a typed version of navigator.serviceWorker.
     this.container = navigator['serviceWorker'] as ServiceWorkerContainer;
@@ -75,7 +73,7 @@ export class NgServiceWorker {
   }
 
   // Send a message to the current controlling worker, waiting for one if needed.
-  private send(message: Object): Observable<Object> {
+  private send(message: Object): Observable<any> {
     let channel = new MessageChannel();
     
     return this
@@ -86,9 +84,21 @@ export class NgServiceWorker {
       .switchMap(worker => this.sendToWorker(worker, message));
   }
 
+  // Send a 'ping' to the worker. The returned Observable will complete when the worker
+  // acknowledges the message. This provides a test that the worker is alive and listening.
   ping(): Observable<any> {
     return this.send({
       cmd: 'ping'
     });
+  }
+
+  log(): Observable<string> {
+    return this.send({
+      cmd: 'log'
+    });
+  }
+
+  registerForPush(): Observable<any> {
+    return null;
   }
 }

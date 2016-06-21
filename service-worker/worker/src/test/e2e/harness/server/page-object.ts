@@ -67,4 +67,14 @@ export class HarnessPageObject {
     browser.wait(protractor.ExpectedConditions.presenceOf(element(by.id('result'))));
     return this.result;
   }
+
+  log(): Promise<string[]> {
+    return element(by.css('#log'))
+      .getText()
+      .then(v => JSON.parse(v))
+      .then(log => {
+        this.selectAction('RESET');
+        return log;
+      });
+  }
 }

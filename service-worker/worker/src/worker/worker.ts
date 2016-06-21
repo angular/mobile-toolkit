@@ -1,4 +1,6 @@
 import {Observable} from 'rxjs/Observable';
+
+import {log,readLog, Verbosity} from './logging';
 import {Events, InstallEvent, FetchEvent, WorkerAdapter} from './context';
 import {SwManifest, CacheEntry, CacheGroup, ManifestDelta, Route} from './manifest';
 import {diffManifests, parseManifest} from './manifest-parser';
@@ -11,6 +13,15 @@ import {extractBody, doAsync, concatLet} from './operator';
 export const MANIFEST_URL = '/ngsw-manifest.json';
 export const CACHE_ACTIVE = 'ngsw.active';
 export const CACHE_INSTALLING = 'ngsw.installing';
+
+function writePort(port: MessagePort) {
+  return (obs: Observable<any>): Observable<any> => {
+    obs
+      .subscribe(v => port.postMessage(v), undefined, () => port.postMessage(null));
+    port.start();
+    return Observable.empty();
+  };
+}
 
 function diffManifestsObs(obs: Observable<string[]>): Observable<ManifestDelta> {
   return obs
@@ -163,19 +174,19 @@ export class ServiceWorker {
     this.manifestReq = adapter.newRequest(MANIFEST_URL);
 
     events.install.subscribe((ev: InstallEvent) => {
-      console.log('ngsw: Event - install');
+      log(Verbosity.INFO, 'ngsw: Event - install');
       let init = this
         .checkDiffs(ManifestSource.NETWORK)
         .let(buildCaches(cache, fetch))
         .let(doAsync((delta: ManifestDelta) => cache.store(CACHE_INSTALLING, MANIFEST_URL, adapter.newResponse(delta.currentStr))))
         .map((delta: ManifestDelta) => delta.current)
         .do(manifest => this._manifest = manifest)
-        .do(() => console.log('ngsw: Event - install complete'))
+        .do(() => log(Verbosity.INFO, 'ngsw: Event - install complete'))
       ev.waitUntil(init.toPromise());
     });
 
     events.activate.subscribe((ev: InstallEvent) => {
-      console.log('ngsw: Event - activate');
+      log(Verbosity.INFO, 'ngsw: Event - activate');
       let init = this
         .checkDiffs(ManifestSource.INSTALLING)
         .let(cleanupCaches(cache))
@@ -200,7 +211,7 @@ export class ServiceWorker {
       .flatMap(event => {
         let respond: MessagePort = event.ports[0];
         return this
-          .handleMessage(event)
+          .handleMessage(event.data)
           .do(
             response => respond.postMessage(response),
             undefined,
@@ -215,14 +226,20 @@ export class ServiceWorker {
     return this
       .init
       .let<FetchInstruction>(_handleRequest(request, options))
-      .do(instruction => console.log(`ngsw: executing ${instruction.describe()}`))
+      .do(instruction => log(Verbosity.DETAIL, `ngsw: executing ${instruction.describe()}`))
       .concatMap(instruction => instruction.execute(this))
       .filter(resp => resp !== undefined)
       .first();
   }
 
   handleMessage(message: Object): Observable<Object> {
-    return Observable.empty();
+    switch (message['cmd']) {
+      case 'ping':
+        return Observable.empty();
+      case 'log':
+        let level = Verbosity.DETAIL;
+        return readLog(level);
+    }
   }
 
   normalInit(): Observable<SwManifest> {
@@ -287,4 +304,3 @@ export class ServiceWorker {
         Observable.from<string>(undefined));
   }
 }
-

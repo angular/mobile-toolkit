@@ -31,6 +31,15 @@ beforeEach(() => {
   po = new HarnessPageObject();
 });
 
+afterEach(done => {
+  po
+    .log()
+    .then(entries => {
+      entries.forEach(entry => console.log(entry));
+    })
+    .then(done);
+});
+
 function expectNoServiceWorker(): Promise<void> {
   return po
     .hasServiceWorker()

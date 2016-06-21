@@ -1,5 +1,9 @@
 import {Component} from '@angular/core';
+import {Observable} from 'rxjs/Observable';
 import {NgServiceWorker} from '@angular/service-worker';
+
+import 'rxjs/add/operator/scan';
+import 'rxjs/add/operator/startWith';
 
 @Component({
   selector: 'controller',
@@ -45,13 +49,17 @@ import {NgServiceWorker} from '@angular/service-worker';
 </div>
 
 <pre *ngIf="!!result" id="result">{{result}}</pre>
+<pre id="log">{{log | json}}</pre>
 `
 })
 export class ControllerCmp {
   result: string = null;
   action: string = '';
-  
-  constructor(public sw: NgServiceWorker) {}
+  log: string[] = [];
+
+  constructor(public sw: NgServiceWorker) {
+    sw.log().subscribe(message => this.log.push(message));
+  }
   
   actionSelected(action): void {
     this.action = action;
@@ -68,6 +76,7 @@ export class ControllerCmp {
     switch (action) {
       case 'RESET':
         this.result = null;
+        this.log = [];
         break;
       case 'CACHE_KEYS':
         this.loadCacheKeys();
