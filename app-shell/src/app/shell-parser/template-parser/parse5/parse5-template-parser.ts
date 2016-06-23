@@ -1,8 +1,10 @@
-import {ASTNode} from '../ast';
-import {TemplateParser} from './template-parser';
+import {ASTNode} from '../../ast';
+import {TemplateParser} from '../template-parser';
 
-var Parser = require('../../../vendor/parse5/lib/parser');
-var Serializer = require('../../../vendor/parse5/lib/serializer');
+import './tokenizer-patch';
+
+var Parser = require('../../../../vendor/parse5/lib/parser');
+var Serializer = require('../../../../vendor/parse5/lib/serializer');
 
 export class Parse5TemplateParser extends TemplateParser {
   parse(template: string): ASTNode {

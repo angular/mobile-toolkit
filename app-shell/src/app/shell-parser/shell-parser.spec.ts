@@ -27,10 +27,10 @@ const prerenderedTemplate = `
   <header>
     <h1>Hey I'm appshell!</h1>
   </header>
-  <content class="shell-no-render">
+  <content shellNoRender>
     <p>Hello world</p>
   </content>
-  <div class="shell-no-render bar baz">
+  <div shellNoRender class="bar baz">
   </div>
 </body>
 </html>
@@ -58,7 +58,7 @@ const strippedContent = `
   <header>
     <h1>Hey I'm appshell!</h1>
   </header>
-  <div class="shell-no-render bar baz">
+  <div shellNoRender="" class="bar baz">
   </div>
 </body>
 </html>
@@ -73,7 +73,7 @@ const strippedWithComposedSelector = `
   <header>
     <h1>Hey I'm appshell!</h1>
   </header>
-  <content class="shell-no-render">
+  <content shellNoRender="">
     <p>Hello world</p>
   </content>
 </body>
@@ -144,7 +144,7 @@ describe('ShellParserImpl', () => {
     it('should strip with nested selector', (done: any) => {
       const mockScope = new MockWorkerScope();
       const parser = createMockedWorker(mockScope, {
-        NO_RENDER_CSS_SELECTOR: 'content.shell-no-render'
+        NO_RENDER_CSS_SELECTOR: 'content[shellNoRender]'
       });
       const response = new MockResponse(prerenderedTemplate);
       parser.parseDoc(response)
@@ -158,7 +158,7 @@ describe('ShellParserImpl', () => {
     it('should strip with nested selector', (done: any) => {
       const mockScope = new MockWorkerScope();
       const parser = createMockedWorker(mockScope, {
-        NO_RENDER_CSS_SELECTOR: '.shell-no-render.bar'
+        NO_RENDER_CSS_SELECTOR: '[shellNoRender].bar'
       });
       const response = new MockResponse(prerenderedTemplate);
       parser.parseDoc(response)
@@ -172,7 +172,7 @@ describe('ShellParserImpl', () => {
     it('should return content type "text/html" with status 200', (done: any) => {
       const mockScope = new MockWorkerScope();
       const parser = createMockedWorker(mockScope, {
-        NO_RENDER_CSS_SELECTOR: '.shell-no-render.bar'
+        NO_RENDER_CSS_SELECTOR: '[shellNoRender].bar'
       });
       const response = new MockResponse(prerenderedTemplate);
       parser.parseDoc(response)
