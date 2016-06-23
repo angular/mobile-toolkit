@@ -1,4 +1,4 @@
-import './tokenizer-patch';
+import './tokenizer-case-sensitivity-patch';
 
 import {
   beforeEach,

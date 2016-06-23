@@ -11,7 +11,7 @@
     "pree2e": "webdriver-manager update",
     "e2e": "protractor",
     "clean": "rm -rf dist",
-    "build": "ng build && tsc -p src/tsconfig.publish.es5.json && tsc -p src/tsconfig.publish.es6.json && cp src/package.json dist/app/package.json && browserify dist/app/shell-parser/index.js -s shellParserFactory > dist/app/shell-parser.js && rm -rf dist/app/shell-parser && rm -rf dist/app/vendor",
+    "build": "ng build && tsc -p src/tsconfig.publish.es5.json && tsc -p src/tsconfig.publish.es6.json && cp src/package.json dist/app/package.json && echo '' > dist/vendor/parse5/lib/tokenizer/named_entity_trie.js && browserify dist/app/shell-parser/index.js -s shellParserFactory > dist/app/shell-parser.js && rm -rf dist/app/shell-parser && rm -rf dist/app/vendor",
     "build_publish": "npm run clean && npm run build"
   },
   "private": true,
