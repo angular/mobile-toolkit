@@ -1,14 +1,18 @@
 import {ASTNode} from '../ast';
 import {TemplateParser} from './template-parser';
-import * as Parse5 from 'parse5';
+
+var Parser = require('../../../vendor/parse5/lib/parser');
+var Serializer = require('../../../vendor/parse5/lib/serializer');
 
 export class Parse5TemplateParser extends TemplateParser {
   parse(template: string): ASTNode {
-    return Parse5.parse(template);
+    var parser = new Parser();
+    return parser.parse(template);
   }
 
   serialize(node: ASTNode): string {
-    return Parse5.serialize(<any>node);
+    var serializer = new Serializer(node);
+    return serializer.serialize();
   }
 }
 
