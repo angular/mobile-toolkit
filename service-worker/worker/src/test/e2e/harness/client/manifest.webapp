@@ -1,0 +1,7 @@
+{
+  "name": "Angular Service Worker Test Harness",
+  "short_name": "ngsw harness",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "gcm_sender_id": "548552315733"
+}

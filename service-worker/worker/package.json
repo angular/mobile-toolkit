@@ -52,6 +52,7 @@
   },
   "dependencies": {
     "@angular/core": "^2.0.0-rc.1",
+    "base64-js": "^1.1.2",
     "broccoli-caching-writer": "^2.2.1",
     "es6-promise": "^3.0.2",
     "es6-shim": "^0.35.0",

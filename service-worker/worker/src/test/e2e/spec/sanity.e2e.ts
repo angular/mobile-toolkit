@@ -104,9 +104,17 @@ describe('world sanity', () => {
       .ping()
       .then(result => {
         expect(result).toBe('pong');
-      });
-    done();
+      })
+      .then(done);
   });
+  it('registers for push notifications', done => {
+    po
+      .registerForPush()
+      .then(result => {
+        console.log(result);
+      })
+      .then(done);
+  })
 });
 
 afterAll(done => {

@@ -1,18 +1,62 @@
+import {Injectable, NgZone} from '@angular/core';
 import {Observable} from 'rxjs/Observable';
+import {Observer} from 'rxjs/Observer';
+import {fromByteArray} from 'base64-js';
 
+import 'rxjs/add/operator/do';
+import 'rxjs/add/operator/expand';
+import 'rxjs/add/operator/let';
+import 'rxjs/add/observable/from';
+
+function fromPromise<T>(promiseFn: (() => Promise<T>)): Observable<T> {
+  return Observable.create(observer => {
+    promiseFn()
+      .then(v => observer.next(v))
+      .then(() => observer.complete())
+      .catch(err => observer.error(err));
+  });
+}
+
+export class NgPushRegistration {
+  private ps: PushSubscription;
+
+  constructor(
+      ps: any,
+      public messages: Observable<Object>) {
+    this.ps = ps;
+  }
+  key(method: string = 'p256dh'): string {
+    return fromByteArray(new Uint8Array(this.ps.getKey(method)));
+  }
+
+  get url(): string {
+    return this.ps.endpoint;
+  }
+
+  get id(): string {
+    return this.ps.id;
+  }
+
+  unsubscribe(): Observable<boolean> {
+    // TODO: switch to Observable.fromPromise when it's not broken.
+    return fromPromise(() => this.ps.unsubscribe());
+  }
+}
+
+@Injectable()
 export class NgServiceWorker {
 
   // Typed reference to navigator.serviceWorker.
   private container: ServiceWorkerContainer;
 
   // Always returns the current controlling worker, or undefined if there isn't one.
-  private controllingWorker: Observable<ServiceWorkerRegistration>;
+  private controllingWorker: Observable<ServiceWorker>;
 
   // Always returns the current controlling worker, and waits for one to exist
   // if it does not.
-  private awaitSingleControllingWorker: Observable<ServiceWorkerRegistration>;
+  private awaitSingleControllingWorker: Observable<ServiceWorker>;
 
-  constructor() {
+  constructor(private zone: NgZone) {
     // Extract a typed version of navigator.serviceWorker.
     this.container = navigator['serviceWorker'] as ServiceWorkerContainer;
 
@@ -41,8 +85,20 @@ export class NgServiceWorker {
       .take(1);
   }
 
+  private registrationForWorker(): ((obs: Observable<ServiceWorker>) => Observable<ServiceWorkerRegistration>) {
+    return (obs: Observable<ServiceWorker>) => {
+      return obs
+        .switchMap<ServiceWorkerRegistration>((worker, index) => {
+          return fromPromise(() => this.container.getRegistrations())
+            .expand<ServiceWorkerRegistration>(v => Observable.from(v))
+            .filter(reg => reg.active === worker)
+            .take(1);
+        });
+    };
+  }
+
   // Sends a single message to the worker, and awaits one (or more) responses.
-  private sendToWorker(worker: ServiceWorkerRegistration, message: Object): Observable<any> {
+  private sendToWorker(worker: ServiceWorker, message: Object): Observable<any> {
     // A MessageChannel is sent with the message so responses can be correlated.
     let channel = new MessageChannel()
     // Observe replies.
@@ -98,7 +154,49 @@ export class NgServiceWorker {
     });
   }
 
-  registerForPush(): Observable<any> {
-    return null;
+  private readPush(): Observable<Object> {
+    return this.send({
+      cmd: 'push'
+    });
+  }
+
+  registerForPush(): Observable<NgPushRegistration> {
+    console.log('registerForPush()');
+    return this
+      .awaitSingleControllingWorker
+      .let(this.registrationForWorker())
+      .do(worker => window['wkr'] = worker)
+      .map(worker => worker.pushManager)
+      .switchMap(pushManager => {
+        let reg: Observable<NgPushRegistration> = Observable.create(observer => {
+          console.log('trying to register');
+          let regFromSub = (sub: PushSubscription) => new NgPushRegistration(sub, this.readPush());
+          pushManager
+            .getSubscription()
+            .then(sub => {
+              console.log('checked subscription', sub);
+              if (sub) {
+                console.log('have subscription', sub.endpoint);
+                return regFromSub(sub);
+              }
+              console.log('trying to subscribe');
+              return pushManager
+                .subscribe({userVisibleOnly: true})
+                .then(res => {
+                  console.log('registered', res.endpoint);
+                  return res;
+                })
+                .then(regFromSub)
+                .catch(err => {
+                  console.error(err);
+                  return null;
+                });
+            })
+            .then(sub => this.zone.run(() => observer.next(sub)))
+            .then(() => this.zone.run(() => observer.complete()))
+            .catch(err => this.zone.run(() => observer.error(err)));
+        });
+        return reg;
+      });
   }
 }

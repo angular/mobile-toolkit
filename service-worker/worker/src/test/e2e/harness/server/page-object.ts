@@ -77,4 +77,12 @@ export class HarnessPageObject {
         return log;
       });
   }
+
+  registerForPush(): Promise<string> {
+    this.selectAction('RESET');
+    browser.wait(protractor.ExpectedConditions.not(protractor.ExpectedConditions.presenceOf(element(by.id('result')))));
+    this.selectAction('COMPANION_REG_PUSH');
+    browser.wait(protractor.ExpectedConditions.presenceOf(element(by.id('result'))));
+    return this.result;
+  }
 }

@@ -87,7 +87,8 @@ gulp.task('task:worker:compile_system', () => {
     .src([
       'src/worker/**/*.ts',
       'src/typings/**/*.d.ts',
-      'typings/globals/**/*.d.ts'
+      'typings/globals/**/*.d.ts',
+      'typings/modules/**/*.d.ts'
     ])
     .pipe(ts(systemCompilerConfig));
   return merge([
@@ -101,7 +102,8 @@ gulp.task('task:worker:compile_common', () => {
     .src([
       'src/worker/**/*.ts',
       'src/typings/**/*.d.ts',
-      'typings/globals/**/*.d.ts'
+      'typings/globals/**/*.d.ts',
+      'typings/modules/**/*.d.ts'
     ])
     .pipe(ts(commonCompilerConfig));
   return merge([
@@ -115,7 +117,8 @@ gulp.task('task:companion:compile', () => {
     .src([
       'src/companion/**/*.ts',
       'src/typings/**/*.d.ts',
-      'typings/globals/**/*.d.ts'
+      'typings/globals/**/*.d.ts',
+      'typings/modules/**/*.d.ts'
     ])
     .pipe(ts(commonCompilerConfig));
   return merge([
@@ -169,7 +172,8 @@ gulp.task('task:generator:build', done => runSequence(
 gulp.task('task:generator:compile', () => gulp
   .src([
     'src/generator/**.ts',
-    'typings/globals/**/*.d.ts'
+    'typings/globals/**/*.d.ts',
+    'typings/modules/**/*.d.ts'
   ])
   .pipe(ts(commonCompilerConfig))
   .pipe(gulp.dest('dist')));
@@ -226,7 +230,8 @@ gulp.task('task:e2e_harness:build_companion', done => runSequence(
 gulp.task('task:e2e_harness:compile', () => gulp
   .src([,
     'src/test/e2e/harness/client/**/*.ts',
-    'typings/globals/**/*.d.ts'
+    'typings/globals/**/*.d.ts',
+    'typings/modules/**/*.d.ts'
   ], {base: '.'})
   .pipe(ts(systemCompilerConfig))
   .pipe(gulp.dest('dist')));
@@ -237,7 +242,8 @@ gulp.task('task:e2e_harness:copy_modules', () => gulp
     'node_modules/systemjs/dist/system.js',
     'node_modules/reflect-metadata/Reflect.js',
     'node_modules/zone.js/dist/zone.js',
-    'node_modules/rxjs/**/*.js'
+    'node_modules/rxjs/**/*.js',
+    'node_modules/base64-js/base64js.min.js'
   ], {base: '.'})
   .pipe(gulp.dest('dist/src/test/e2e/harness/client')));
 
@@ -261,7 +267,8 @@ gulp.task('task:e2e_harness:copy_worker', () => gulp
   
 gulp.task('task:e2e_harness:copy_index', () => gulp
   .src([
-    'src/test/e2e/harness/client/index.html'
+    'src/test/e2e/harness/client/index.html',
+    'src/test/e2e/harness/client/manifest.webapp'
   ], {base: '.'})
   .pipe(gulp.dest('dist')));
 
@@ -275,7 +282,8 @@ gulp.task('task:e2e_tests:compile', () => gulp
     'src/test/e2e/spec/**/*.ts',
     'src/test/e2e/harness/server/**/*.ts',
     'src/typings/**/*.d.ts',
-    'typings/globals/**/*.d.ts'
+    'typings/globals/**/*.d.ts',
+    'typings/modules/**/*.d.ts'
   ], {base: '.'})
   .pipe(ts(commonCompilerConfig))
   .pipe(gulp.dest('dist')));
@@ -291,7 +299,8 @@ gulp.task('task:unit_tests:compile', () => gulp
     'src/test/unit/**/*.ts',
     'src/testing/**/*.ts',
     'src/typings/**/*.d.ts',
-    'typings/globals/**/*.d.ts'
+    'typings/globals/**/*.d.ts',
+    'typings/modules/**/*.d.ts'
   ], {base: '.'})
   .pipe(ts(commonCompilerConfig))
   .pipe(gulp.dest('dist')));

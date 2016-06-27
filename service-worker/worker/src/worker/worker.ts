@@ -239,6 +239,9 @@ export class ServiceWorker {
       case 'log':
         let level = Verbosity.DETAIL;
         return readLog(level);
+      default:
+        log(Verbosity.TECHNICAL, `Unknown postMessage received: ${JSON.stringify(message)}`)
+        return Observable.empty();
     }
   }
 

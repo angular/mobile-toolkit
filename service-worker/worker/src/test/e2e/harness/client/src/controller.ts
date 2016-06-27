@@ -20,6 +20,7 @@ import 'rxjs/add/operator/startWith';
     <option value="SW_CHECK">Check service worker</option>
     <option value="SW_INSTALL">Install service worker</option>
     <option value="COMPANION_PING">Ping from the companion</option>
+    <option value="COMPANION_REG_PUSH">Register for push notifications</option>
     <option value="RESET">Reset</option>
   </select>
   <input id="actionInput" #actionInput [(ngModel)]="action">
@@ -92,6 +93,21 @@ export class ControllerCmp {
             this.result = 'pong';
           });
         break;
+      case 'COMPANION_REG_PUSH':
+        this
+          .sw
+          .registerForPush()
+          .subscribe(handler => {
+            console.log('handler', handler);
+            this.result = JSON.stringify({
+              id: handler.id,
+              url: handler.url,
+              key: handler.key()
+            });
+            console.log('result set to', this.result);
+            console.log('current zone', window['Zone'].current);
+          });
+          break;
       default:
         this.result = '';
     }
