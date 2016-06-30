@@ -1,7 +1,8 @@
 import {Observable} from 'rxjs/Observable';
+import {Subject} from 'rxjs/Subject';
 
 import {log,readLog, Verbosity} from './logging';
-import {Events, InstallEvent, FetchEvent, WorkerAdapter} from './context';
+import {Events, InstallEvent, FetchEvent, PushEvent, WorkerAdapter} from './context';
 import {SwManifest, CacheEntry, CacheGroup, ManifestDelta, Route} from './manifest';
 import {diffManifests, parseManifest} from './manifest-parser';
 import {Fetch} from './fetch';
@@ -157,6 +158,11 @@ function _handleRequest(request: Request, options: Object): any {
 export class ServiceWorker {
   _manifest: SwManifest = null;
 
+  pushBuffer: Object[] = [];
+  pushSubject: Subject<Object> = new Subject();
+
+  pushes: Observable<Object>;
+
   get init(): Observable<SwManifest> {
     if (this._manifest != null) {
       return Observable.of(this._manifest);
@@ -172,6 +178,19 @@ export class ServiceWorker {
     public cache: CacheManager,
     public adapter: WorkerAdapter) {
     this.manifestReq = adapter.newRequest(MANIFEST_URL);
+
+    this.pushes = Observable
+      .create(observer => {
+        this.pushBuffer.forEach(item => observer.next(item));
+        this.pushBuffer = null;
+        let sub = this.pushSubject.subscribe(observer);
+        return () => {
+          sub.unsubscribe();
+          this.pushBuffer = [];
+        };
+      })
+      .publish()
+      .refCount();
 
     events.install.subscribe((ev: InstallEvent) => {
       log(Verbosity.INFO, 'ngsw: Event - install');
@@ -220,6 +239,12 @@ export class ServiceWorker {
           .ignoreElements()
       })
       .subscribe();
+
+      events
+        .push
+        .subscribe((ev: PushEvent) => {
+          ev
+        });
   }
 
   handleFetch(request: Request, options: Object): Observable<Response> {
@@ -239,6 +264,8 @@ export class ServiceWorker {
       case 'log':
         let level = Verbosity.DETAIL;
         return readLog(level);
+      case 'push':
+        return this.pushes;
       default:
         log(Verbosity.TECHNICAL, `Unknown postMessage received: ${JSON.stringify(message)}`)
         return Observable.empty();

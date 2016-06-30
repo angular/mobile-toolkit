@@ -48,6 +48,7 @@
     "typescript": "1.9.0-dev.20160527-1.0",
     "typings": "^1.0.4",
     "vinyl": "^1.1.1",
+    "web-push": "^2.1.1",
     "zone.js": "^0.6.5"
   },
   "dependencies": {

@@ -23,6 +23,7 @@ import 'rxjs/add/operator/startWith';
     <option value="COMPANION_REG_PUSH">Register for push notifications</option>
     <option value="RESET">Reset</option>
   </select>
+  <span *ngIf="alert" id="alert">ASYNC ALERT</span>
   <input id="actionInput" #actionInput [(ngModel)]="action">
   <button id="actionExec" (click)="refresh(actionInput.value)">Exec</button>
 </div>
@@ -49,14 +50,18 @@ import 'rxjs/add/operator/startWith';
   </div>
 </div>
 
-<pre *ngIf="!!result" id="result">{{result}}</pre>
+<pre id="result">{{result}}</pre>
 <pre id="log">{{log | json}}</pre>
 `
 })
 export class ControllerCmp {
   result: string = null;
   action: string = '';
+  alert: boolean = false;
   log: string[] = [];
+
+  pushSub = null;
+  pushes = [];
 
   constructor(public sw: NgServiceWorker) {
     sw.log().subscribe(message => this.log.push(message));
@@ -74,10 +79,15 @@ export class ControllerCmp {
   
   refresh(action) {
     this.result = null;
+    if (this.pushSub !== null) {
+      this.pushSub.unsubscribe();
+      this.pushSub = null;
+    }
     switch (action) {
       case 'RESET':
-        this.result = null;
+        this.alert = false;
         this.log = [];
+        this.result = 'reset';
         break;
       case 'CACHE_KEYS':
         this.loadCacheKeys();
@@ -91,6 +101,7 @@ export class ControllerCmp {
           .ping()
           .subscribe(undefined, undefined, () => {
             this.result = 'pong';
+            this.alert = true;
           });
         break;
       case 'COMPANION_REG_PUSH':
@@ -102,14 +113,27 @@ export class ControllerCmp {
             this.result = JSON.stringify({
               id: handler.id,
               url: handler.url,
-              key: handler.key()
+              key: handler.key(),
+              auth: handler.auth()
             });
-            console.log('result set to', this.result);
-            console.log('current zone', window['Zone'].current);
+            this.alert = true;
           });
           break;
+        case 'COMPANION_WAIT_FOR_PUSH':
+          this.pushSub = this
+            .sw
+            .readPush()
+            .scan((acc, val) => acc.concat([val]), [])
+            .startWith([])
+            .map(value => JSON.stringify(value))
+            .subscribe(value => {
+              this.result = value;
+              if (value !== '[]') {
+                this.alert = true;
+              }
+            });
       default:
-        this.result = '';
+        this.result = null;
     }
   }
   

@@ -1,5 +1,9 @@
 import {create, Server} from '../harness/server/server';
+import {sendPush, setGCMAPIKey} from '../harness/server/push';
 import {HarnessPageObject} from '../harness/server/page-object';
+
+import fs = require('fs');
+
 declare var browser;
 declare var element;
 declare var by;
@@ -48,6 +52,22 @@ function expectNoServiceWorker(): Promise<void> {
       console.log('expectation', workerPresent);
     });
 }
+
+beforeAll(done => {
+  fs.exists('./ngsw-config.json', exists => {
+    if (!exists) {
+      throw 'Must have a ngsw-config.json file with a gcm_key property';
+    }
+    fs.readFile('./ngsw-config.json', 'utf8', (err, data) => {
+      let config = JSON.parse(data);
+      if (!config.hasOwnProperty('gcm_key')) {
+        throw 'Must have a ngsw-config.json file with a gcm_key property';
+      }
+      setGCMAPIKey(config['gcm_key']);
+      return done();
+    });
+  });
+});
 
 describe('world sanity', () => {
   it('starts without a service worker', done => {
@@ -100,6 +120,7 @@ describe('world sanity', () => {
       .then(done);
   });
   it('worker responds to ping', done => {
+    console.log('running ping test');
     po
       .ping()
       .then(result => {
@@ -107,14 +128,19 @@ describe('world sanity', () => {
       })
       .then(done);
   });
-  it('registers for push notifications', done => {
+  it('sends push notifications', done => {
     po
       .registerForPush()
-      .then(result => {
-        console.log(result);
-      })
+      .then(result => JSON.parse(result))
+      .then(reg => po
+        .waitForPush()
+        .then(() => sendPush(reg))
+      )
+      .then(res => console.log('sendPush', res))
+      .then(() => po.asyncResult)
+      .then(value => console.log('waitForPush', `x${value}x`))
       .then(done);
-  })
+  });
 });
 
 afterAll(done => {

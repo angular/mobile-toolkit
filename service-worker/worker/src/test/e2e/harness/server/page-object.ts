@@ -27,6 +27,11 @@ export class HarnessPageObject {
   get result(): Promise<string> {
     return element(by.css('#result')).getText();
   }
+
+  get asyncResult(): Promise<string> {
+    browser.wait(protractor.ExpectedConditions.presenceOf(element(by.id('alert'))));
+    return this.result;
+  }
   
   request(url: string): Promise<string> {
     this.selectAction('MAKE_REQUEST');
@@ -61,10 +66,15 @@ export class HarnessPageObject {
   }
 
   ping(): Promise<string> {
-    this.selectAction('RESET');
-    browser.wait(protractor.ExpectedConditions.not(protractor.ExpectedConditions.presenceOf(element(by.id('result')))));
+    console.log('ping');
+    this.reset();
     this.selectAction('COMPANION_PING');
-    browser.wait(protractor.ExpectedConditions.presenceOf(element(by.id('result'))));
+    return this.asyncResult;
+  }
+
+  waitForPush(): Promise<string> {
+    this.reset();
+    this.selectAction('COMPANION_WAIT_FOR_PUSH');
     return this.result;
   }
 
@@ -78,11 +88,14 @@ export class HarnessPageObject {
       });
   }
 
-  registerForPush(): Promise<string> {
+  reset() {
     this.selectAction('RESET');
-    browser.wait(protractor.ExpectedConditions.not(protractor.ExpectedConditions.presenceOf(element(by.id('result')))));
+    browser.wait(protractor.ExpectedConditions.not(protractor.ExpectedConditions.presenceOf(element(by.id('alert')))));
+  }
+
+  registerForPush(): Promise<string> {
+    this.reset();
     this.selectAction('COMPANION_REG_PUSH');
-    browser.wait(protractor.ExpectedConditions.presenceOf(element(by.id('result'))));
-    return this.result;
+    return this.asyncResult;
   }
 }

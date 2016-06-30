@@ -30,11 +30,15 @@ export interface FetchEvent extends ExtendableEvent {
   respondWith(response: Promise<Response>);
 }
 
+export interface PushEvent extends ExtendableEvent {
+}
+
 export class Events {
   install: Observable<InstallEvent>;
   activate: Observable<ActivateEvent>;
   fetch: Observable<FetchEvent>;
   message: Observable<MessageEvent>;
+  push: Observable<PushEvent>;
 
   constructor(scope: WorkerScope) {
     var req: FetchEvent;
@@ -43,5 +47,6 @@ export class Events {
     this.activate = Observable.fromEvent<ActivateEvent>(<any>scope, 'activate');
     this.fetch = Observable.fromEvent<FetchEvent>(<any>scope, 'fetch');
     this.message = Observable.fromEvent<MessageEvent>(<any>scope, 'message');
+    this.push = Observable.fromEvent<PushEvent>(<any>scope, 'push');
   }
 }

@@ -25,6 +25,11 @@ export class NgPushRegistration {
       public messages: Observable<Object>) {
     this.ps = ps;
   }
+
+  auth(): string {
+    return fromByteArray(new Uint8Array(this.ps.getKey('auth')));
+  }
+
   key(method: string = 'p256dh'): string {
     return fromByteArray(new Uint8Array(this.ps.getKey(method)));
   }
@@ -154,7 +159,7 @@ export class NgServiceWorker {
     });
   }
 
-  private readPush(): Observable<Object> {
+  readPush(): Observable<Object> {
     return this.send({
       cmd: 'push'
     });
