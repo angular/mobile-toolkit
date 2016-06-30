@@ -2,7 +2,7 @@ export type RouteDefinition = string;
 
 const SHELL_PARSER_CACHE_NAME = 'mobile-toolkit:app-shell';
 const APP_SHELL_URL = './app_shell.html';
-const NO_RENDER_CSS_SELECTOR = '.shell-no-render';
+const NO_RENDER_CSS_SELECTOR = '[shellNoRender]';
 const ROUTE_DEFINITIONS: RouteDefinition[] = [];
 
 // TODO(mgechev): use if we decide to include @angular/core
