@@ -189,8 +189,7 @@ export class ServiceWorker {
           this.pushBuffer = [];
         };
       })
-      .publish()
-      .refCount();
+      .share();
 
     events.install.subscribe((ev: InstallEvent) => {
       log(Verbosity.INFO, 'ngsw: Event - install');
@@ -243,7 +242,17 @@ export class ServiceWorker {
       events
         .push
         .subscribe((ev: PushEvent) => {
-          ev
+          let json;
+          try {
+            json = ev.data.json();
+          } catch (e) {
+            json = {};
+          }
+          if (this.pushBuffer !== null) {
+            this.pushBuffer.push(json);
+          } else {
+            this.pushSubject.next(json);
+          }
         });
   }
 

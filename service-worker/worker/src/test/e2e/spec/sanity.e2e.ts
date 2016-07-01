@@ -49,7 +49,6 @@ function expectNoServiceWorker(): Promise<void> {
     .hasServiceWorker()
     .then(workerPresent => {
       expect(workerPresent).toBeFalsy();
-      console.log('expectation', workerPresent);
     });
 }
 
@@ -120,7 +119,6 @@ describe('world sanity', () => {
       .then(done);
   });
   it('worker responds to ping', done => {
-    console.log('running ping test');
     po
       .ping()
       .then(result => {
@@ -136,9 +134,7 @@ describe('world sanity', () => {
         .waitForPush()
         .then(() => sendPush(reg))
       )
-      .then(res => console.log('sendPush', res))
       .then(() => po.asyncResult)
-      .then(value => console.log('waitForPush', `x${value}x`))
       .then(done);
   });
 });

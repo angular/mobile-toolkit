@@ -109,7 +109,6 @@ export class ControllerCmp {
           .sw
           .registerForPush()
           .subscribe(handler => {
-            console.log('handler', handler);
             this.result = JSON.stringify({
               id: handler.id,
               url: handler.url,
@@ -122,15 +121,12 @@ export class ControllerCmp {
         case 'COMPANION_WAIT_FOR_PUSH':
           this.pushSub = this
             .sw
-            .readPush()
-            .scan((acc, val) => acc.concat([val]), [])
-            .startWith([])
+            .push
+            .take(1)
             .map(value => JSON.stringify(value))
             .subscribe(value => {
               this.result = value;
-              if (value !== '[]') {
-                this.alert = true;
-              }
+              this.alert = true;
             });
       default:
         this.result = null;
@@ -163,7 +159,6 @@ export class ControllerCmp {
     navigator['serviceWorker']
       .getRegistrations()
       .then(registrations => {
-        console.log(window['Zone'].current);
         return registrations
           .map(reg => {
             return {

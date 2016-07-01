@@ -3,10 +3,12 @@ import {Observable} from 'rxjs/Observable';
 import {Observer} from 'rxjs/Observer';
 import {fromByteArray} from 'base64-js';
 
+import 'rxjs/add/observable/defer';
+import 'rxjs/add/observable/from';
 import 'rxjs/add/operator/do';
 import 'rxjs/add/operator/expand';
 import 'rxjs/add/operator/let';
-import 'rxjs/add/observable/from';
+import 'rxjs/add/operator/share';
 
 function fromPromise<T>(promiseFn: (() => Promise<T>)): Observable<T> {
   return Observable.create(observer => {
@@ -20,9 +22,7 @@ function fromPromise<T>(promiseFn: (() => Promise<T>)): Observable<T> {
 export class NgPushRegistration {
   private ps: PushSubscription;
 
-  constructor(
-      ps: any,
-      public messages: Observable<Object>) {
+  constructor(ps: any) {
     this.ps = ps;
   }
 
@@ -61,6 +61,8 @@ export class NgServiceWorker {
   // if it does not.
   private awaitSingleControllingWorker: Observable<ServiceWorker>;
 
+  push: Observable<any>;
+
   constructor(private zone: NgZone) {
     // Extract a typed version of navigator.serviceWorker.
     this.container = navigator['serviceWorker'] as ServiceWorkerContainer;
@@ -88,6 +90,10 @@ export class NgServiceWorker {
       .controllingWorker
       .filter(worker => !!worker)
       .take(1);
+
+    this.push = Observable
+      .defer(() => this.send({cmd: 'push'}))
+      .share();
   }
 
   private registrationForWorker(): ((obs: Observable<ServiceWorker>) => Observable<ServiceWorkerRegistration>) {
@@ -159,43 +165,23 @@ export class NgServiceWorker {
     });
   }
 
-  readPush(): Observable<Object> {
-    return this.send({
-      cmd: 'push'
-    });
-  }
-
   registerForPush(): Observable<NgPushRegistration> {
-    console.log('registerForPush()');
     return this
       .awaitSingleControllingWorker
       .let(this.registrationForWorker())
-      .do(worker => window['wkr'] = worker)
       .map(worker => worker.pushManager)
       .switchMap(pushManager => {
         let reg: Observable<NgPushRegistration> = Observable.create(observer => {
-          console.log('trying to register');
-          let regFromSub = (sub: PushSubscription) => new NgPushRegistration(sub, this.readPush());
+          let regFromSub = (sub: PushSubscription) => new NgPushRegistration(sub);
           pushManager
             .getSubscription()
             .then(sub => {
-              console.log('checked subscription', sub);
               if (sub) {
-                console.log('have subscription', sub.endpoint);
                 return regFromSub(sub);
               }
-              console.log('trying to subscribe');
               return pushManager
                 .subscribe({userVisibleOnly: true})
-                .then(res => {
-                  console.log('registered', res.endpoint);
-                  return res;
-                })
-                .then(regFromSub)
-                .catch(err => {
-                  console.error(err);
-                  return null;
-                });
+                .then(regFromSub);
             })
             .then(sub => this.zone.run(() => observer.next(sub)))
             .then(() => this.zone.run(() => observer.complete()))

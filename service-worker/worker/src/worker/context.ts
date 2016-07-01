@@ -30,7 +30,15 @@ export interface FetchEvent extends ExtendableEvent {
   respondWith(response: Promise<Response>);
 }
 
+export interface PushMessageData {
+  arrayBuffer(): ArrayBuffer;
+  blob(): Blob;
+  json(): Object;
+  text(): string;
+}
+
 export interface PushEvent extends ExtendableEvent {
+    data: PushMessageData;
 }
 
 export class Events {
