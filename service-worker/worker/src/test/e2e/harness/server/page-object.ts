@@ -66,7 +66,6 @@ export class HarnessPageObject {
   }
 
   ping(): Promise<string> {
-    console.log('ping');
     this.reset();
     this.selectAction('COMPANION_PING');
     return this.asyncResult;

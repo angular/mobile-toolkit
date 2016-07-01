@@ -18,7 +18,8 @@ export function sendPush(reg: any, payload?: Object): Promise<any> {
 
   return push.sendNotification(endpoint, {
     userPublicKey: reg.key,
-    userAuth: reg.auth
+    userAuth: reg.auth,
+    payload: new Buffer(JSON.stringify(payload))
   });
 }
 

@@ -132,9 +132,13 @@ describe('world sanity', () => {
       .then(result => JSON.parse(result))
       .then(reg => po
         .waitForPush()
-        .then(() => sendPush(reg))
+        .then(() => sendPush(reg, {message: 'hello from the server'}))
       )
       .then(() => po.asyncResult)
+      .then(result => {
+        console.log(result);
+        expect(result['message']).toBe('hello from the server');
+      })
       .then(done);
   });
 });
