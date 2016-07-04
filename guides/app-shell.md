@@ -292,8 +292,8 @@ the page is fully rendered.
 <h1 *shellNoRender>App is Fully Rendered</h1>
 ```
 
-Now if we navigate to [localhost:4200/hello] in our browser, the spinner should render when the app shell is displayed,
-and the "App is Fully Rendered" test should render when Angular bootstraps the app.
+Now if we navigate to [localhost:4200](http://localhost:4200/) in our browser, the spinner should render when the app shell is displayed,
+and the "App is Fully Rendered" text should render when Angular bootstraps the app.
 
 ---
 
