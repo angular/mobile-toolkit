@@ -4,7 +4,12 @@ export class MockBody {
   constructor(private _body: string) {}
 
   arrayBuffer(): Promise<any> {
-    throw 'Unimplemented';
+    var buf = new ArrayBuffer(this._body.length * 2);
+    var bufView = new Uint16Array(buf);
+    for (var i=0, strLen = this._body.length; i < strLen; i++) {
+      bufView[i] = this._body.charCodeAt(i);
+    }
+    return Promise.resolve(buf);
   }
 
   blob(): Promise<any> {

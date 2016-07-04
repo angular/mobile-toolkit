@@ -7,6 +7,7 @@ import {
 } from '@angular/core/testing';
 import {BrowserWorkerScope, WorkerScope} from './context';
 import {ShellParserConfig, SHELL_PARSER_DEFAULT_CONFIG} from './config';
+import {TemplateStripVisitor} from './node-visitor';
 import {cssNodeMatcherFactory} from './node-matcher';
 import {Parse5TemplateParser} from './template-parser';
 import {normalizeConfig} from './shell-parser-factory';
@@ -91,7 +92,7 @@ const createMockedWorker = (mockScope: MockWorkerScope, config: ShellParserConfi
   return new ShellParserImpl(
       config,
       new Parse5TemplateParser(),
-      cssNodeMatcherFactory(config.NO_RENDER_CSS_SELECTOR),
+      [new TemplateStripVisitor(cssNodeMatcherFactory(config.NO_RENDER_CSS_SELECTOR))],
       mockScope);
 };
 

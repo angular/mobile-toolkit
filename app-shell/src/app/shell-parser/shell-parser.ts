@@ -1,5 +1,6 @@
 import {RouteDefinition, ShellParserConfig} from './config';
 import {ASTNode} from './ast';
+import {NodeVisitor} from './node-visitor';
 import {NodeMatcher} from './node-matcher';
 import {TemplateParser} from './template-parser';
 import {WorkerScope} from './context';
@@ -13,7 +14,7 @@ export interface ShellParser {
 export class ShellParserImpl implements ShellParser {
   constructor(private config: ShellParserConfig,
       private parser: TemplateParser,
-      private selector: NodeMatcher,
+      private visitors: NodeVisitor[],
       private scope: WorkerScope) {}
 
   fetchDoc(url: string = this.config.APP_SHELL_URL): Promise<Response> {
@@ -26,10 +27,13 @@ export class ShellParserImpl implements ShellParser {
         const headers: any = {
           'content-type': 'text/html'
         };
-        return this.scope.newResponse(this.stripTemplate(template), {
-          status: 200,
-          headers
-        });
+        return this.processDoc(template)
+          .then((template: string) => {
+            return this.scope.newResponse(template, {
+              status: 200,
+              headers
+            });
+          });
       });
   }
 
@@ -46,28 +50,22 @@ export class ShellParserImpl implements ShellParser {
          cache.match(this.scope.newRequest(this.config.APP_SHELL_URL)));
   }
 
-  private stripTemplate(template: string) {
+  private processDoc(template: string): Promise<string> {
     const root = this.parser.parse(template);
-    this.stripTemplateHelper(root);
-    return this.parser.serialize(root);
+    return this.visitTemplate(root)
+      .then((root: ASTNode) => {
+        return this.parser.serialize(root);
+      });
   }
 
-  private stripTemplateHelper(node: ASTNode): ASTNode {
-    const children = node.childNodes || [];
-    if (this.selector.match(node)) {
-      const parentNode = node.parentNode;
-      if (parentNode) {
-        parentNode.childNodes
-          .splice(parentNode.childNodes.indexOf(node), 1);
-      } else {
-        // Ths is the root node so markup
-        // should be included in App Shell
-        return null;
-      }
-    } else {
-      children.forEach((c: ASTNode) =>
-          this.stripTemplateHelper(c));
+  private visitTemplate(node: ASTNode, visitorIdx: number = 0): Promise<ASTNode> {
+    if (visitorIdx >= this.visitors.length) {
+      return Promise.resolve(node);
     }
+    return this.visitors[visitorIdx].visit(node)
+      .then((node: ASTNode) => {
+        return this.visitTemplate(node, visitorIdx + 1);
+      });
   }
 
   private routeMatcher(definitions: RouteDefinition[], url: string) {
