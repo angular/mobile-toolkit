@@ -19,6 +19,7 @@ function fromPromise<T>(promiseFn: (() => Promise<T>)): Observable<T> {
   });
 }
 
+// A push notification registration, including the endpoint URL and encryption keys.
 export class NgPushRegistration {
   private ps: PushSubscription;
 
@@ -26,8 +27,9 @@ export class NgPushRegistration {
     this.ps = ps;
   }
 
+  // Get the authentication key
   auth(): string {
-    return fromByteArray(new Uint8Array(this.ps.getKey('auth')));
+    return this.key('auth');
   }
 
   key(method: string = 'p256dh'): string {
@@ -46,6 +48,11 @@ export class NgPushRegistration {
     // TODO: switch to Observable.fromPromise when it's not broken.
     return fromPromise(() => this.ps.unsubscribe());
   }
+}
+
+export interface NgPushOptions {
+  showNotification?: boolean;
+  backgroundOnly?: boolean;
 }
 
 @Injectable()
@@ -165,24 +172,36 @@ export class NgServiceWorker {
     });
   }
 
-  registerForPush(): Observable<NgPushRegistration> {
+  registerForPush(options?: NgPushOptions): Observable<NgPushRegistration> {
     return this
+      // Wait for a controlling worker to exist.
       .awaitSingleControllingWorker
+      // Get the ServiceWorkerRegistration for the worker.
       .let(this.registrationForWorker())
+      // Access the PushManager used to control push notifications.
       .map(worker => worker.pushManager)
       .switchMap(pushManager => {
+        // Create an Observable to wrap the Promises of the PushManager API.
+        // TODO: switch to Observable.fromPromise when it's not broken.
+        // This is extracted as a variable so Typescript infers types correctly.
         let reg: Observable<NgPushRegistration> = Observable.create(observer => {
+          // Function that maps subscriptions to an Angular-specific representation.
           let regFromSub = (sub: PushSubscription) => new NgPushRegistration(sub);
+
           pushManager
+            // First, check for an existing subscription.
             .getSubscription()
             .then(sub => {
-              if (sub) {
+              // If there is one, we don't need to register, just return it.
+              if (!!sub) {
                 return regFromSub(sub);
               }
+              // No existing subscription, register (with userVisibleOnly: true).
               return pushManager
                 .subscribe({userVisibleOnly: true})
                 .then(regFromSub);
             })
+            // Map from promises to the Observable being returned.
             .then(sub => this.zone.run(() => observer.next(sub)))
             .then(() => this.zone.run(() => observer.complete()))
             .catch(err => this.zone.run(() => observer.error(err)));

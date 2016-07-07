@@ -245,7 +245,6 @@ export class ServiceWorker {
           let json;
           try {
             json = ev.data.json();
-            
           } catch (e) {
             json = {};
           };

@@ -135,8 +135,8 @@ describe('world sanity', () => {
         .then(() => sendPush(reg, {message: 'hello from the server'}))
       )
       .then(() => po.asyncResult)
+      .then(result => JSON.parse(result))
       .then(result => {
-        console.log(result);
         expect(result['message']).toBe('hello from the server');
       })
       .then(done);
