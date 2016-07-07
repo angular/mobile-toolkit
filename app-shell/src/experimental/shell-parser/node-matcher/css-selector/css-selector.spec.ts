@@ -1,6 +1,3 @@
-import {
-  inject
-} from '@angular/core/testing';
 import { CssSelector } from './css-selector';
 
 describe('CssSelector', () => {
@@ -52,7 +49,5 @@ describe('CssSelector', () => {
       expect(result.elementId).toBe('baz');
       expect(result.classNames).toEqual(['foo', 'qux']);
     });
-
   });
 });
-

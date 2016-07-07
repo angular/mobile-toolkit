@@ -1,7 +1,6 @@
 import {RouteDefinition, ShellParserConfig} from './config';
 import {ASTNode} from './ast';
 import {NodeVisitor} from './node-visitor';
-import {NodeMatcher} from './node-matcher';
 import {TemplateParser} from './template-parser';
 import {WorkerScope} from './context';
 

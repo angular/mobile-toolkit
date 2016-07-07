@@ -16,8 +16,6 @@ export abstract class NodeVisitor {
         } else {
           return null;
         }
-      })
+      });
   }
-
 }
-

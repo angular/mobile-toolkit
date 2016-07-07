@@ -1,7 +1,13 @@
 import {Parse5TemplateParser} from './template-parser';
 import {ShellParserImpl} from './shell-parser';
 import {cssNodeMatcherFactory} from './node-matcher';
-import {StylesheetResourceInlineVisitor, InlineStyleResourceInlineVisitor, TemplateStripVisitor, NodeVisitor} from './node-visitor';
+import {
+  StylesheetResourceInlineVisitor,
+  InlineStyleResourceInlineVisitor,
+  TemplateStripVisitor,
+  NodeVisitor,
+  TemplateRecoverVisitor
+} from './node-visitor';
 import {BrowserWorkerScope} from './context';
 import {ShellParserConfig, SHELL_PARSER_DEFAULT_CONFIG} from './config';
 
@@ -13,8 +19,9 @@ export const shellParserFactory = (config: ShellParserConfig = {}) => {
   const parserConfig = normalizeConfig(config);
   const scope = new BrowserWorkerScope();
   const visitors: NodeVisitor[] = [];
+  visitors.push(new TemplateRecoverVisitor(parserConfig.RENDER_MARKER, new Parse5TemplateParser()));
+  visitors.push(new TemplateStripVisitor(cssNodeMatcherFactory(parserConfig.NO_RENDER_CSS_SELECTOR)));
   if (config.INLINE_IMAGES) {
-    visitors.push(new TemplateStripVisitor(cssNodeMatcherFactory(parserConfig.NO_RENDER_CSS_SELECTOR)));
     visitors.push(new StylesheetResourceInlineVisitor(scope, config.INLINE_IMAGES));
     visitors.push(new InlineStyleResourceInlineVisitor(scope, config.INLINE_IMAGES));
   }
@@ -24,4 +31,3 @@ export const shellParserFactory = (config: ShellParserConfig = {}) => {
       visitors,
       scope);
 };
-

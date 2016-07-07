@@ -1,10 +1,5 @@
-import {
-  inject
-} from '@angular/core/testing';
-
 import {ASTNode} from '../ast';
 import {cssNodeMatcherFactory} from '../node-matcher';
-import {MockWorkerScope, MockResponse} from '../testing';
 import {TemplateStripVisitor} from './';
 
 describe('TemplateStripVisitor', () => {
@@ -69,6 +64,5 @@ describe('TemplateStripVisitor', () => {
         done();
       });
   });
-
 });
 

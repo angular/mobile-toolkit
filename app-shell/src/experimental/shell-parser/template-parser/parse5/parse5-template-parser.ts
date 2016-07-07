@@ -13,6 +13,11 @@ export class Parse5TemplateParser extends TemplateParser {
     return parser.parse(template);
   }
 
+  parseFragment(fragment: string) {
+    var parser = new Parser();
+    return parser.parseFragment(fragment);
+  }
+
   serialize(node: ASTNode): string {
     var serializer = new Serializer(node);
     return serializer.serialize();

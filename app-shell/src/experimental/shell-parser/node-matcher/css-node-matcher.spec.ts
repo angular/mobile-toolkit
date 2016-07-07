@@ -1,6 +1,3 @@
-import {
-  inject
-} from '@angular/core/testing';
 import { ASTNode } from '../ast';
 import { CssSelector } from './css-selector';
 import { CssNodeMatcher } from './css-node-matcher';
