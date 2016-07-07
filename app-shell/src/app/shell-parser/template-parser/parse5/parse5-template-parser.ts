@@ -1,7 +1,8 @@
 import {ASTNode} from '../../ast';
 import {TemplateParser} from '../template-parser';
 
-import './tokenizer-patch';
+import './tokenizer-case-sensitivity-patch';
+import './drop-named-entities-patch';
 
 var Parser = require('../../../../vendor/parse5/lib/parser');
 var Serializer = require('../../../../vendor/parse5/lib/serializer');
