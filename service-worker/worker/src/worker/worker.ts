@@ -2,7 +2,7 @@ import {Observable} from 'rxjs/Observable';
 import {Subject} from 'rxjs/Subject';
 
 import {log,readLog, Verbosity} from './logging';
-import {Events, InstallEvent, FetchEvent, PushEvent, WorkerAdapter} from './context';
+import {Events, WorkerScope, InstallEvent, FetchEvent, PushEvent, WorkerAdapter} from './context';
 import {SwManifest, CacheEntry, CacheGroup, ManifestDelta, Route} from './manifest';
 import {diffManifests, parseManifest} from './manifest-parser';
 import {Fetch} from './fetch';
@@ -163,6 +163,14 @@ export class ServiceWorker {
 
   pushes: Observable<Object>;
 
+  // Controls whether to use the 'notification' property of an incoming
+  // push message to display a notification.
+  private _pushShowNotification: boolean = false;
+
+  // Controls whether to show a notification while at least one client is
+  // actively listening to push messages.
+  private _pushBackgroundOnly: boolean = false;
+
   get init(): Observable<SwManifest> {
     if (this._manifest != null) {
       return Observable.of(this._manifest);
@@ -173,6 +181,7 @@ export class ServiceWorker {
   manifestReq: Request;
 
   constructor(
+    private scope: WorkerScope,
     private events: Events,
     public fetch: Fetch,
     public cache: CacheManager,
@@ -241,13 +250,26 @@ export class ServiceWorker {
 
       events
         .push
-        .subscribe((ev: PushEvent) => {
-          let json;
+        .map(ev => ev.data)
+        .map(data => {
           try {
-            json = ev.data.json();
+            return data.json();
           } catch (e) {
-            json = {};
-          };
+            return {};
+          }
+        })
+        .do(json => {
+          if (!json || typeof json !== 'object') {
+            return;
+          }
+          if (!this._pushShowNotification || !json.hasOwnProperty('notification')) {
+            return;
+          }
+          if (this._pushBackgroundOnly && this.pushBuffer === null) {
+            return;
+          }
+        })
+        .subscribe(json => {
           if (this.pushBuffer !== null) {
             this.pushBuffer.push(json);
           } else {
@@ -275,9 +297,21 @@ export class ServiceWorker {
         return readLog(level);
       case 'push':
         return this.pushes;
+      case 'setPushOptions':
+        this.setPushOptions(message['options']);
+        return Observable.empty();
       default:
         log(Verbosity.TECHNICAL, `Unknown postMessage received: ${JSON.stringify(message)}`)
         return Observable.empty();
+    }
+  }
+
+  setPushOptions(options: Object): void {
+    if (options.hasOwnProperty('showNotification')) {
+      this._pushShowNotification = !!options['showNotification'];
+    }
+    if (options.hasOwnProperty('backgroundOnly')) {
+      this._pushBackgroundOnly = !!options['backgroundOnly'];
     }
   }
 

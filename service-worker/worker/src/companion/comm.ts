@@ -98,6 +98,7 @@ export class NgServiceWorker {
       .filter(worker => !!worker)
       .take(1);
 
+    // Setup the push Observable as a broadcast mechanism for push notifications.
     this.push = Observable
       .defer(() => this.send({cmd: 'push'}))
       .share();
@@ -169,6 +170,13 @@ export class NgServiceWorker {
   log(): Observable<string> {
     return this.send({
       cmd: 'log'
+    });
+  }
+
+  setPushOptions(options: NgPushOptions): Observable<any> {
+    return this.send({
+      cmd: 'setPushOptions',
+      options
     });
   }
 
