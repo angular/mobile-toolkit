@@ -27,6 +27,8 @@ const barrels: string[] = [
   'app/shared',
   'app/shell-parser',
   'app/shell-parser/template-parser',
+  'app/shell-parser/node-visitor',
+  'app/shell-parser/node-visitor/resource-inline',
   'app/shell-parser/node-matcher',
   'app/shell-parser/node-matcher/css-selector',
   'app/shell-parser/ast',
