@@ -40,7 +40,8 @@ export abstract class ResourceInlineVisitor extends NodeVisitor {
         return response.arrayBuffer()
           .then((arr: ArrayBuffer) => [
             btoa(String.fromCharCode.apply(null, new Uint8Array(arr))),
-            response.headers.get('content-type')
+            // Can contain whitespace: 'image/jpg; charset=utf-8'
+            response.headers.get('content-type').replace(/\s/g, '')
           ]);
       } else {
         return null;
