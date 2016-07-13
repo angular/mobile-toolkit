@@ -1,0 +1,10 @@
+{
+  "group": {
+    "default": {
+      "version": "debug",
+      "url": {
+        "/hello.txt": {}
+      }
+    }
+  }
+}

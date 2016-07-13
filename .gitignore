@@ -30,6 +30,7 @@ tmp
 # (NB: these lines are removed in publish-build-artifacts.sh)
 **/typings/**/*.d.ts
 **/typings/tsd.cached.json
+!/service-worker/worker/src/typings
 
 # Include when developing application packages.
 pubspec.lock

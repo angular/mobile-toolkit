@@ -171,7 +171,7 @@ let sequence = describe;
 let fsequence = fdescribe;
 
 function createServiceWorker(scope, adapter, cache, fetch, events) {
-  return new ServiceWorker(events, fetch, cache, adapter);
+  return new ServiceWorker(scope, events, fetch, cache, adapter);
 }
 
 describe('ngsw', () => {

@@ -78,6 +78,10 @@ export class TestWorkerScope extends WorkerScope {
       case 'fetch':
         this.fetchListener = listener;
         break;
+      case 'message':
+      case 'push':
+        // Ignore.
+        break;
       default:
         throw `Registering listener for unknown event: ${type}`;
     }
