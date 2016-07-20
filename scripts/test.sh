@@ -1,6 +1,8 @@
 #!/bin/bash
 
 cd `dirname $0`
+cd ..
+pwd
 
 # DISPLAY set to Xvfb for Chrome
 export DISPLAY=:99.0
