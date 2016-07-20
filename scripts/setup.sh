@@ -85,7 +85,7 @@ fi
 
 pushd ./service-worker/worker
 npm install
-./node_modules/.bin/webdriver-manager install --chrome
+./node_modules/.bin/webdriver-manager update --chrome
 popd
 
 pushd ./app-shell/
