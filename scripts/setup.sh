@@ -1,7 +1,11 @@
 #!/bin/bash
 
 set -e -x
+echo 'dollar 0 is'
+echo $0
+echo `dirname $0`
 cd `dirname $0`
+cd ..
 
 # Download Chrome
 
@@ -78,8 +82,6 @@ if [[ ${TRAVIS} ]]; then
 fi
 
 # Install npm
-pwd
-ls
 
 pushd ./service-worker/worker
 npm install
