@@ -78,6 +78,8 @@ if [[ ${TRAVIS} ]]; then
 fi
 
 # Install npm
+pwd
+ls
 
 pushd ./service-worker/worker
 npm install
