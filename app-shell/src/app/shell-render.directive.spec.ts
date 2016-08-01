@@ -1,19 +1,13 @@
 import {
-  async,
-  beforeEachProviders,
-  describe,
-  expect,
-  it,
-  inject
+  TestBed
 } from '@angular/core/testing';
-import {ComponentFixture, TestComponentBuilder} from '@angular/compiler/testing';
 import { provide, Component } from '@angular/core';
 
 import { ShellRender } from './shell-render.directive';
 import {
-  APP_SHELL_BUILD_PROVIDERS,
-  APP_SHELL_RUNTIME_PROVIDERS
-} from './is-prerender.service';
+  AppShellBuildModule,
+  AppShellRuntimeModule
+} from './index';
 
 @Component({
   selector: 'test-component',
@@ -24,29 +18,37 @@ class TestComponent {}
 
 describe('ShellRender Directive', () => {
   describe('prerender', () => {
-    beforeEachProviders((): any[] => [APP_SHELL_BUILD_PROVIDERS]);
+    beforeEach(() => {
+      TestBed.configureTestingModule({
+        declarations: [TestComponent],
+        imports: [AppShellBuildModule]
+      })
+    });
 
-    it('should render the element', async(inject([TestComponentBuilder], (tcb:TestComponentBuilder) => {
-      return tcb.createAsync(TestComponent).then((fixture: ComponentFixture<TestComponent>) => {
-        fixture.detectChanges();
-        expect(fixture.debugElement.childNodes.length).toBe(2);
-        expect(fixture.debugElement.childNodes[0].nativeNode.textContent).toBe('template bindings={}');
-        expect(fixture.debugElement.childNodes[1].nativeNode.textContent).toBe('Rendered');
-      });
-    })));
+    it('should render the element', () => {
+      let fixture = TestBed.createComponent(TestComponent);
+      fixture.detectChanges();
+      expect(fixture.debugElement.childNodes.length).toBe(2);
+      expect(fixture.debugElement.childNodes[0].nativeNode.textContent).toBe('template bindings={}');
+      expect(fixture.debugElement.childNodes[1].nativeNode.textContent).toBe('Rendered');
+    });
   });
 
 
   describe('runtime', () => {
-    beforeEachProviders((): any[] => [APP_SHELL_RUNTIME_PROVIDERS]);
+    beforeEach(() => {
+      TestBed.configureTestingModule({
+        declarations: [TestComponent],
+        imports: [AppShellRuntimeModule]
+      })
+    });
 
-    it('should NOT render the element', async(inject([TestComponentBuilder], (tcb:TestComponentBuilder) => {
-      return tcb.createAsync(TestComponent).then((fixture: ComponentFixture<TestComponent>) => {
-        fixture.detectChanges();
-        expect(fixture.debugElement.childNodes.length).toBe(1);
-        expect(fixture.debugElement.childNodes[0].nativeNode.textContent).toBe('template bindings={}');
-      });
-    })));
+    it('should NOT render the element', () => {
+      let fixture = TestBed.createComponent(TestComponent);
+      fixture.detectChanges();
+      expect(fixture.debugElement.childNodes.length).toBe(1);
+      expect(fixture.debugElement.childNodes[0].nativeNode.textContent).toBe('template bindings={}');
+    });
   });
 });
 

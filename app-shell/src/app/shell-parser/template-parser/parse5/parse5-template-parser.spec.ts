@@ -1,8 +1,4 @@
 import {
-  beforeEach,
-  it,
-  describe,
-  expect,
   inject
 } from '@angular/core/testing';
 import { Parse5TemplateParser } from './parse5-template-parser';
