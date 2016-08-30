@@ -30,7 +30,7 @@ import 'rxjs/add/operator/startWith';
 
 <!-- action configuration -->
 <div [ngSwitch]="action">
-  <div *ngSwitchWhen="'MAKE_REQUEST'">
+  <div *ngSwitchCase="'MAKE_REQUEST'">
     <div>
       <label for="requestUrl">
         Url:
@@ -39,7 +39,7 @@ import 'rxjs/add/operator/startWith';
     </div>
     <button id="requestAction" (click)="request(requestUrl.value)">Make request</button>
   </div>
-  <div *ngSwitchWhen="'SW_INSTALL'">
+  <div *ngSwitchCase="'SW_INSTALL'">
     <div>
       <label for="workerUrl">
         Worker:

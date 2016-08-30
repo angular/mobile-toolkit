@@ -1,8 +1,10 @@
 
-import {Component} from '@angular/core';
-import {bootstrap} from '@angular/platform-browser-dynamic';
+import {Component, NgModule} from '@angular/core';
+import {FormsModule} from '@angular/forms';
+import {BrowserModule} from '@angular/platform-browser';
+import {platformBrowserDynamic} from '@angular/platform-browser-dynamic';
 import {ControllerCmp} from './src/controller';
-import {NgServiceWorker} from '@angular/service-worker';
+import {ServiceWorkerModule} from '@angular/service-worker';
 
 
 @Component({
@@ -15,6 +17,18 @@ import {NgServiceWorker} from '@angular/service-worker';
 })
 class SwTestingHarnessCmp {}
 
-bootstrap(SwTestingHarnessCmp, [
-  NgServiceWorker
-]);
+@NgModule({
+  declarations: [
+    SwTestingHarnessCmp,
+    ControllerCmp,
+  ],
+  imports: [
+    BrowserModule,
+    FormsModule,
+    ServiceWorkerModule,
+  ],
+  bootstrap: [SwTestingHarnessCmp],
+})
+export class SwTestingHarnessModule {}
+
+platformBrowserDynamic().bootstrapModule(SwTestingHarnessModule);
