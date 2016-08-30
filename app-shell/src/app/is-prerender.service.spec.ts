@@ -1,8 +1,5 @@
 import {
-  beforeEachProviders,
-  it,
-  describe,
-  expect,
+  addProviders,
   inject
 } from '@angular/core/testing';
 import {
@@ -13,7 +10,9 @@ import {
 
 describe('IsPrerender Service', () => {
   describe('prerender', () => {
-    beforeEachProviders(() => [APP_SHELL_BUILD_PROVIDERS]);
+    beforeEach(() => {
+      addProviders([APP_SHELL_BUILD_PROVIDERS]);
+    });
 
     it('should be true at build time',
       inject([IS_PRERENDER], (service: boolean) => {
@@ -23,7 +22,9 @@ describe('IsPrerender Service', () => {
 
 
   describe('runtime', () => {
-    beforeEachProviders(() => [APP_SHELL_RUNTIME_PROVIDERS]);
+    beforeEach(() => {
+      addProviders([APP_SHELL_RUNTIME_PROVIDERS]);
+    });
 
     it('should be false at runtime',
       inject([IS_PRERENDER], (service: boolean) => {
@@ -31,6 +32,5 @@ describe('IsPrerender Service', () => {
     }));
   });
 
-
-
 });
+

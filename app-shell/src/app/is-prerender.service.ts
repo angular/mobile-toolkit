@@ -1,4 +1,4 @@
-import {OpaqueToken, provide, Provider} from '@angular/core';
+import { OpaqueToken, provide, Provider } from '@angular/core';
 
 export const IS_PRERENDER = new OpaqueToken('IsPrerender');
 
