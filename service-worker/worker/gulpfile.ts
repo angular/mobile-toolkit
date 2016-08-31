@@ -14,6 +14,9 @@ var merge = require('merge-stream');
 var exec = require('child_process').exec;
 var uglify = require('gulp-uglify');
 var rename = require('gulp-rename');
+var webpack = require('webpack');
+
+import AngularServiceWorkerPlugin from './src/webpack';
 
 let assign = (dest, ...sources) => {
   sources.forEach(source => {
@@ -44,13 +47,21 @@ gulp.task('clean', (done) => {
   rimraf('./dist', done);
 });
 
-gulp.task('prepublish', ['build']);
+gulp.task('clean:src', done => {
+  rimraf('./dist/src', done);
+});
+
+gulp.task('prepublish', done => runSequence(
+  'build',
+  'clean:src',
+  done
+));
 
 gulp.task('build', done => runSequence(
   'clean',
   [
     'task:companion:build',
-    'task:generator:build',
+    'task:webpack:build',
     'task:worker:build'
   ],
   done
@@ -70,6 +81,44 @@ gulp.task('generator:build', done => runSequence(
   'clean',
   'task:generator:build',
   done));
+
+gulp.task('task:webpack_test:pack', done => {
+  console.log(process.cwd());
+  webpack({
+    context: `${process.cwd()}/src/test/webpack`,
+    entry: './index.js',
+    output: {
+      path: `${process.cwd()}/dist/src/test/webpack`,
+      filename: 'index.js'
+    },
+    plugins: [
+      new AngularServiceWorkerPlugin()
+    ]
+  }, () => done())
+});
+
+gulp.task('task:webpack:build', done => runSequence(
+  'task:webpack:compile',
+  'task:webpack:copy_deploy',
+  done
+));
+
+gulp.task('task:webpack:compile', () => gulp
+  .src([
+    'src/webpack/**/*.ts'
+  ], {
+    base: 'src/webpack'
+  })
+  .pipe(ts(commonCompilerConfig))
+  .pipe(gulp.dest('dist')));
+
+gulp.task('task:webpack:copy_deploy', () => gulp
+  .src([
+    'dist/src/webpack/index.js'
+  ], {
+    base: 'dist/src/webpack'
+  })
+  .pipe(gulp.dest('dist/webpack')));
 
 gulp.task('task:companion:build', done => runSequence(
   'task:companion:compile',
