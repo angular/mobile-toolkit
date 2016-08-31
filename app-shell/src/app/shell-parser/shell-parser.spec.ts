@@ -1,8 +1,4 @@
 import {
-  beforeEach,
-  it,
-  describe,
-  expect,
   inject
 } from '@angular/core/testing';
 import {BrowserWorkerScope, WorkerScope} from './context';

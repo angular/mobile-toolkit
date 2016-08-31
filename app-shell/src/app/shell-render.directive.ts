@@ -1,6 +1,6 @@
 import { Directive, Inject, OnInit, ViewContainerRef, TemplateRef } from '@angular/core';
 
-import {IS_PRERENDER} from './is-prerender.service';
+import { IS_PRERENDER } from './is-prerender.service';
 
 @Directive({
   selector: '[shellRender]'

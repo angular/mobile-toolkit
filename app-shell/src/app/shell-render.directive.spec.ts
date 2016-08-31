@@ -1,12 +1,10 @@
 import {
   async,
-  beforeEachProviders,
-  describe,
-  expect,
-  it,
-  inject
+  addProviders,
+  inject,
+  ComponentFixture,
+  TestComponentBuilder
 } from '@angular/core/testing';
-import {ComponentFixture, TestComponentBuilder} from '@angular/compiler/testing';
 import { provide, Component } from '@angular/core';
 
 import { ShellRender } from './shell-render.directive';
@@ -24,7 +22,9 @@ class TestComponent {}
 
 describe('ShellRender Directive', () => {
   describe('prerender', () => {
-    beforeEachProviders((): any[] => [APP_SHELL_BUILD_PROVIDERS]);
+    beforeEach(() => {
+      addProviders([APP_SHELL_BUILD_PROVIDERS]);
+    });
 
     it('should render the element', async(inject([TestComponentBuilder], (tcb:TestComponentBuilder) => {
       return tcb.createAsync(TestComponent).then((fixture: ComponentFixture<TestComponent>) => {
@@ -38,7 +38,9 @@ describe('ShellRender Directive', () => {
 
 
   describe('runtime', () => {
-    beforeEachProviders((): any[] => [APP_SHELL_RUNTIME_PROVIDERS]);
+    beforeEach(() => {
+      addProviders([APP_SHELL_RUNTIME_PROVIDERS]);
+    });
 
     it('should NOT render the element', async(inject([TestComponentBuilder], (tcb:TestComponentBuilder) => {
       return tcb.createAsync(TestComponent).then((fixture: ComponentFixture<TestComponent>) => {
