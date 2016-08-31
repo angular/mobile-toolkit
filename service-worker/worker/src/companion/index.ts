@@ -1,3 +1,4 @@
 import './rxjs';
 
-export {NgServiceWorker} from './comm';
+export {NgServiceWorker, NgPushRegistration} from './comm';
+export {ServiceWorkerModule} from './module';
