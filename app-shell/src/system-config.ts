@@ -2,15 +2,6 @@
 declare var System: any;
 
 const barrels: string[] = [
-  // Angular specific barrels.
-  '@angular/core',
-  '@angular/common',
-  '@angular/compiler',
-  '@angular/http',
-  '@angular/router',
-  '@angular/platform-browser',
-  '@angular/platform-browser-dynamic',
-
   // Parse5 barrels
   'parse5',
   'parse5/parser',
@@ -39,10 +30,24 @@ const barrels: string[] = [
 // Angular CLI SystemJS configuration.
 System.config({
   map: {
-    '@angular': 'vendor/@angular',
     'parse5': 'vendor/parse5/lib',
     'rxjs': 'vendor/rxjs',
+    'traceur': 'vendor/traceur/bin/traceur.js',
     'main': 'main.js'
+  },
+  paths: {
+    '@angular/common': 'vendor/@angular/common/bundles/common.umd.js',
+    '@angular/compiler': 'vendor/@angular/compiler/bundles/compiler.umd.js',
+    '@angular/core': 'vendor/@angular/core/bundles/core.umd.js',
+    '@angular/platform-browser': 'vendor/@angular/platform-browser/bundles/platform-browser.umd.js',
+    '@angular/platform-browser-dynamic': 'vendor/@angular/platform-browser-dynamic/bundles/platform-browser-dynamic.umd.js',
+
+    '@angular/common/testing': 'vendor/@angular/common/bundles/common-testing.umd.js',
+    '@angular/compiler/testing': 'vendor/@angular/compiler/bundles/compiler-testing.umd.js',
+    '@angular/core/testing': 'vendor/@angular/core/bundles/core-testing.umd.js',
+    '@angular/platform-browser/testing': 'vendor/@angular/platform-browser/bundles/platform-browser-testing.umd.js',
+    '@angular/platform-browser-dynamic/testing': 'vendor/@angular/platform-browser-dynamic/bundles/platform-browser-dynamic-testing.umd.js',
+
   },
   packages: barrels.reduce((barrelConfig: any, barrelName: string) => {
     barrelConfig[barrelName] = {
