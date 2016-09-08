@@ -26,7 +26,7 @@ const SIMPLE_MANIFEST = {
 };
 
 beforeAll(done => {
-  create(8080, 'dist/src/test/e2e/harness/client').then(s => {
+  create(8080, 'tmp/es5/src/test/e2e/harness/client').then(s => {
     server = s;
     done();
   });

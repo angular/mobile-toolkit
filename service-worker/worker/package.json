@@ -1,30 +1,31 @@
 {
   "name": "@angular/service-worker",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Experimental service worker by the Angular Mobile team",
-  "main": "dist/companion/index.js",
-  "typings": "dist/src/worker.d.ts",
+  "main": "bundles/service-worker.umd.js",
+  "module": "index.js",
+  "typings": "index.d.ts",
   "scripts": {
-    "prepublish": "typings install && gulp prepublish",
-    "build": "gulp build && gulp build:generator",
+    "build": "gulp build",
     "test": "gulp test"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/angular/progressive.git"
+    "url": "git+https://github.com/angular/mobile-toolkit.git"
   },
   "author": "",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/angular/progressive/issues"
+    "url": "https://github.com/angular/mobile-toolkit/issues"
   },
-  "homepage": "https://github.com/angular/progressive#readme",
+  "homepage": "https://mobile.angular.io",
   "devDependencies": {
-    "@angular/common": "^2.0.0-rc.5",
-    "@angular/compiler": "^2.0.0-rc.5",
-    "@angular/forms": "^0.3.0",
-    "@angular/platform-browser": "^2.0.0-rc.5",
-    "@angular/platform-browser-dynamic": "^2.0.0-rc.5",
+    "@angular/common": "^2.0.0-rc.6",
+    "@angular/compiler": "^2.0.0-rc.6",
+    "@angular/compiler-cli": "^0.6.0",
+    "@angular/forms": "^2.0.0-rc.6",
+    "@angular/platform-browser": "^2.0.0-rc.6",
+    "@angular/platform-browser-dynamic": "^2.0.0-rc.6",
     "es6-promise": "^3.0.2",
     "express": "^4.13.4",
     "gulp": "^3.9.0",
@@ -34,30 +35,31 @@
     "gulp-rename": "^1.2.2",
     "gulp-rimraf": "^0.2.0",
     "gulp-typescript": "^2.12.1",
-    "gulp-uglify": "^1.5.3",
+    "gulp-uglify": "^2.0.0",
     "gulp-util": "^3.0.7",
     "jasmine": "~2.4.1",
     "merge-stream": "^1.0.0",
     "protractor": "^3.3.0",
     "reflect-metadata": "0.1.2",
     "rimraf": "^2.5.2",
+    "rollup": "^0.34.13",
     "run-sequence": "^1.1.5",
     "rxjs": "5.0.0-beta.6",
     "systemjs": "^0.19.17",
     "systemjs-builder": "^0.15.5",
     "ts-node": "^0.7.3",
-    "typescript": "1.9.0-dev.20160527-1.0",
+    "typescript": "^2.0.2",
     "typings": "^1.0.4",
+    "uglify-js": "^2.7.3",
     "vinyl": "^1.1.1",
     "web-push": "^2.1.1",
     "zone.js": "^0.6.5"
   },
   "dependencies": {
-    "@angular/core": "^2.0.0-rc.5",
+    "@angular/core": "^2.0.0-rc.6",
     "base64-js": "^1.1.2",
-    "broccoli-caching-writer": "^2.2.1",
     "fs-extra": "^0.30.0",
     "jshashes": "^1.0.5",
-    "webpack": "^2.1.0-beta.21"
+    "webpack": "^2.1.0-beta.22"
   }
 }

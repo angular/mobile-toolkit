@@ -9,7 +9,6 @@ import {ServiceWorkerModule} from '@angular/service-worker';
 
 @Component({
   selector: 'sw-testing-harness',
-  directives: [ControllerCmp],
   template: `
 <h1>Service Worker Testing Harness</h1>
 <controller></controller>

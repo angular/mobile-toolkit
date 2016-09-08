@@ -15,6 +15,8 @@ var exec = require('child_process').exec;
 var uglify = require('gulp-uglify');
 var rename = require('gulp-rename');
 var webpack = require('webpack');
+const childProcess = require('child_process');
+const rollup = require('rollup');
 
 import AngularServiceWorkerPlugin from './src/webpack';
 
@@ -41,19 +43,23 @@ var commonCompilerConfig = assign({},
   }
 );
 
+var umdCompilerConfig = assign({},
+  systemCompilerConfig,
+  {
+    "module": "umd"
+  }
+);
+
 gulp.task('default', ['worker:build']);
 
 gulp.task('clean', (done) => {
-  rimraf('./dist', done);
-});
-
-gulp.task('clean:src', done => {
-  rimraf('./dist/src', done);
+  rimraf('./tmp', () => {
+    rimraf('./dist', done);
+  });
 });
 
 gulp.task('prepublish', done => runSequence(
   'build',
-  'clean:src',
   done
 ));
 
@@ -62,7 +68,8 @@ gulp.task('build', done => runSequence(
   [
     'task:companion:build',
     'task:webpack:build',
-    'task:worker:build'
+    'task:worker:build',
+    'task:package:copy_deploy',
   ],
   done
 ));
@@ -76,11 +83,6 @@ gulp.task('companion:build', done => runSequence(
   'clean',
   'task:companion:build',
   done));
-  
-gulp.task('generator:build', done => runSequence(
-  'clean',
-  'task:generator:build',
-  done));
 
 gulp.task('task:webpack_test:pack', done => {
   console.log(process.cwd());
@@ -88,7 +90,7 @@ gulp.task('task:webpack_test:pack', done => {
     context: `${process.cwd()}/src/test/webpack`,
     entry: './index.js',
     output: {
-      path: `${process.cwd()}/dist/src/test/webpack`,
+      path: `${process.cwd()}/tmp/src/test/webpack`,
       filename: 'index.js'
     },
     plugins: [
@@ -103,32 +105,87 @@ gulp.task('task:webpack:build', done => runSequence(
   done
 ));
 
-gulp.task('task:webpack:compile', () => gulp
-  .src([
-    'src/webpack/**/*.ts'
-  ], {
-    base: 'src/webpack'
-  })
-  .pipe(ts(commonCompilerConfig))
-  .pipe(gulp.dest('dist')));
+gulp.task('task:webpack:compile', done => {
+  childProcess.execSync('node_modules/.bin/tsc -p tsconfig.webpack.json');
+  done();
+});
 
 gulp.task('task:webpack:copy_deploy', () => gulp
   .src([
-    'dist/src/webpack/index.js'
+    'tmp/es5/src/webpack/**/*.d.ts',
+    'tmp/es5/src/webpack/**/*.js',
+    'tmp/es5/src/webpack/**/*.js.map',
   ], {
-    base: 'dist/src/webpack'
+    base: 'tmp/es5/src/webpack'
   })
   .pipe(gulp.dest('dist/webpack')));
 
 gulp.task('task:companion:build', done => runSequence(
-  'task:companion:compile',
+  'task:companion:compile_esm',
+  'task:companion:bundle',
+  'task:companion:minify',
   'task:companion:copy_deploy',
   done));
+
+gulp.task('task:companion:compile_esm', done => {
+  childProcess.execSync('node_modules/.bin/ngc -p tsconfig.companion.json');
+  done();
+});
+
+gulp.task('task:companion:bundle', done => {
+  rollup.rollup({
+    entry: 'tmp/esm/src/companion/index.js',
+  }).then(bundle => bundle.write({
+    format: 'umd',
+    moduleName: 'ng.serviceWorker',
+    dest: 'tmp/es5/src/companion/bundles/service-worker.umd.js',
+    globals: {
+      '@angular/core': 'ng.core',
+      'base64-js': 'Base64Js',
+      'rxjs/add/observable/concat': 'Rx',
+      'rxjs/add/observable/defer': 'Rx',
+      'rxjs/add/observable/empty': 'Rx',
+      'rxjs/add/observable/from': 'Rx',
+      'rxjs/add/observable/fromEvent': 'Rx',
+      'rxjs/add/observable/merge': 'Rx',
+      'rxjs/add/observable/of': 'Rx',
+      'rxjs/add/observable/timer': 'Rx',
+      'rxjs/add/operator/cache': 'Rx',
+      'rxjs/add/operator/concatMap': 'Rx',
+      'rxjs/add/operator/do': 'Rx',
+      'rxjs/add/operator/expand': 'Rx',
+      'rxjs/add/operator/filter': 'Rx',
+      'rxjs/add/operator/first': 'Rx',
+      'rxjs/add/operator/let': 'Rx',
+      'rxjs/add/operator/mergeMap': 'Rx',
+      'rxjs/add/operator/map': 'Rx',
+      'rxjs/add/operator/reduce': 'Rx',
+      'rxjs/add/operator/switchMap': 'Rx',
+      'rxjs/add/operator/publishReplay': 'Rx',
+      'rxjs/add/operator/share': 'Rx',
+      'rxjs/add/operator/take': 'Rx',
+      'rxjs/add/operator/takeWhile': 'Rx',
+      'rxjs/Observable': 'Rx'
+    }
+  }))
+  .catch(err => console.log(err))
+  .then(() => done());
+});
+
+gulp.task('task:companion:minify', () => gulp
+  .src([
+    'tmp/es5/src/companion/bundles/service-worker.umd.js'
+  ], {base: 'tmp'})
+  .pipe(uglify())
+  .pipe(rename({suffix: '.min'}))
+  .pipe(gulp.dest('tmp')));
 
 gulp.task('task:worker:build', done => 
   runSequence(
     'task:worker:compile_system',
     'task:worker:bundle',
+    'task:worker:minify',
+    'task:worker:copy_deploy',
     done
   ));
 
@@ -162,33 +219,21 @@ gulp.task('task:worker:compile_common', () => {
   ]);
 });
 
-gulp.task('task:companion:compile', () => {
-  const stream = gulp
-    .src([
-      'src/companion/**/*.ts',
-      'src/typings/**/*.d.ts',
-      'typings/globals/**/*.d.ts',
-      'typings/modules/**/*.d.ts'
-    ])
-    .pipe(ts(commonCompilerConfig));
-  return merge([
-    stream.js.pipe(gulp.dest(commonCompilerConfig.outDir)),
-    stream.dts.pipe(gulp.dest(commonCompilerConfig.outDir))
-  ]);
-});
-
 gulp.task('task:companion:copy_deploy', () => gulp
   .src([
-    'dist/src/companion/**/*.js',
-    'dist/src/companion/**/*.d.ts'
+    'tmp/es5/src/companion/**/*.js',
+    'tmp/esm/src/companion/**/*.d.ts',
+    'tmp/esm/src/companion/**/*.js',
+    'tmp/esm/src/companion/**/*.js.map',
+    'tmp/esm/src/companion/**/*.metadata.json',
   ])
-  .pipe(gulp.dest('dist/companion')));
+  .pipe(gulp.dest('dist')));
 
 gulp.task('task:worker:bundle', done => {
   var builder = new Builder();
   builder.config({
     map: {
-      'worker': 'dist/src/worker',
+      'worker': 'tmp/es5/src/worker',
       'rxjs': 'node_modules/rxjs',
       'jshashes': 'node_modules/jshashes/hashes.js'
     },
@@ -202,37 +247,24 @@ gulp.task('task:worker:bundle', done => {
     }
   });
   builder
-    .buildStatic('worker/browser_entry', 'dist/worker.js')
+    .buildStatic('worker/browser_entry', 'tmp/es5/worker.js')
     .then(() => done());
 });
 
 gulp.task('task:worker:minify', () => gulp
   .src([
-    'dist/worker.js'
-  ], {base: 'dist'})
+    'tmp/es5/worker.js'
+  ], {base: 'tmp/es5'})
   .pipe(uglify())
   .pipe(rename({suffix: '.min'}))
-  .pipe(gulp.dest('dist')));
+  .pipe(gulp.dest('tmp/es5')));
 
-gulp.task('task:generator:build', done => runSequence(
-  'task:generator:compile',
-  'task:generator:copy_deploy',
-  done));
-
-gulp.task('task:generator:compile', () => gulp
+gulp.task('task:worker:copy_deploy', () => gulp
   .src([
-    'src/generator/**.ts',
-    'typings/globals/**/*.d.ts',
-    'typings/modules/**/*.d.ts'
-  ])
-  .pipe(ts(commonCompilerConfig))
-  .pipe(gulp.dest('dist')));
-
-gulp.task('task:generator:copy_deploy', () => gulp
-  .src([
-    'dist/src/generator/**/*.js'
-  ])
-  .pipe(gulp.dest('dist/generator')));
+    'tmp/es5/worker.js',
+    'tmp/es5/worker.min.js',
+  ], {base: 'tmp/es5'})
+  .pipe(gulp.dest('dist/worker')));
 
 gulp.task('e2e_harness:build', done => runSequence(
   'clean',
@@ -269,14 +301,6 @@ gulp.task('task:e2e_harness:build_worker', done => runSequence(
   'task:e2e_harness:copy_worker',
   done));
 
-gulp.task('task:e2e_harness:build_companion', done => runSequence(
-  'task:companion:compile',
-  [
-    'task:e2e_harness:copy_companion',
-    'task:companion:copy_deploy'
-  ],
-  done));
-
 gulp.task('task:e2e_harness:compile', () => gulp
   .src([,
     'src/test/e2e/harness/client/**/*.ts',
@@ -284,7 +308,7 @@ gulp.task('task:e2e_harness:compile', () => gulp
     'typings/modules/**/*.d.ts'
   ], {base: '.'})
   .pipe(ts(systemCompilerConfig))
-  .pipe(gulp.dest('dist')));
+  .pipe(gulp.dest('tmp/es5')));
   
 gulp.task('task:e2e_harness:copy_modules', () => gulp
   .src([
@@ -295,32 +319,35 @@ gulp.task('task:e2e_harness:copy_modules', () => gulp
     'node_modules/rxjs/**/*.js',
     'node_modules/base64-js/base64js.min.js'
   ], {base: '.'})
-  .pipe(gulp.dest('dist/src/test/e2e/harness/client')));
+  .pipe(gulp.dest('tmp/es5/src/test/e2e/harness/client')));
 
 gulp.task('task:e2e_harness:copy_debug', () => gulp
   .src([
     'src/test/e2e/harness/client/debug/**/*.*'
   ], {base: 'src/test/e2e/harness/client/debug'})
-  .pipe(gulp.dest('dist/src/test/e2e/harness/client')));
+  .pipe(gulp.dest('tmp/es5/src/test/e2e/harness/client')));
 
 gulp.task('task:e2e_harness:copy_companion', () => gulp
   .src([
-    'dist/src/companion/**/*.js'
-  ], {base: 'dist/src'})
-  .pipe(gulp.dest('dist/src/test/e2e/harness/client/node_modules/@angular/service-worker/dist')));
+    'tmp/es5/src/companion/**/*.d.ts',
+    'tmp/es5/src/companion/**/*.js',
+    'tmp/es5/src/companion/**/*.metadata.json',
+    'tmp/es5/src/companion/**/*.js.map'
+  ], {base: 'tmp/es5/src/companion'})
+  .pipe(gulp.dest('tmp/es5/src/test/e2e/harness/client/node_modules/@angular/service-worker')));
 
 gulp.task('task:e2e_harness:copy_worker', () => gulp
   .src([
-    'dist/worker.js',
-  ], {base: 'dist'})
-  .pipe(gulp.dest('dist/src/test/e2e/harness/client')));
+    'tmp/es5/worker.js',
+  ], {base: 'tmp/es5'})
+  .pipe(gulp.dest('tmp/es5/src/test/e2e/harness/client')));
   
 gulp.task('task:e2e_harness:copy_index', () => gulp
   .src([
     'src/test/e2e/harness/client/index.html',
     'src/test/e2e/harness/client/manifest.webapp'
   ], {base: '.'})
-  .pipe(gulp.dest('dist')));
+  .pipe(gulp.dest('tmp/es5')));
 
 gulp.task('task:e2e_tests:build', done => runSequence([
   'task:e2e_tests:compile',
@@ -336,13 +363,13 @@ gulp.task('task:e2e_tests:compile', () => gulp
     'typings/modules/**/*.d.ts'
   ], {base: '.'})
   .pipe(ts(commonCompilerConfig))
-  .pipe(gulp.dest('dist')));
+  .pipe(gulp.dest('tmp/es5')));
 
 gulp.task('task:e2e_tests:copy_protractor', () => gulp
   .src([
     'src/test/e2e/spec/protractor.config.js'
   ], {base: '.'})
-  .pipe(gulp.dest('dist')));
+  .pipe(gulp.dest('tmp/es5')));
 
 gulp.task('task:unit_tests:compile', () => gulp
   .src([
@@ -353,7 +380,7 @@ gulp.task('task:unit_tests:compile', () => gulp
     'typings/modules/**/*.d.ts'
   ], {base: '.'})
   .pipe(ts(commonCompilerConfig))
-  .pipe(gulp.dest('dist')));
+  .pipe(gulp.dest('tmp/es5')));
 
 gulp.task('test', done => runSequence(
   'test:unit',
@@ -373,7 +400,7 @@ gulp.task('test:unit', done => runSequence(
 
 gulp.task('task:unit_tests:run', () => gulp
   .src([
-    'dist/**/*.spec.js'
+    'tmp/**/*.spec.js'
   ], {base: '.'})
   .pipe(jsmn({
     verbose: true,
@@ -400,9 +427,15 @@ gulp.task('task:e2e_tests:config_check', done => {
 });
 
 gulp.task('task:e2e_tests:run', done => {
-  exec('protractor dist/src/test/e2e/spec/protractor.config.js', (err, stdout, stderr) => {
+  exec('protractor tmp/es5/src/test/e2e/spec/protractor.config.js', (err, stdout, stderr) => {
     console.log(stdout);
     console.log(stderr);
     done();
   });
 });
+
+gulp.task('task:package:copy_deploy', () => gulp
+  .src([
+    'package.json'
+  ])
+  .pipe(gulp.dest('dist')));

@@ -1,21 +1,18 @@
 {
   "compilerOptions": {
-    "module": "system",
+    "module": "commonjs",
     "target": "es5",
     "noImplicitAny": false,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "declaration": true,
     "outDir": "tmp/es5",
-    "sourceMap": false,
+    "sourceMap": true,
     "moduleResolution": "node",
     "rootDir": ".",
-    "baseUrl": ".",
-    "paths": {
-      "@angular/service-worker": ["tmp/esm/src/companion"]
-    }
+    "lib": ["es2015"]
 	},
-  "exclude": [
-    "node_modules"
+  "files": [
+    "src/webpack/index.ts"
   ]
 }
