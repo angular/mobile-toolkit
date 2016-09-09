@@ -61,3 +61,5 @@ declare interface PushManager {
 }
 
 declare var caches: CacheStorage;
+
+declare function importScripts(file: string);

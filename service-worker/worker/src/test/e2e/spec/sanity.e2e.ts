@@ -93,7 +93,7 @@ describe('world sanity', () => {
     server.addResponse('/ngsw-manifest.json.js', '/* mocked */');
     server.addResponse('/ngsw-manifest.json', JSON.stringify(SIMPLE_MANIFEST));
     server.addResponse('/hello.txt', 'Hello world!');
-    po.installServiceWorker('/worker.js');
+    po.installServiceWorker('/worker.min.js');
     po
       .hasActiveWorker()
       .then(hasWorker => {
