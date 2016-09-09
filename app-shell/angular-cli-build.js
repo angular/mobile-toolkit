@@ -10,9 +10,13 @@ module.exports = function(defaults) {
       'zone.js/dist/*.js',
       'es6-shim/es6-shim.js',
       'reflect-metadata/*.js',
+      'reflect-metadata/*.map',
       'rxjs/**/*.js',
+      'rxjs/**/*.map',
       '@angular/**/*.js',
-      'parse5/**/*.js'
+      '@angular/**/*.map',
+      'parse5/**/*.js',
+      'traceur/**/*.js'
     ]
   });
 };

@@ -35,11 +35,12 @@ System.import('system-config.js').then(function() {
     System.import('@angular/core/testing'),
     System.import('@angular/platform-browser-dynamic/testing')
   ]).then(function (providers) {
-    var testing = providers[0];
+    var TestBed = providers[0].TestBed;
     var testingBrowser = providers[1];
-
-    testing.setBaseTestProviders(testingBrowser.TEST_BROWSER_DYNAMIC_PLATFORM_PROVIDERS,
-      testingBrowser.TEST_BROWSER_DYNAMIC_APPLICATION_PROVIDERS);
+    TestBed.initTestEnvironment(
+      testingBrowser.BrowserDynamicTestingModule,
+      testingBrowser.platformBrowserDynamicTesting()
+    );
   });
 }).then(function() {
   // Finally, load all spec files.
