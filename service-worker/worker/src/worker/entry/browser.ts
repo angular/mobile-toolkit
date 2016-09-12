@@ -1,10 +1,4 @@
-import {WorkerScope, WorkerAdapter} from './index';
-import {ServiceWorker} from './worker';
-import {Events} from './context';
-import {Fetch} from './fetch';
-import {CacheManager} from './cache';
-
-import './rxjs';
+import {WorkerScope, WorkerAdapter, Events, Fetch, CacheManager, ServiceWorker} from '../index';
 
 importScripts('ngsw-manifest.json.js');
 

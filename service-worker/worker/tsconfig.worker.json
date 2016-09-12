@@ -13,7 +13,7 @@
     "lib": ["es2015", "dom"]
   },
   "files": [
-    "src/worker/browser_entry.ts",
+    "src/worker/entry/browser.ts",
     "src/typings/jshashes.d.ts",
     "src/typings/service-worker.d.ts",
     "typings/globals/whatwg-fetch/index.d.ts"

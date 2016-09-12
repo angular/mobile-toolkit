@@ -217,7 +217,7 @@ gulp.task('task:worker:compile', done => {
 
 gulp.task('task:worker:bundle', done => rollup
   .rollup({
-    entry: 'tmp/esm/src/worker/browser_entry.js',
+    entry: 'tmp/esm/src/worker/entry/browser.js',
     plugins: [
       // TODO(alxhub): Switch to rxjs-es when export bug is fixed.
       nodeResolve({jsnext: true, main: true}),
