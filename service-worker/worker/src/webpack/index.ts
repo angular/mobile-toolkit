@@ -34,16 +34,11 @@ export default class AngularServiceWorkerPlugin {
         manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) || {};
       }
 
-      // Validate that the manifest has a default group set up properly, with
-      // the map for its URLs.
-      if (!manifest.group) {
-        manifest.group = {};
+      if (!manifest.static) {
+        manifest.static = {};
       }
-      if (!manifest.group.default) {
-        manifest.group.default = {};
-      }
-      if (!manifest.group.default.url) {
-        manifest.group.default.url = {};
+      if (!manifest.static.urls) {
+        manifest.static.urls = {};
       }
 
       // Go through every asset in the compilation and include it in the manifest,
@@ -52,10 +47,8 @@ export default class AngularServiceWorkerPlugin {
         .keys(stats.compilation.assets)
         .forEach(asset => {
           let url = `${publicPrefix}/${asset}`;
-          manifest.group.default.url[url] = {
-            // TODO(alxhub): use webpack cached version if available.
-            hash: sha1.hex(fs.readFileSync(`${outputPath}/${asset}`, 'utf8'))
-          };
+          // TODO(alxhub): use webpack cached version if available.
+          manifest.static.urls[url] = sha1.hex(fs.readFileSync(`${outputPath}/${asset}`, 'utf8'));
         });
       
       // Write the merged manifest to disk.

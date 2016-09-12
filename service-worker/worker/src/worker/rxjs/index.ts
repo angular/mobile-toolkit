@@ -23,6 +23,8 @@ import 'rxjs/add/operator/mergeMap';
 import 'rxjs/add/operator/publishReplay';
 import 'rxjs/add/operator/reduce';
 import 'rxjs/add/operator/share';
+import 'rxjs/add/operator/switchMap';
+import 'rxjs/add/operator/take';
 import 'rxjs/add/operator/toPromise';
 
 export * from './async';

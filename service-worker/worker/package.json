@@ -33,6 +33,7 @@
     "gulp-concat": "^2.6.0",
     "gulp-jasmine": "^2.4.0",
     "gulp-rename": "^1.2.2",
+    "gulp-replace": "^0.5.4",
     "gulp-rimraf": "^0.2.0",
     "gulp-typescript": "^2.12.1",
     "gulp-uglify": "^2.0.0",

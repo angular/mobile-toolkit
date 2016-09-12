@@ -1,7 +1,7 @@
 import {
-  ServiceWorker,
   NgSwAdapter,
   NgSwCache,
+  NgSwCacheImpl,
   NgSwEvents,
   NgSwFetch
 } from '../worker/index';
@@ -134,7 +134,7 @@ export class TestWorkerDriver {
     this.scope = new TestWorkerScope(this.caches);
 
     let workerAdapter = new TestAdapter();
-    let cache = new NgSwCache(this.caches, workerAdapter);
+    let cache = new NgSwCacheImpl(this.caches, workerAdapter);
     let fetch = new NgSwFetch(this.scope, workerAdapter);
     let events = new NgSwEvents(this.scope);
 

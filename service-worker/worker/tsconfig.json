@@ -12,7 +12,8 @@
     "rootDir": ".",
     "baseUrl": ".",
     "paths": {
-      "@angular/service-worker": ["tmp/esm/src/companion"]
+      "@angular/service-worker": ["src/"],
+      "@angular/service-worker/worker": ["src/worker/"]
     }
 	},
   "exclude": [

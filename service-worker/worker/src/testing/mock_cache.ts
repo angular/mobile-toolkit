@@ -132,19 +132,19 @@ export class MockBody {
   constructor(private _body: string) {}
 
   arrayBuffer(): Promise<any> {
-    throw 'Unimplemented';
+    throw 'Unimplemented: arrayBuffer()';
   }
 
   blob(): Promise<any> {
-    throw 'Unimplemented';
+    throw 'Unimplemented: blob()';
   }
 
   formData(): Promise<any> {
-    throw 'Unimplemented';
+    throw 'Unimplemented: formData()';
   }
 
   json(): Promise<any> {
-    throw 'Unimplemented';
+    throw 'Unimplemented: json()';
   }
 
   text(): Promise<string> {

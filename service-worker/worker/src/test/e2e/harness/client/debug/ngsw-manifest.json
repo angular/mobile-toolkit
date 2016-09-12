@@ -1,10 +1,7 @@
 {
-  "group": {
-    "default": {
-      "version": "debug",
-      "url": {
-        "/hello.txt": {}
-      }
+  "static": {
+    "urls": {
+      "/hello.txt": "test"
     }
   }
 }

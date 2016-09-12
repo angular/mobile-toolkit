@@ -1,0 +1,40 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es5",
+    "noImplicitAny": false,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "declaration": true,
+    "outDir": "tmp/es5",
+    "sourceMap": true,
+    "moduleResolution": "node",
+    "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "@angular/service-worker": ["src/"],
+      "@angular/service-worker/worker": ["src/worker/"]
+    },
+    "lib": ["es2015", "dom"]
+	},
+  "files": [
+    "src/webpack/index.ts",
+    "src/worker/index.ts",
+    "src/test/unit/worker.spec.ts",
+    "src/test/e2e/harness/client/main.ts",
+    "src/test/e2e/harness/server/server.ts",
+    "src/test/e2e/spec/sanity.e2e.ts",
+    "src/testing/index.ts",
+    "src/testing/mock.spec.ts",
+    "src/typings/jshashes.d.ts",
+    "src/typings/service-worker.d.ts",
+    "typings/globals/express/index.d.ts",
+    "typings/globals/express-serve-static-core/index.d.ts",
+    "typings/globals/jasmine/index.d.ts",
+    "typings/globals/mime/index.d.ts",
+    "typings/globals/node/index.d.ts",
+    "typings/globals/serve-static/index.d.ts",
+    "typings/globals/whatwg-fetch/index.d.ts",
+    "typings/modules/base64-js/index.d.ts"
+  ]
+}

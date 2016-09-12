@@ -2,10 +2,17 @@ import {Observable} from 'rxjs/Observable';
 
 import {NgSwAdapter} from './adapter';
 
-export class NgSwCache {
+export interface NgSwCache {
+
+  load(cache: string, req: string | Request): Observable<Response>;
+  store(cache: string, req: string | Request, resp: Response): Observable<any>;
+  remove(cache: string): Observable<any>;
+}
+
+export class NgSwCacheImpl implements NgSwCache {
   constructor(private caches: CacheStorage, private adapter: NgSwAdapter) {}
 
-  normalize(req: string | Request): Request {
+  private normalize(req: string | Request): Request {
     if (typeof req == 'string') {
       return this.adapter.newRequest(req);
     }

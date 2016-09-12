@@ -10,10 +10,19 @@
     "sourceMap": true,
     "moduleResolution": "node",
     "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "@angular/service-worker/worker": ["src/worker"]
+    },
     "lib": ["es2015", "dom"]
   },
   "files": [
-    "src/companion/index.ts",
+    "src/index.ts",
+    "src/plugins/push/index.ts",
+    "src/plugins/routes/index.ts",
+    "src/plugins/static/index.ts",
+    "src/worker/builds/basic.ts",
+    "src/worker/index.ts",
     "src/typings/jshashes.d.ts",
     "src/typings/service-worker.d.ts",
     "typings/globals/whatwg-fetch/index.d.ts",

@@ -12,12 +12,9 @@ let server: Server;
 let po: HarnessPageObject;
 
 const SIMPLE_MANIFEST = {
-  group: {
-    default: {
-      version: 'test',
-      url: {
-        '/hello.txt': {}
-      }
+  static: {
+    urls: {
+      '/hello.txt': 'test'
     }
   },
   push: {
@@ -93,7 +90,7 @@ describe('world sanity', () => {
     server.addResponse('/ngsw-manifest.json.js', '/* mocked */');
     server.addResponse('/ngsw-manifest.json', JSON.stringify(SIMPLE_MANIFEST));
     server.addResponse('/hello.txt', 'Hello world!');
-    po.installServiceWorker('/worker.min.js');
+    po.installServiceWorker('/worker-basic.js');
     po
       .hasActiveWorker()
       .then(hasWorker => {

@@ -1,40 +1,37 @@
 import 'reflect-metadata';
-import {ServiceWorker, CACHE_INSTALLING, CACHE_ACTIVE, MANIFEST_URL} from '../../worker/worker';
+import {SHA1} from 'jshashes';
+import {Driver} from '../../worker';
+import {StaticContentCache} from '../../plugins/static';
+import {RouteRedirection} from '../../plugins/routes';
 import {TestWorkerDriver} from '../../testing/mock';
 import {Observable} from 'rxjs/Rx';
 import {MockRequest} from '../../testing/mock_cache';
-import {SwManifest} from '../../worker/manifest';
+import {Manifest} from '../../worker/manifest';
 
-let SIMPLE_MANIFEST = JSON.stringify({
-  group: {
-    'default': {
-      version: 'test',
-      url: {
-        '/hello.txt': {},
-      }
+const MANIFEST_URL = '/ngsw-manifest.json';
+const CACHE_ACTIVE = 'meta:active:ngsw';
+const CACHE_INSTALLING = 'meta:installed:ngsw';
+
+const SIMPLE_MANIFEST = JSON.stringify({
+  static: {
+    urls: {
+      '/hello.txt': 'test',
+      '/goodbye.txt': 'other',
+      '/solong.txt': 'other'
     },
-    'secondary': {
-      version: 'other',
-      url: {
-        '/goodbye.txt': {},
-        '/solong.txt': {}
-      }
-    }
-  }
+  },
 });
+const SIMPLE_MANIFEST_HASH = new SHA1().hex(SIMPLE_MANIFEST);
 
-let FALLBACK_MANIFEST = JSON.stringify({
-  group: {
-    'default': {
-      version: 'test',
-      url: {
-        '/hello.txt': {}
-      }
+const ROUTING_MANIFEST = JSON.stringify({
+  static: {
+    urls: {
+      '/hello.txt': 'test'
     }
   },
   routing: {
     index: '/hello.txt',
-    route: {
+    routes: {
       '/goodbye.txt': {
         prefix: false
       }
@@ -42,98 +39,27 @@ let FALLBACK_MANIFEST = JSON.stringify({
   }
 });
 
-let INDEX_MANIFEST = JSON.stringify({
-  group: {
-    'default': {
-      version: 'test',
-      url: {
-        '/hello.txt': {}
-      }
-    }
-  },
-  routing: {
-    index: '/hello.txt'
-  }
-});
-
-let HASHED_MANIFEST_1 = JSON.stringify({
-  group: {
-    'default': {
-      url: {
-        '/hello.txt': {
-          hash: '12345'
-        },
-        '/goodbye.txt': {
-          hash: '67890'
-        }
-      }
+const HASHED_MANIFEST_1 = JSON.stringify({
+  static: {
+    urls: {
+      '/hello.txt': '12345',
+      '/goodbye.txt': '67890'
     }
   }
 });
 
-let HASHED_MANIFEST_2 = JSON.stringify({
-  group: {
-    'default': {
-      url: {
-        '/hello.txt': {
-          hash: 'abcde'
-        },
-        '/goodbye.txt': {
-          hash: '67890'
-        }
-      }
+const HASHED_MANIFEST_2 = JSON.stringify({
+  static: {
+    urls: {
+      '/hello.txt': 'abcde',
+      '/goodbye.txt': '67890'
     }
   }
 });
 
-let DEV_MANIFEST = JSON.stringify({
-  dev: true,
-  group: {
-    'default': {
-      version: 'test',
-      url: {
-        '/hello.txt': {}
-      }
-    }
-  }
-});
-
-let BUNDLE_MANIFEST_1 = JSON.stringify({
-  group: {
-    'hello': {
-      version: '12345',
-      url: {
-        '/hello.txt': {}
-      }
-    },
-    'goodbye': {
-      version: '67890',
-      url: {
-        '/goodbye.txt': {}
-      }
-    }
-  }
-});
-
-let BUNDLE_MANIFEST_2 = JSON.stringify({
-  group: {
-    'hello': {
-      version: '54321',
-      url: {
-        '/hello.txt': {}
-      }
-    },
-    'goodbye': {
-      version: '67890',
-      url: {
-        '/goodbye.txt': {}
-      }
-    }
-  }
-});
 
 function errored(err, done) {
-  fail(err);
+  fail(`error: ${err}`);
   done();
 }
 
@@ -171,18 +97,20 @@ let sequence = describe;
 let fsequence = fdescribe;
 
 function createServiceWorker(scope, adapter, cache, fetch, events) {
-  return new ServiceWorker(scope, events, fetch, cache, adapter);
+  const plugins = [
+    StaticContentCache(),
+    RouteRedirection(),
+  ]
+  return new Driver(MANIFEST_URL, plugins, scope, adapter, cache, events, fetch);
 }
 
 describe('ngsw', () => {
+  const simpleManifestCache = `version:${SIMPLE_MANIFEST_HASH}:static`;
   let driver: TestWorkerDriver = new TestWorkerDriver(createServiceWorker);
-  beforeEach(() => {
-    driver = new TestWorkerDriver(createServiceWorker);
-  });
   describe('initial load', () => {
     beforeEach(() => {
-      driver.refresh();
       driver.emptyCaches();
+      driver.refresh();
       driver.mockUrl(MANIFEST_URL, SIMPLE_MANIFEST);
       driver.mockUrl('/hello.txt', 'Hello world!');
       driver.mockUrl('/goodbye.txt', 'Goodbye world!');
@@ -190,13 +118,12 @@ describe('ngsw', () => {
     })
     it('caches a single file', (done) => driver
       .triggerInstall()
-      .then(() => expectCached(driver, 'default:test', '/hello.txt', 'Hello world!'))
-      .then(done, err => errored(err, done)))
-    it('caches grouped files', (done) => driver
+      .then(() => expectCached(driver, simpleManifestCache, '/hello.txt', 'Hello world!'))
+      .then(done, err => errored(err, done)));
+    it('caches multiple files', (done) => driver
       .triggerInstall()
-      .then(() => driver.caches.open('secondary:other'))
-      .then(() => expectCached(driver, 'secondary:other', '/goodbye.txt', 'Goodbye world!'))
-      .then(() => expectCached(driver, 'secondary:other', '/solong.txt', 'So long world!'))
+      .then(() => expectCached(driver, simpleManifestCache, '/goodbye.txt', 'Goodbye world!'))
+      .then(() => expectCached(driver, simpleManifestCache, '/solong.txt', 'So long world!'))
       .then(done, err => errored(err, done)))
     it('saves the manifest as the currently installed manifest', (done) => driver
       .triggerInstall()
@@ -256,72 +183,10 @@ describe('ngsw', () => {
       .then(keys => expect(keys.length).toBe(3))
       .then(done, err => errored(err, done)));
   });
-  sequence('upgrade without hashes', () => {
-    let driver: TestWorkerDriver = new TestWorkerDriver(createServiceWorker);
-    beforeAll(done => {
-      driver.mockUrl(MANIFEST_URL, BUNDLE_MANIFEST_1);
-      driver.mockUrl('/hello.txt', 'Hello world!');
-      driver.mockUrl('/goodbye.txt', 'Goodbye world!');
-      driver
-        .triggerInstall()
-        .then(() => driver.unmockAll())
-        .then(() => driver.triggerActivate())
-        .then(done, err => errored(err, done));
-    });
-    it('successfully activates', done => Promise
-      .resolve(null)
-      .then(() => expectServed(driver, '/hello.txt', 'Hello world!'))
-      .then(() => expectServed(driver, '/goodbye.txt', 'Goodbye world!'))
-      .then(done, err => errored(err, done)));
-    then('upgrades to new manifest', done => {
-      driver.refresh();
-      driver.mockUrl(MANIFEST_URL, BUNDLE_MANIFEST_2);
-      driver.mockUrl('/hello.txt', 'Hola mundo!');
-      driver.mockUrl('/goodbye.txt', 'Should not be reloaded from the server');
-      driver
-        .triggerInstall()
-        .then(() => driver.unmockAll())
-        .then(() => driver.triggerActivate())
-        .then(done, err => errored(err, done));
-    });
-    then('refreshes only the hello page', done => Promise
-      .resolve(null)
-      .then(() => expectServed(driver, '/hello.txt', 'Hola mundo!'))
-      .then(() => expectServed(driver, '/goodbye.txt', 'Goodbye world!'))
-      .then(done, err => errored(err, done)));
-    then('deletes old caches', done => Promise
-      .resolve(null)
-      .then(() => driver.caches.keys())
-      .then(keys => expect(keys.length).toBe(4))
-      .then(done, err => errored(err, done)));
-  })
-  sequence('dev mode', () => {
-    let driver: TestWorkerDriver = new TestWorkerDriver(createServiceWorker);
-    beforeAll(done => {
-      driver.mockUrl(MANIFEST_URL, DEV_MANIFEST);
-      driver.mockUrl('/hello.txt', 'Hello world!');
-      driver
-        .triggerInstall()
-        .then(() => driver.unmockAll())
-        .then(() => driver.triggerActivate())
-        .then(() => driver.unmockAll())
-        .then(done, err => errored(err, done));
-    });
-    it('fetches from network the first time', done => Promise
-      .resolve(null)
-      .then(() => driver.mockUrl('/hello.txt', 'Hola mundo!'))
-      .then(() => expectServed(driver, '/hello.txt', 'Hola mundo!'))
-      .then(done, err => errored(err, done)));
-    then('fetches from network again', done => Promise
-      .resolve(null)
-      .then(() => driver.mockUrl('/hello.txt', 'Ciao mondo!'))
-      .then(() => expectServed(driver, '/hello.txt', 'Ciao mondo!'))
-      .then(done, err => errored(err, done)));
-  });
   sequence('fallback', () => {
     let driver: TestWorkerDriver = new TestWorkerDriver(createServiceWorker);
     beforeAll(done => {
-      driver.mockUrl(MANIFEST_URL, FALLBACK_MANIFEST);
+      driver.mockUrl(MANIFEST_URL, ROUTING_MANIFEST);
       driver.mockUrl('/hello.txt', 'Hello world!');
       driver.mockUrl('/goodbye.txt', 'Should never be fetched!');
       driver
@@ -340,7 +205,7 @@ describe('ngsw', () => {
   sequence('index fallback', () => {
     let driver: TestWorkerDriver = new TestWorkerDriver(createServiceWorker);
     beforeAll(done => {
-      driver.mockUrl(MANIFEST_URL, INDEX_MANIFEST);
+      driver.mockUrl(MANIFEST_URL, ROUTING_MANIFEST);
       driver.mockUrl('/hello.txt', 'Hello world!');
       driver.mockUrl('/', 'Should never be fetched!');
       driver
