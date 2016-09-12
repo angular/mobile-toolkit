@@ -1,7 +1,6 @@
 import {Observable} from 'rxjs/Observable';
 
-import {SwManifest, CacheGroup, CacheEntry, ManifestDelta} from './manifest';
-import {EMPTY_CACHE_GROUP} from './manifest-parser';
+import {SwManifest, CacheGroup, CacheEntry, ManifestDelta, EMPTY_CACHE_GROUP} from './manifest';
 import {CacheManager} from './cache';
 import {Fetch} from './fetch';
 import {doAsync} from './operator';

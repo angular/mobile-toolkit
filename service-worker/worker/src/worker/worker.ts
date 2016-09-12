@@ -3,8 +3,7 @@ import {Subject} from 'rxjs/Subject';
 
 import {log,readLog, Verbosity} from './logging';
 import {Events, WorkerScope, InstallEvent, FetchEvent, PushEvent, WorkerAdapter} from './context';
-import {SwManifest, CacheEntry, CacheGroup, ManifestDelta, Route} from './manifest';
-import {diffManifests, parseManifest} from './manifest-parser';
+import {SwManifest, CacheEntry, CacheGroup, ManifestDelta, Route, diffManifests, parseManifest} from './manifest';
 import {Fetch} from './fetch';
 import {CacheManager} from './cache';
 import {buildCaches, cleanupCaches, cacheFor} from './setup';

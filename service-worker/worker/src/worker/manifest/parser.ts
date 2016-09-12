@@ -1,4 +1,4 @@
-import {ManifestDelta, SwManifest, CacheGroup, CacheGroupMap, CacheEntryMap} from './manifest';
+import {ManifestDelta, SwManifest, CacheGroup, CacheGroupMap, CacheEntryMap, EMPTY_CACHE_GROUP} from './manifest';
 import {SHA1} from 'jshashes';
 
 interface DiffArrayResult {
@@ -18,10 +18,6 @@ function _groupOrEmpty(manifest: SwManifest, name: string): CacheGroup {
     return EMPTY_CACHE_GROUP;
   }
   return manifest.group[name];
-}
-
-export var EMPTY_CACHE_GROUP = <CacheGroup>{
-  url: <CacheEntryMap>{}
 }
 
 
