@@ -1,7 +1,8 @@
 import './rxjs';
 
-export * from './cache';
-export * from './context';
+export * from './facade';
 export * from './manifest';
+export * from './rxjs';
+export * from './logging';
+export * from './setup';
 export * from './worker';
-export * from './fetch';

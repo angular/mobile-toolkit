@@ -1,14 +1,13 @@
 import {Observable} from 'rxjs/Observable';
 
 import {SwManifest, CacheGroup, CacheEntry, ManifestDelta, EMPTY_CACHE_GROUP} from './manifest';
-import {CacheManager} from './cache';
-import {Fetch} from './fetch';
+import {NgSwCache, NgSwFetch} from './facade';
 import {doAsync} from './rxjs';
 import {log, Verbosity} from './logging';
 
 
 interface SetupInstruction {
-  execute(cache: CacheManager, fetch: Fetch): Observable<any>;
+  execute(cache: NgSwCache, fetch: NgSwFetch): Observable<any>;
   describe(): string;
 }
 
@@ -16,7 +15,7 @@ class FetchFromCacheInstruction implements SetupInstruction {
   
   constructor(private url: string, private fromCache: string, private toCache: string) {}
   
-  execute(cache: CacheManager, fetch: Fetch): Observable<any> {
+  execute(cache: NgSwCache, fetch: NgSwFetch): Observable<any> {
     return cache
       .load(this.fromCache, this.url)
       .flatMap(resp => cache.store(this.toCache, this.url, resp));
@@ -31,7 +30,7 @@ class FetchFromNetworkInstruction implements SetupInstruction {
  
   constructor(private url: string, private toCache: string) {}
   
-  execute(cache: CacheManager, fetch: Fetch): Observable<any> {
+  execute(cache: NgSwCache, fetch: NgSwFetch): Observable<any> {
     return fetch
       .refresh(this.url)
       .flatMap(resp => cache.store(this.toCache, this.url, resp));
@@ -64,7 +63,7 @@ function _entryHasNotChanged(previous: CacheEntry, current: CacheEntry): boolean
   return sameHash || sameVersion;
 }
 
-export function buildCaches(cache: CacheManager, fetch: Fetch): any {
+export function buildCaches(cache: NgSwCache, fetch: NgSwFetch): any {
   // Building caches is a side-effect, so use doAsync.
   return ((obs: Observable<ManifestDelta>): Observable<ManifestDelta> => obs
     .let<ManifestDelta>(doAsync((delta: ManifestDelta) => Observable
@@ -102,7 +101,7 @@ export function buildCaches(cache: CacheManager, fetch: Fetch): any {
   );
 };
 
-export function cleanupCaches(cache: CacheManager): any {
+export function cleanupCaches(cache: NgSwCache): any {
   return ((obs: Observable<ManifestDelta>): Observable<ManifestDelta> => obs
     .let<ManifestDelta>(doAsync((delta: ManifestDelta) => !!delta.previous ? Observable
       .from(Object.keys(delta.previous.group))

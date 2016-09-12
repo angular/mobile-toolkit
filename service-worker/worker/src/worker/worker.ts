@@ -2,10 +2,8 @@ import {Observable} from 'rxjs/Observable';
 import {Subject} from 'rxjs/Subject';
 
 import {log,readLog, Verbosity} from './logging';
-import {Events, WorkerScope, InstallEvent, FetchEvent, PushEvent, WorkerAdapter} from './context';
 import {SwManifest, CacheEntry, CacheGroup, ManifestDelta, Route, diffManifests, parseManifest} from './manifest';
-import {Fetch} from './fetch';
-import {CacheManager} from './cache';
+import {NgSwAdapter, NgSwCache, NgSwEvents, NgSwFetch} from './facade';
 import {buildCaches, cleanupCaches, cacheFor} from './setup';
 
 import {extractBody, doAsync, concatLet} from './rxjs';
@@ -176,11 +174,11 @@ export class ServiceWorker {
   manifestReq: Request;
 
   constructor(
-    private scope: WorkerScope,
-    private events: Events,
-    public fetch: Fetch,
-    public cache: CacheManager,
-    public adapter: WorkerAdapter) {
+    private scope: ServiceWorkerGlobalScope,
+    private events: NgSwEvents,
+    public fetch: NgSwFetch,
+    public cache: NgSwCache,
+    public adapter: NgSwAdapter) {
     this.manifestReq = adapter.newRequest(MANIFEST_URL);
 
     this.pushes = Observable

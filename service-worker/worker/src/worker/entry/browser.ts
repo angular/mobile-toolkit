@@ -1,10 +1,8 @@
-import {WorkerScope, WorkerAdapter, Events, Fetch, CacheManager, ServiceWorker} from '../index';
-
-importScripts('ngsw-manifest.json.js');
+import {NgSwAdapter, NgSwCache, NgSwEvents, NgSwFetch, ServiceWorker} from '../index';
 
 declare var global;
 
-class BrowserAdapter extends WorkerAdapter {
+class NgSwBrowserAdapter implements NgSwAdapter {
   newRequest(req: string | Request, init?: Object): Request {
     return new Request(req, init);
   }
@@ -15,15 +13,17 @@ class BrowserAdapter extends WorkerAdapter {
 }
 
 // The scope is the global object.
-let workerScope: WorkerScope = ((typeof self !== 'undefined') ? self : global) as WorkerScope;
+let workerScope: ServiceWorkerGlobalScope = ((typeof self !== 'undefined') ? self : global) as ServiceWorkerGlobalScope;
+
+workerScope.importScripts('ngsw-manifest.json.js');
 
 // Use the browser adapter, of course.
-let workerAdapter = new BrowserAdapter();
+let workerAdapter = new NgSwBrowserAdapter();
 
 // Construct API wrappers using adapter and scope.
-let events = new Events(workerScope);
-let fetch = new Fetch(workerScope, workerAdapter);
-let cacheManager = new CacheManager(workerScope, workerAdapter);
+let events = new NgSwEvents(workerScope);
+let fetch = new NgSwFetch(workerScope, workerAdapter);
+let cacheManager = new NgSwCache(workerScope.caches, workerAdapter);
 
 // Finally, construct the service worker. The side effects of the constructor will
 // wire up events.

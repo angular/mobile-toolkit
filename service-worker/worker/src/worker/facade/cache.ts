@@ -1,13 +1,9 @@
 import {Observable} from 'rxjs/Observable';
 
-import {WorkerScope, WorkerAdapter} from './context';
+import {NgSwAdapter} from './adapter';
 
-export class CacheManager {
-  private caches: CacheStorage;
-
-  constructor(scope: WorkerScope, private adapter: WorkerAdapter) {
-    this.caches = scope.caches;
-  }
+export class NgSwCache {
+  constructor(private caches: CacheStorage, private adapter: NgSwAdapter) {}
 
   normalize(req: string | Request): Request {
     if (typeof req == 'string') {

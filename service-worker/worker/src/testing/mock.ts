@@ -1,14 +1,9 @@
 import {
-  WorkerScope,
-  ExtendableEvent,
-  InstallEvent,
-  ActivateEvent,
-  FetchEvent,
   ServiceWorker,
-  WorkerAdapter,
-  CacheManager,
-  Fetch,
-  Events
+  NgSwAdapter,
+  NgSwCache,
+  NgSwEvents,
+  NgSwFetch
 } from '../worker/index';
 import {
   MockCacheStorage,
@@ -16,7 +11,7 @@ import {
   MockResponse
 } from './mock_cache';
 
-class TestAdapter extends WorkerAdapter {
+class TestAdapter implements NgSwAdapter {
   newRequest(req: string | Request, options = {}): Request {
     return new MockRequest(req, options);
   }
@@ -26,12 +21,9 @@ class TestAdapter extends WorkerAdapter {
   }
 }
 
-export class TestWorkerScope extends WorkerScope {
+export class TestWorkerScope implements ServiceWorkerGlobalScope {
 
-  constructor(caches: CacheStorage) {
-    super();
-    this.caches = caches;
-  }
+  constructor(public caches: CacheStorage) {}
 
   installListener: Function = () => null;
   activateListener: Function = () => null;
@@ -52,6 +44,14 @@ export class TestWorkerScope extends WorkerScope {
 
   unmockAll(): void {
     this.mockResponses = {};
+  }
+
+  get registration(): ServiceWorkerRegistration {
+    return null;
+  }
+
+  importScripts(scripts: string): void {
+    require(scripts);
   }
 
   fetch(req: string | Request): Promise<Response> {
@@ -101,7 +101,7 @@ interface TestActivateEvent extends TestExtendableEvent, ActivateEvent {}
 interface TestFetchEvent extends TestExtendableEvent, FetchEvent {}
 
 export interface TestWorkerCreationFn {
-  (scope: WorkerScope, adapter: WorkerAdapter, cache: CacheManager, fetch: Fetch, events: Events): any;
+  (scope: ServiceWorkerGlobalScope, adapter: NgSwAdapter, cache: NgSwCache, fetch: NgSwFetch, events: NgSwEvents): any;
 }
 
 export class TestWorkerDriver {
@@ -134,9 +134,9 @@ export class TestWorkerDriver {
     this.scope = new TestWorkerScope(this.caches);
 
     let workerAdapter = new TestAdapter();
-    let cache = new CacheManager(this.scope, workerAdapter);
-    let fetch = new Fetch(this.scope, workerAdapter);
-    let events = new Events(this.scope);
+    let cache = new NgSwCache(this.caches, workerAdapter);
+    let fetch = new NgSwFetch(this.scope, workerAdapter);
+    let events = new NgSwEvents(this.scope);
 
     this.instance = this.createWorker(this.scope, workerAdapter, cache, fetch, events);
   }

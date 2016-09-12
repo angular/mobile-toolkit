@@ -1,10 +1,10 @@
 import {Observable} from 'rxjs/Observable';
-import {WorkerScope, WorkerAdapter} from './context';
-import {timeoutTo} from './rxjs';
+import {NgSwAdapter} from './adapter';
+import {timeoutTo} from '../rxjs';
 
-export class Fetch {
+export class NgSwFetch {
 
-  constructor(private scope: WorkerScope, private adapter: WorkerAdapter) {}
+  constructor(private scope: ServiceWorkerGlobalScope, private adapter: NgSwAdapter) {}
 
   request(req: Request, timeout: number = null): Observable<Response> {
     let result: Observable<Response> = Observable.defer(() => Observable
