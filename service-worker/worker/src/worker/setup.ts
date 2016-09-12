@@ -3,7 +3,7 @@ import {Observable} from 'rxjs/Observable';
 import {SwManifest, CacheGroup, CacheEntry, ManifestDelta, EMPTY_CACHE_GROUP} from './manifest';
 import {CacheManager} from './cache';
 import {Fetch} from './fetch';
-import {doAsync} from './operator';
+import {doAsync} from './rxjs';
 import {log, Verbosity} from './logging';
 
 

@@ -24,3 +24,6 @@ import 'rxjs/add/operator/publishReplay';
 import 'rxjs/add/operator/reduce';
 import 'rxjs/add/operator/share';
 import 'rxjs/add/operator/toPromise';
+
+export * from './async';
+export * from './misc';

@@ -1,6 +1,6 @@
 import {Observable} from 'rxjs/Observable';
 import {WorkerScope, WorkerAdapter} from './context';
-import {timeoutTo} from './operator';
+import {timeoutTo} from './rxjs';
 
 export class Fetch {
 

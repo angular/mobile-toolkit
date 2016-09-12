@@ -8,7 +8,7 @@ import {Fetch} from './fetch';
 import {CacheManager} from './cache';
 import {buildCaches, cleanupCaches, cacheFor} from './setup';
 
-import {extractBody, doAsync, concatLet} from './operator';
+import {extractBody, doAsync, concatLet} from './rxjs';
 
 export const MANIFEST_URL = '/ngsw-manifest.json';
 export const CACHE_ACTIVE = 'ngsw.active';
