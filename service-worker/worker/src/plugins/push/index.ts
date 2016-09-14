@@ -1,12 +1,13 @@
 import {
+  LiteSubject,
   Operation,
   Plugin,
   PluginFactory,
   VersionWorker
 } from '@angular/service-worker/worker';
 
-import {Subject} from 'rxjs/Subject';
 import {Observable} from 'rxjs/Observable';
+import {Observer} from 'rxjs/Observer';
 
 interface PushManifest {
   showNotifications?: boolean;
@@ -40,7 +41,7 @@ export function Push(): PluginFactory<PushImpl> {
 export class PushImpl implements Plugin<PushImpl> {
 
   private pushBuffer: any[] = [];
-  private pushSubject: Subject<any> = new Subject<any>();
+  private pushSubject: LiteSubject<any> = new LiteSubject<any>();
   pushes: Observable<any>;
 
   private get pushManifest(): PushManifest {
@@ -48,13 +49,17 @@ export class PushImpl implements Plugin<PushImpl> {
   }
 
   constructor(private worker: VersionWorker) {
-    this.pushes = Observable.create(observer => {
-      this.pushBuffer.forEach(data => observer.next(data));
+    this.pushes = Observable.create((observer: Observer<any>) => {
+      if (this.pushBuffer !== null) {
+        this.pushBuffer.forEach(data => observer.next(data));
+      }
       this.pushBuffer = null;
-      const sub = this.pushSubject.subscribe(observer);
+      const sub = this.pushSubject.observable.subscribe(observer);
       return () => {
         sub.unsubscribe();
-        this.pushBuffer = [];
+        if (!this.pushSubject.hasSubscribers) {
+          this.pushBuffer = [];
+        }
       };
     });
   }

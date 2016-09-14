@@ -1,5 +1,5 @@
 import {Observable} from 'rxjs/Observable';
-import {Subject} from 'rxjs/Subject';
+import {LiteSubject} from './rxjs';
 
 export enum Verbosity {
   INFO = 1,
@@ -16,7 +16,7 @@ interface LogEntry {
 let logBuffer: LogEntry[] = [];
 
 // Subject which will be used to broadcast log messages once there's a subscriber.
-let logSubject: Subject<LogEntry> = null;
+let logSubject: LiteSubject<LogEntry> = null;
 
 let logLevel = Verbosity.INFO;
 
@@ -25,7 +25,7 @@ let logLevel = Verbosity.INFO;
 let logStream = Observable.create(observer => {
   // Create the subject if it doesn't exist already.
   if (logSubject === null) {
-    logSubject = new Subject<LogEntry>();
+    logSubject = new LiteSubject<LogEntry>();
   }
 
   // An Observable representing buffered messages. Initialized to empty.
@@ -40,7 +40,7 @@ let logStream = Observable.create(observer => {
   // Combine (possibly empty) buffered messages with the subject, and pipe them to the
   // subscriber.
   return buffered
-    .concat(logSubject)
+    .concat(logSubject.observable)
     .subscribe(observer);
 });
 
