@@ -8,7 +8,7 @@ let SHA1 = require('jshashes').SHA1;
  */
 export default class AngularServiceWorkerPlugin {
 
-  constructor(public manifestFile = 'ngsw-manifest.json') {}
+  constructor(public manifestFile = 'ngsw-manifest.json', public manifestKey = 'static') {}
 
   apply(compiler) {
     // Determine the destination directory and the URL prefix for the app.
@@ -34,11 +34,11 @@ export default class AngularServiceWorkerPlugin {
         manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) || {};
       }
 
-      if (!manifest.static) {
-        manifest.static = {};
+      if (!manifest[this.manifestKey]) {
+        manifest[this.manifestKey] = {};
       }
-      if (!manifest.static.urls) {
-        manifest.static.urls = {};
+      if (!manifest[this.manifestKey].urls) {
+        manifest[this.manifestKey].urls = {};
       }
 
       // Go through every asset in the compilation and include it in the manifest,
@@ -48,7 +48,7 @@ export default class AngularServiceWorkerPlugin {
         .forEach(asset => {
           let url = `${publicPrefix}/${asset}`;
           // TODO(alxhub): use webpack cached version if available.
-          manifest.static.urls[url] = sha1.hex(fs.readFileSync(`${outputPath}/${asset}`, 'utf8'));
+          manifest[this.manifestKey].urls[url] = sha1.hex(fs.readFileSync(`${outputPath}/${asset}`, 'utf8'));
         });
       
       // Write the merged manifest to disk.
