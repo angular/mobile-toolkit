@@ -7,7 +7,7 @@
     "target": "es5",
     "moduleResolution": "node",
     "noImplicitAny": true,
-    "outDir": "../dist/app",
+    "outDir": "../dist",
     "sourceMap": true,
     "inlineSources": true
   },

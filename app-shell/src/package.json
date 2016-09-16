@@ -1,9 +1,9 @@
 {
   "name": "@angular/app-shell",
-  "version": "0.0.0",
+  "version": "1.0.0-preview",
   "description": "App Shell runtime library for Angular 2 Progressive Web Apps.",
-  "main": "index.js",
-  "jsnext:main": "esm/index.js",
+  "main": "bundles/appShell.umd.js",
+  "module": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

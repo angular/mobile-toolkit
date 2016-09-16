@@ -1,6 +1,6 @@
 {
   "name": "app-shell",
-  "version": "0.0.0",
+  "version": "1.0.0-preview",
   "license": "MIT",
   "angular-cli": {},
   "scripts": {
@@ -11,7 +11,7 @@
     "pree2e": "webdriver-manager update",
     "e2e": "protractor",
     "clean": "rm -rf dist",
-    "build": "mkdir -p dist/app && ngc -p src/tsconfig.publish.json && cp src/package.json dist/app/package.json",
+    "build": "npm run clean && ngc -p src/tsconfig.publish.json && rollup -c rollup.publish.config.js && cp src/package.json dist/package.json",
     "build_parser": "echo '' > dist/vendor/parse5/lib/tokenizer/named_entity_trie.js && browserify dist/app/shell-parser/index.js -s shellParserFactory > dist/app/shell-parser.js && rm -rf dist/app/shell-parser && rm -rf dist/app/vendor",
     "build_publish": "npm run clean && npm run build"
   },
@@ -43,6 +43,7 @@
     "karma-jasmine": "^0.3.8",
     "parse5": "2.1.5",
     "protractor": "^3.3.0",
+    "rollup": "^0.35.11",
     "ts-node": "^0.5.5",
     "tslint": "^3.6.0",
     "typescript": "^2.0.2",
