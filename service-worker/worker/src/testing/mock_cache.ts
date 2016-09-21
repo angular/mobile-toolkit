@@ -88,7 +88,10 @@ export class MockCache implements Cache {
   }
 
   keys(request?: Request, options?: CacheOptions): Promise<Request[]> {
-    throw 'Unimplemented';
+    if (!!request || !!options) {
+      throw 'Unimplemented';
+    }
+    return Promise.resolve(this.entries.map(entry => entry.request));
   }
 
   match(request: Request, options?: CacheOptions): Promise<Response> {

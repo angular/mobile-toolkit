@@ -8,6 +8,7 @@ export interface NgSwCache {
   store(cache: string, req: string | Request, resp: Response): Observable<any>;
   remove(cache: string): Observable<any>;
   invalidate(cache: string, req: string | Request): Observable<void>;
+  list(cache: string): Observable<Request[]>;
 }
 
 export class NgSwCacheImpl implements NgSwCache {
@@ -34,7 +35,7 @@ export class NgSwCacheImpl implements NgSwCache {
       .then(cache => cache.put(this.normalize(req), resp))));
   }
 
-  invalidate(cache: string, req: string | Request): Observable<any> {
+  invalidate(cache: string, req: string | Request): Observable<void> {
     return Observable.defer(() => Observable.fromPromise(this
       .caches
       .open(cache)
@@ -45,5 +46,12 @@ export class NgSwCacheImpl implements NgSwCache {
     return Observable.defer(() => Observable.fromPromise(this
       .caches
       .delete(cache)));
+  }
+
+  list(cache: string): Observable<Request[]> {
+    return Observable.defer(() => Observable.fromPromise(this
+      .caches
+      .open(cache)
+      .then(cache => cache.keys())));
   }
 }
