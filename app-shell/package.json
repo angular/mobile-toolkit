@@ -1,51 +1,52 @@
 {
-  "name": "app-shell",
-  "version": "0.0.0",
+  "name": "@angular/app-shell",
+  "description": "App Shell runtime library for Angular 2 Progressive Web Apps.",
+  "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/angular/mobile-toolkit.git"
+  },
+  "contributors": [
+    "Jeff Cross <crossj@google.com>",
+    "Minko Gechev <mgechev@gmail.com>",
+    "Alex Rickabaugh <alx+alxhub@alxandria.net>"
+  ],
+  "keywords": [
+    "angular2",
+    "pwa",
+    "progressive web apps",
+    "app shell"
+  ],
   "license": "MIT",
   "angular-cli": {},
-  "scripts": {
-    "start": "ng server",
-    "postinstall": "typings install",
-    "lint": "tslint \"src/**/*.ts\"",
-    "format": "clang-format -i -style=file --glob=src/**/*.ts",
-    "pree2e": "webdriver-manager update",
-    "e2e": "protractor",
-    "clean": "rm -rf dist",
-    "build": "mkdir -p dist/app && ngc -p src/tsconfig.publish.json && cp src/package.json dist/app/package.json",
-    "build_parser": "echo '' > dist/vendor/parse5/lib/tokenizer/named_entity_trie.js && browserify dist/app/shell-parser/index.js -s shellParserFactory > dist/app/shell-parser.js && rm -rf dist/app/shell-parser && rm -rf dist/app/vendor",
-    "build_publish": "npm run clean && npm run build"
-  },
+  "scripts": {},
+  "main": "bundles/app-shell.umd.js",
+  "module": "index.js",
   "private": true,
-  "dependencies": {
-    "@angular/common": "^2.0.0-rc.6",
-    "@angular/compiler": "^2.0.0-rc.6",
-    "@angular/core": "^2.0.0-rc.6",
-    "@angular/platform-browser": "^2.0.0-rc.6",
-    "@angular/platform-browser-dynamic": "^2.0.0-rc.6",
-    "es6-shim": "^0.35.0",
-    "reflect-metadata": "0.1.3",
-    "rxjs": "5.0.0-beta.11",
-    "systemjs": "0.19.26",
-    "zone.js": "^0.6.17"
-  },
+  "dependencies": {},
   "devDependencies": {
-    "@angular/compiler-cli": "^0.6.0",
-    "@angular/platform-server": "^2.0.0-rc.6",
-    "angular-cli": "0.0.*",
-    "browserify": "^13.0.1",
-    "clang-format": "^1.0.35",
-    "codelyzer": "0.0.14",
-    "ember-cli-inject-live-reload": "^1.4.0",
-    "jasmine-core": "^2.4.1",
-    "jasmine-spec-reporter": "^2.4.0",
-    "karma": "^0.13.15",
-    "karma-chrome-launcher": "^0.2.3",
-    "karma-jasmine": "^0.3.8",
-    "parse5": "2.1.5",
-    "protractor": "^3.3.0",
-    "ts-node": "^0.5.5",
-    "tslint": "^3.6.0",
-    "typescript": "^2.0.2",
-    "typings": "^1.0.4"
+    "@angular/common": "^2.0.0",
+    "@angular/compiler": "^2.0.0",
+    "@angular/compiler-cli": "^0.6.2",
+    "@angular/core": "^2.0.0",
+    "@angular/platform-browser": "^2.0.0",
+    "@angular/platform-browser-dynamic": "^2.0.0",
+    "@angular/platform-server": "^2.0.0",
+    "@types/jasmine": "^2.2.34",
+    "gulp": "^3.9.1",
+    "gulp-jasmine": "^2.4.1",
+    "reflect-metadata": "^0.1.8",
+    "rimraf": "^2.5.4",
+    "rollup": "^0.36.0",
+    "rollup-plugin-commonjs": "^5.0.4",
+    "rollup-plugin-node-resolve": "^2.0.0",
+    "run-sequence": "^1.2.2",
+    "rxjs": "^5.0.0-beta.12",
+    "ts-node": "^1.3.0",
+    "typescript": "^2.0.3",
+    "zone.js": "^0.6.25"
+  },
+  "peerDependencies": {
+    "@angular/core": "^2.0.0"
   }
 }
