@@ -86,9 +86,12 @@ gulp.task('task:commonjs:rewrite_plugins', () => gulp
 
 gulp.task('task:commonjs:deploy', () => gulp
   .src([
-    'tmp/es5/src/webpack/**/*.d.ts',
-    'tmp/es5/src/webpack/**/*.js',
-    'tmp/es5/src/webpack/**/*.js.map',
+    'tmp/es5/src/webpack.d.ts',
+    'tmp/es5/src/webpack.js',
+    'tmp/es5/src/webpack.js.map',
+    'tmp/es5/src/build/**/*.d.ts',
+    'tmp/es5/src/build/**/*.js',
+    'tmp/es5/src/build/**/*.js.map',
   ], {base: 'tmp/es5/src'})
   .pipe(gulp.dest('dist')));
 
