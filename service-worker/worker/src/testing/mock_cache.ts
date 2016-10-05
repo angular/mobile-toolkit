@@ -172,9 +172,12 @@ export class MockRequest extends MockBody implements Request {
   }
 
   mode: RequestMode;
-  context: RequestContext;
   referrer: string;
   credentials: RequestCredentials;
+  type: RequestType;
+  destination: RequestDestination;
+  referrerPolicy: ReferrerPolicy;
+  integrity: string;
 
   constructor(req: string | Request, init?: Object) {
     super(null);
@@ -188,9 +191,12 @@ export class MockRequest extends MockBody implements Request {
       this.headers = other.headers;
       //this.body = other.body;
       this.mode = other.mode;
-      this.context = other.context;
+      this.destination = other.destination;
+      this.type = other.type;
       this.referrer = other.referrer;
       this.credentials = other.credentials;
+      this.referrerPolicy = other.referrerPolicy;
+      this.integrity = other.integrity;
     }
     ['method', 'cache', 'headers', 'mode', 'context', 'referrer', 'credentials']
       .forEach(prop => this._copyProperty(prop, init));
@@ -205,6 +211,10 @@ export class MockRequest extends MockBody implements Request {
   matches(req: Request): boolean {
     return req.url === this.url && req.method === this.method;
   }
+
+  clone(): MockRequest {
+    return new MockRequest(this);
+  }
 }
 
 export class MockResponse extends MockBody implements Response {
@@ -214,6 +224,10 @@ export class MockResponse extends MockBody implements Response {
   url: string;
   headers: any;
   type: ResponseType = "default";
+  redirected: boolean;
+
+  body: ReadableStream;
+  trailer: Promise<Headers>;
 
   constructor(body: string | Blob) {
     super(<string>body);

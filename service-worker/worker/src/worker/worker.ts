@@ -6,6 +6,10 @@ import {NgSwAdapter, NgSwFetch} from './facade';
 import {Manifest} from './manifest';
 
 import {Observable} from 'rxjs/Observable';
+import 'rxjs/add/observable/from';
+import 'rxjs/add/operator/concatMap';
+import 'rxjs/add/operator/filter';
+import 'rxjs/add/operator/first';
 
 export class VersionWorkerImpl implements VersionWorker {
 
