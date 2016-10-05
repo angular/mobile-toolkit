@@ -4,10 +4,6 @@ import {HarnessPageObject} from '../harness/server/page-object';
 
 import fs = require('fs');
 
-declare var browser;
-declare var element;
-declare var by;
-
 let server: Server;
 let po: HarnessPageObject;
 

@@ -15,7 +15,17 @@
       "@angular/service-worker": ["src/"],
       "@angular/service-worker/worker": ["src/worker/"]
     },
-    "lib": ["es2015", "dom"]
+    "lib": [
+      "dom",
+      "es2015"
+    ],
+    "types": [
+      "jasmine",
+      "node",
+      "protractor",
+      "selenium-webdriver",
+      "whatwg-fetch"
+    ]
 	},
   "files": [
     "src/webpack/index.ts",
@@ -27,14 +37,6 @@
     "src/testing/index.ts",
     "src/testing/mock.spec.ts",
     "src/typings/jshashes.d.ts",
-    "src/typings/service-worker.d.ts",
-    "typings/globals/express/index.d.ts",
-    "typings/globals/express-serve-static-core/index.d.ts",
-    "typings/globals/jasmine/index.d.ts",
-    "typings/globals/mime/index.d.ts",
-    "typings/globals/node/index.d.ts",
-    "typings/globals/serve-static/index.d.ts",
-    "typings/globals/whatwg-fetch/index.d.ts",
-    "typings/modules/base64-js/index.d.ts"
+    "src/typings/service-worker.d.ts"
   ]
 }

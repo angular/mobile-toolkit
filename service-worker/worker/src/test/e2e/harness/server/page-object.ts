@@ -1,8 +1,3 @@
-declare var browser;
-declare var element;
-declare var by;
-declare var protractor;
-
 export class HarnessPageObject {
   
   sendKeysSlow(el, keys) {
@@ -25,7 +20,7 @@ export class HarnessPageObject {
   }
   
   get result(): Promise<string> {
-    return element(by.css('#result')).getText();
+    return element(by.css('#result')).getText() as any as Promise<string>;
   }
 
   get asyncResult(): Promise<string> {
@@ -78,8 +73,8 @@ export class HarnessPageObject {
   }
 
   log(): Promise<string[]> {
-    return element(by.css('#log'))
-      .getText()
+    return (element(by.css('#log'))
+      .getText() as any as Promise<string>)
       .then(v => JSON.parse(v))
       .then(log => {
         this.selectAction('RESET');
