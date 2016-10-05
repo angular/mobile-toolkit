@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "module": "system",
+    "module": "commonjs",
     "target": "es5",
     "noImplicitAny": false,
     "emitDecoratorMetadata": true,
@@ -14,7 +14,18 @@
     "paths": {
       "@angular/service-worker": ["src/"],
       "@angular/service-worker/worker": ["src/worker/"]
-    }
+    },
+    "lib": [
+      "es2015",
+      "dom"
+    ],
+    "types": [
+      "jasmine",
+      "protractor",
+      "node",
+      "selenium-webdriver",
+      "whatwg-fetch"
+    ]
 	},
   "exclude": [
     "node_modules"

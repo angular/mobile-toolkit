@@ -1,5 +1,3 @@
-declare var require;
-
 let fs = require('fs');
 let SHA1 = require('jshashes').SHA1;
 

@@ -26,6 +26,13 @@
     "@angular/forms": "^2.0.0-rc.6",
     "@angular/platform-browser": "^2.0.0-rc.6",
     "@angular/platform-browser-dynamic": "^2.0.0-rc.6",
+    "@types/base64-js": "^1.1.4",
+    "@types/express": "^4.0.33",
+    "@types/jasmine": "^2.2.34",
+    "@types/node": "^6.0.42",
+    "@types/protractor": "^1.5.20",
+    "@types/selenium-webdriver": "^2.44.26",
+    "@types/whatwg-fetch": "0.0.31",
     "express": "^4.13.4",
     "gulp": "^3.9.0",
     "gulp-clean": "^0.3.1",
@@ -46,7 +53,6 @@
     "systemjs": "^0.19.17",
     "ts-node": "^0.7.3",
     "typescript": "^2.0.2",
-    "typings": "^1.0.4",
     "uglify-js": "^2.7.3",
     "web-push": "^2.1.1",
     "webpack": "^2.1.0-beta.22",
@@ -55,7 +61,6 @@
   "dependencies": {
     "@angular/core": "^2.0.0-rc.6",
     "base64-js": "^1.1.2",
-    "fs-extra": "^0.30.0",
     "jshashes": "^1.0.5"
   }
 }
