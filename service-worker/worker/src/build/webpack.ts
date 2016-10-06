@@ -6,7 +6,7 @@ let SHA1 = require('jshashes').SHA1;
 /**
  * Webpack plugin that generates a basic Angular service worker manifest.
  */
-export default class AngularServiceWorkerPlugin {
+export class AngularServiceWorkerPlugin {
 
   constructor(public manifestFile = 'ngsw-manifest.json', public manifestKey = 'static') {}
 
