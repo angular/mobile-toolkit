@@ -174,7 +174,6 @@ gulp.task('task:worker:basic:bundle', done => rollup
   .rollup({
     entry: 'tmp/esm/src/worker/builds/basic.js',
     plugins: [
-      // TODO(alxhub): Switch to rxjs-es when export bug is fixed.
       new SwRewriter(),
       nodeResolve({jsnext: true, main: true}),
       commonjs({
@@ -188,6 +187,25 @@ gulp.task('task:worker:basic:bundle', done => rollup
   .then(bundle => bundle.write({
     format: 'iife',
     dest: 'tmp/es5/bundles/worker-basic.js',
+  })));
+
+gulp.task('task:worker:test:bundle', done => rollup
+  .rollup({
+    entry: 'tmp/esm/src/worker/builds/test.js',
+    plugins: [
+      new SwRewriter(),
+      nodeResolve({jsnext: true, main: true}),
+      commonjs({
+        include: 'node_modules/**',
+        namedExports: {
+          'node_modules/jshashes/hashes.js': ['SHA1']
+        }
+      })
+    ]
+  })
+  .then(bundle => bundle.write({
+    format: 'iife',
+    dest: 'tmp/es5/bundles/worker-test.js',
   })));
 
 gulp.task('task:bundles:minify', () => gulp
@@ -266,10 +284,12 @@ gulp.task('task:e2e_tests:prep', done => runSequence(
   [
     'task:commonjs:compile',
     'task:esm:compile',
+    'task:e2e_tests:setup_chromedriver'
   ],
   [
     'task:companion:bundle',
     'task:worker:basic:bundle',
+    'task:worker:test:bundle',
   ],
   'task:bundles:minify',
   [
@@ -311,6 +331,8 @@ gulp.task('task:e2e_tests:copy_worker_bundle', () => gulp
   .src([
     'tmp/es5/bundles/worker-basic.js',
     'tmp/es5/bundles/worker-basic.min.js',
+    'tmp/es5/bundles/worker-test.js',
+    'tmp/es5/bundles/worker-test.min.js',
   ], {base: 'tmp/es5/bundles'})
   .pipe(gulp.dest('tmp/es5/src/test/e2e/harness/client')));
   
@@ -332,6 +354,10 @@ gulp.task('task:e2e_tests:copy_debug', () => gulp
     'src/test/e2e/harness/client/debug/**/*.*'
   ], {base: 'src/test/e2e/harness/client/debug'})
   .pipe(gulp.dest('tmp/es5/src/test/e2e/harness/client')));
+
+gulp.task('task:e2e_tests:setup_chromedriver', () => {
+  childProcess.execSync('node_modules/.bin/webdriver-manager update --chrome');
+})
 
 gulp.task('task:e2e_tests:run', done => {
   childProcess.exec('node_modules/.bin/protractor tmp/es5/src/test/e2e/spec/protractor.config.js', (err, stdout, stderr) => {

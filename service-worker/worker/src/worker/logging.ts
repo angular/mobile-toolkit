@@ -2,68 +2,109 @@ import {Observable} from 'rxjs/Observable';
 import {LiteSubject} from './rxjs';
 
 export enum Verbosity {
-  INFO = 1,
-  DETAIL = 2,
-  TECHNICAL = 3
+  DEBUG = 1,
+  TECHNICAL = 2,
+  INFO = 3,
+  STATUS = 4,
+  DISABLED = 1000,
 }
 
-interface LogEntry {
+export interface LogEntry {
   message: string;
   verbosity: Verbosity;
 }
 
-// A buffer to store log messages until a subscriber connects. 
-let logBuffer: LogEntry[] = [];
+export interface Logging {
+  debug(message: string, ...args: any[]): void;
+  technical(message: string, ...args: any[]): void;
+  info(message: string, ...args: any[]): void;
+  status(message: string, ...args: any[]): void;
+  log(verbosity: Verbosity, message: string, ...args: any[]): void;
+}
 
-// Subject which will be used to broadcast log messages once there's a subscriber.
-let logSubject: LiteSubject<LogEntry> = null;
+export interface LogHandler {
+  handle(msg: LogEntry);
+}
 
-let logLevel = Verbosity.INFO;
+export class Logger implements Logging {
 
-// The stream of log messages. May return buffered messages to the first subscriber,
-// if buffering has not been disabled. Thereafter returns messages as they're logged.
-let logStream = Observable.create(observer => {
-  // Create the subject if it doesn't exist already.
-  if (logSubject === null) {
-    logSubject = new LiteSubject<LogEntry>();
+  private buffer: LogEntry[] = [];
+  private subject = new LiteSubject<LogEntry>();
+  private verbosity = Verbosity.DISABLED;
+
+  constructor() {}
+
+  get messages(): Observable<LogEntry> {
+    return this.subject.observable;
   }
 
-  // An Observable representing buffered messages. Initialized to empty.
-  let buffered: Observable<LogEntry> = Observable.empty<LogEntry>();
-
-  // If the buffer exists, make it Observable.
-  if (logBuffer !== null) {
-    buffered = Observable.from(logBuffer);
-    logBuffer = null;
+  debug(message: string, ...args: any[]): void {
+    this._log(Verbosity.DEBUG, message, args);
   }
 
-  // Combine (possibly empty) buffered messages with the subject, and pipe them to the
-  // subscriber.
-  return buffered
-    .concat(logSubject.observable)
-    .subscribe(observer);
-});
+  technical(message: string, ...args: any[]): void {
+    this._log(Verbosity.TECHNICAL, message, args);
+  }
 
-// Log a message at the given log level.
-export function log(verbosity: Verbosity, message: string) {
-  // If the buffer is active, log it there. If the Subject is active, log there.
-  if (logBuffer !== null) {
-    logBuffer.push({verbosity, message});
-  } else if (logSubject !== null) {
-    logSubject.next({verbosity, message});
+  info(message: string, ...args: any[]): void {
+    this._log(Verbosity.INFO, message, args);
+  }
+
+  status(message: string, ...args: any[]): void {
+    this._log(Verbosity.STATUS, message, args);
+  }
+
+  log(verbosity: Verbosity, message: string, ...args: any[]): void {
+    this._log(verbosity, message, args);
+  }
+
+  setVerbosity(verbosity: Verbosity): void {
+    this.verbosity = verbosity;
+  }
+
+  release(): void {
+    this.buffer.forEach(entry => this.subject.next(entry));
+    this.buffer = null;
+  }
+
+  private _log(verbosity: Verbosity, start: string, args: any[]) {
+    let message = start;
+    if (args.length > 0) {
+      message = `${start} ${args.map(v => this._serialize(v)).join(' ')}`
+    }
+    if (verbosity < this.verbosity) {
+      // Skip this message.
+      return;
+    }
+  
+    if (this.buffer !== null) {
+      this.buffer.push({verbosity, message});
+    } else {
+      this.subject.next({verbosity, message});
+    }
+  }
+
+  private _serialize(v: any) {
+    if (typeof v !== 'object') {
+      return `${v}`;
+    }
+    return JSON.stringify(v);
   }
 }
 
-export function readLog(verbosity: Verbosity): Observable<string> {
-  return logStream
-    .filter(entry => entry.verbosity <= logLevel)
-    .map(entry => entry.message);
+export class ConsoleHandler implements LogHandler {
+  handle(entry: LogEntry) {
+    console.log(`${Verbosity[entry.verbosity].toString()}: ${entry.message}`);
+  }
 }
 
-export function setLogLevel(verbosity: Verbosity): void {
-  logLevel = verbosity;
+export class HttpHandler implements LogHandler {
+  constructor(private url: string) {}
+
+  handle(entry: LogEntry) {
+    fetch(this.url, {body: `${Verbosity[entry.verbosity].toString()}: ${entry.message}`, method: 'POST'});
+  }
 }
 
-export function disableLogBuffering(): void {
-  logBuffer = null;
-}
+export const LOGGER = new Logger();
+export const LOG = LOGGER as Logging;

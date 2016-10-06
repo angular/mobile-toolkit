@@ -25,6 +25,7 @@
     "src/plugins/routes/index.ts",
     "src/plugins/static/index.ts",
     "src/worker/builds/basic.ts",
+    "src/worker/builds/test.ts",
     "src/worker/index.ts",
     "src/typings/jshashes.d.ts",
     "src/typings/service-worker.d.ts"

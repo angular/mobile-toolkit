@@ -17,6 +17,12 @@ export class Server {
     this.app = express();
     this.app.use(express.static(harnessPath));
     this.server = this.app.listen(port, () => readyCallback());
+    this.app.post('/ngsw-log', (req, resp) => {
+      let content = '';
+      req.on('data', data => content += data);
+      req.on('end', () => console.log('SW: ' + content));
+      resp.send('ok');
+    });
   }
 
   addResponse(url: string, response: string) {

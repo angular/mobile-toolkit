@@ -1,4 +1,6 @@
 import {FetchInstruction, Operation, VersionWorker} from './api';
+import {LOG} from './logging';
+import {VersionWorkerImpl} from './worker';
 
 import {Observable} from 'rxjs/Observable';
 

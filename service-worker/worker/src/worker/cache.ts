@@ -17,4 +17,8 @@ export class ScopedCache implements NgSwCache {
   remove(cache: string): Observable<any> {
     return this.delegate.remove(this.prefix + cache);
   }
+
+  invalidate(cache: string, req: string | Request): Observable<void> {
+    return this.delegate.invalidate(this.prefix + cache, req);
+  }
 }

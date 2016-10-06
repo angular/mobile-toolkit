@@ -21,15 +21,58 @@ class TestAdapter implements NgSwAdapter {
   }
 }
 
+export class MockClient implements Client {
+  constructor(public id: string, public url: string) {}
+
+  get frameType(): "auxiliary" | "top-level" | "nested" | "none" {
+    return 'top-level';
+  }
+
+  postMessage(message: any, transfer?: any[]): void {
+    throw 'Not implemented';
+  }
+}
+
+export class MockClients implements Clients {
+  clients: {[id: string]: Client} = {};
+  index: number = 0;
+
+  clear(): void {
+    this.clients = {};
+  }
+
+  add(): string {
+    const id = `client-${this.index++}`;
+    this.clients[id] = new MockClient(id, '/');
+    return id;
+  }
+
+  get(id: string): Promise<Client> {
+    return Promise.resolve(this.clients[id]);
+  }
+
+  matchAll(options?: ClientsMatchAllOptions): Promise<Client[]> {
+    return Promise.resolve(Object.keys(this.clients).map(id => this.clients[id]));
+  }
+
+  openWindow(url: string): Promise<Client> {
+    return Promise.reject('not implemented');
+  }
+
+  claim(): Promise<void> {
+    return Promise.reject('not implemented');
+  }
+}
+
 export class TestWorkerScope implements ServiceWorkerGlobalScope {
 
-  constructor(public caches: CacheStorage) {}
+  constructor(public caches: CacheStorage, public clients: MockClients) {}
 
   installListener: Function = () => null;
   activateListener: Function = () => null;
   fetchListener: Function = () => null;
 
-  mockResponses: Object = {};
+  mockResponses: {[key: string]: MockResponse} = {};
 
   mockFetch(url: string, response: string | MockResponse) {
     if (typeof response == 'string') {
@@ -58,7 +101,7 @@ export class TestWorkerScope implements ServiceWorkerGlobalScope {
     let url: string = (typeof req == 'string') ? <string>req : (<Request>req).url;
     url = url.split('?')[0];
     if (this.mockResponses.hasOwnProperty(url)) {
-      return Promise.resolve(this.mockResponses[url]) ;
+      return Promise.resolve(this.mockResponses[url].clone()) ;
     }
     var resp = new MockResponse('');
     resp.ok = false;
@@ -108,10 +151,11 @@ export class TestWorkerDriver {
   instance: any;
   scope: TestWorkerScope;
   caches: MockCacheStorage = new MockCacheStorage();
+  clients: MockClients = new MockClients();
   lifecycle: Promise<any> = Promise.resolve(null);
 
   constructor(private createWorker: TestWorkerCreationFn) {
-    this.refresh();
+    this.scope = new TestWorkerScope(this.caches, this.clients);
   }
 
   emptyCaches(): void {
@@ -131,17 +175,23 @@ export class TestWorkerDriver {
   }
 
   refresh(): void {
-    this.scope = new TestWorkerScope(this.caches);
+    this.scope = new TestWorkerScope(this.caches, this.clients);
+    this.startup();
+  }
 
+  startup(): Promise<boolean> {
     let workerAdapter = new TestAdapter();
     let cache = new NgSwCacheImpl(this.caches, workerAdapter);
     let fetch = new NgSwFetch(this.scope, workerAdapter);
     let events = new NgSwEvents(this.scope);
-
     this.instance = this.createWorker(this.scope, workerAdapter, cache, fetch, events);
+    return this.instance.updateCheck || Promise.resolve(false);
   }
 
   triggerInstall(): Promise<any> {
+    if (!this.instance) {
+      this.startup();
+    }
     return new Promise((resolve, reject) => {
       this.lifecycle = this
         .lifecycle
@@ -169,7 +219,7 @@ export class TestWorkerDriver {
     });
   }
 
-  triggerFetch(req: MockRequest, isReload: boolean = false): Promise<MockResponse> {
+  triggerFetch(req: MockRequest, isReload: boolean = false, clientId: string = undefined): Promise<MockResponse> {
     return new Promise((resolve, reject) => {
       this.lifecycle = this
         .lifecycle
@@ -177,6 +227,7 @@ export class TestWorkerDriver {
           let event: TestFetchEvent = <TestFetchEvent>this._makeExtendableEvent();
           event.request = req;
           event.isReload = isReload;
+          event.clientId = clientId;
           event.respondWith = (p: Promise<any>) => p.then(resolve, reject);
           this.scope.fetchListener(event);
         });

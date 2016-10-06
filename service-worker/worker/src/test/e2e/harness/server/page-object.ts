@@ -60,6 +60,13 @@ export class HarnessPageObject {
       .then(value => value !== '[]');
   }
 
+  cacheKeys(): Promise<string[]> {
+    this.selectAction('CACHE_KEYS');
+    return this
+      .result
+      .then(JSON.parse);
+  }
+
   ping(): Promise<string> {
     this.reset();
     this.selectAction('COMPANION_PING');
@@ -92,5 +99,13 @@ export class HarnessPageObject {
     this.reset();
     this.selectAction('COMPANION_REG_PUSH');
     return this.asyncResult;
+  }
+
+  checkForUpdate(): Promise<boolean> {
+    this.reset();
+    this.selectAction('FORCE_UPDATE');
+    return this
+      .asyncResult
+      .then(JSON.parse);
   }
 }

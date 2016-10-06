@@ -211,4 +211,8 @@ export class NgServiceWorker {
         return reg;
       });
   }
+
+  checkForUpdate(): Observable<boolean> {
+    return this.send({cmd: 'checkUpdate'});
+  }
 }

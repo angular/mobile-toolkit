@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import {SHA1} from 'jshashes';
-import {Driver} from '../../worker';
+import {Driver, LOG, LOGGER, ConsoleHandler} from '../../worker';
 import {StaticContentCache} from '../../plugins/static';
 import {RouteRedirection} from '../../plugins/routes';
 import {TestWorkerDriver} from '../../testing/mock';
@@ -9,8 +9,8 @@ import {MockRequest} from '../../testing/mock_cache';
 import {Manifest} from '../../worker/manifest';
 
 const MANIFEST_URL = '/ngsw-manifest.json';
-const CACHE_ACTIVE = 'meta:active:ngsw';
-const CACHE_INSTALLING = 'meta:installed:ngsw';
+const CACHE_ACTIVE = 'ngsw:active';
+const CACHE_STAGED = 'ngsw:staged';
 
 const SIMPLE_MANIFEST = JSON.stringify({
   static: {
@@ -57,6 +57,9 @@ const HASHED_MANIFEST_2 = JSON.stringify({
   }
 });
 
+const consoleLogger = new ConsoleHandler();
+LOGGER.messages.subscribe(entry => consoleLogger.handle(entry));
+LOGGER.release();
 
 function errored(err, done) {
   fail(`error: ${err}`);
@@ -80,9 +83,9 @@ function expectCached(driver: TestWorkerDriver, cache: string, url: string, text
     .then(() => null);
 }
 
-function expectServed(driver: TestWorkerDriver, url: string, contents: string): Promise<void> {
+function expectServed(driver: TestWorkerDriver, url: string, contents: string, id: string = undefined): Promise<void> {
   return driver
-    .triggerFetch(new MockRequest(url))
+    .triggerFetch(new MockRequest(url), false, id)
     .then(expectOkResponse)
     .then(resp => resp.text())
     .then(body => expect(body).toBe(contents))
@@ -104,11 +107,13 @@ function createServiceWorker(scope, adapter, cache, fetch, events) {
   return new Driver(MANIFEST_URL, plugins, scope, adapter, cache, events, fetch);
 }
 
+LOG
+
 describe('ngsw', () => {
-  const simpleManifestCache = `version:${SIMPLE_MANIFEST_HASH}:static`;
-  let driver: TestWorkerDriver = new TestWorkerDriver(createServiceWorker);
+  const simpleManifestCache = `manifest:${SIMPLE_MANIFEST_HASH}:static`;
   describe('initial load', () => {
-    beforeEach(() => {
+    let driver: TestWorkerDriver = new TestWorkerDriver(createServiceWorker);
+    beforeAll(() => {
       driver.emptyCaches();
       driver.refresh();
       driver.mockUrl(MANIFEST_URL, SIMPLE_MANIFEST);
@@ -125,11 +130,7 @@ describe('ngsw', () => {
       .then(() => expectCached(driver, simpleManifestCache, '/goodbye.txt', 'Goodbye world!'))
       .then(() => expectCached(driver, simpleManifestCache, '/solong.txt', 'So long world!'))
       .then(done, err => errored(err, done)))
-    it('saves the manifest as the currently installed manifest', (done) => driver
-      .triggerInstall()
-      .then(() => expectCached(driver, CACHE_INSTALLING, MANIFEST_URL, SIMPLE_MANIFEST))
-      .then(done, err => errored(err, done)))
-    it('promotes the manifest to active when activated', (done) => driver
+    it('saves the manifest as activated', (done) => driver
       .triggerInstall()
       .then(() => driver.unmockUrl(MANIFEST_URL))
       .then(() => driver.triggerActivate())
@@ -150,6 +151,7 @@ describe('ngsw', () => {
       driver.mockUrl(MANIFEST_URL, HASHED_MANIFEST_1);
       driver.mockUrl('/hello.txt', 'Hello world!');
       driver.mockUrl('/goodbye.txt', 'Goodbye world!');
+      driver.startup();
       driver
         .triggerInstall()
         .then(() => driver.unmockAll())
@@ -161,21 +163,24 @@ describe('ngsw', () => {
       .then(() => expectServed(driver, '/hello.txt', 'Hello world!'))
       .then(() => expectServed(driver, '/goodbye.txt', 'Goodbye world!'))
       .then(done, err => errored(err, done)));
-    then('upgrades to new manifest', done => {
-      driver.refresh();
+    then('stages update to new manifest without switching', done => {
       driver.mockUrl(MANIFEST_URL, HASHED_MANIFEST_2);
       driver.mockUrl('/hello.txt', 'Hola mundo!');
       driver.mockUrl('/goodbye.txt', 'Should not be reloaded from the server');
+      let existingClient = driver.clients.add();
       driver
-        .triggerInstall()
-        .then(() => driver.unmockAll())
-        .then(() => driver.triggerActivate())
+        .startup()
+        .then(updateAvailable => {
+          expect(updateAvailable).toBeTruthy();
+        })
+        .then(() => expectServed(driver, '/hello.txt', 'Hello world!', existingClient))
         .then(done, err => errored(err, done));
     });
     then('refreshes only the hello page', done => Promise
       .resolve(null)
-      .then(() => expectServed(driver, '/hello.txt', 'Hola mundo!'))
-      .then(() => expectServed(driver, '/goodbye.txt', 'Goodbye world!'))
+      .then(() => driver.clients.clear())
+      .then(() => expectServed(driver, '/hello.txt', 'Hola mundo!', 'test'))
+      .then(() => expectServed(driver, '/goodbye.txt', 'Goodbye world!', 'test'))
       .then(done, err => errored(err, done)));
     then('deletes old caches', done => Promise
       .resolve(null)
@@ -189,6 +194,7 @@ describe('ngsw', () => {
       driver.mockUrl(MANIFEST_URL, ROUTING_MANIFEST);
       driver.mockUrl('/hello.txt', 'Hello world!');
       driver.mockUrl('/goodbye.txt', 'Should never be fetched!');
+      driver.startup();
       driver
         .triggerInstall()
         .then(() => driver.unmockAll())
@@ -208,6 +214,7 @@ describe('ngsw', () => {
       driver.mockUrl(MANIFEST_URL, ROUTING_MANIFEST);
       driver.mockUrl('/hello.txt', 'Hello world!');
       driver.mockUrl('/', 'Should never be fetched!');
+      driver.startup();
       driver
         .triggerInstall()
         .then(() => driver.unmockAll())
@@ -219,5 +226,5 @@ describe('ngsw', () => {
       .then(() => expectServed(driver, '/hello.txt', 'Hello world!'))
       .then(() => expectServed(driver, '/', 'Hello world!'))
       .then(done, err => errored(err, done)))
-  });;
+  });
 });

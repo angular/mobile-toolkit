@@ -1,6 +1,7 @@
 declare interface ServiceWorkerGlobalScope {
   fetch(url: string | Request);
   caches: CacheStorage;
+  clients: Clients;
   addEventListener(type: string, listener: Function, useCapture?: boolean): void;
   removeEventListener(type: string, listener: Function, last?: any): void;
   registration: ServiceWorkerRegistration;
@@ -49,6 +50,7 @@ declare interface ActivateEvent extends ExtendableEvent {}
 declare interface FetchEvent extends ExtendableEvent {
   request: Request;
   isReload: boolean;
+  clientId: string;
   respondWith(response: Promise<Response>);
 }
 
@@ -89,4 +91,23 @@ declare interface PushSubscribeOptions {
 declare interface PushManager {
   getSubscription(): Promise<PushSubscription>;
   subscribe(options: PushSubscribeOptions): Promise<PushSubscription>;
+}
+
+declare interface Client {
+  postMessage(message: any, transfer?: any[]): void;
+  readonly id: string;
+  readonly url: string;
+  readonly frameType: "auxiliary" | "top-level" | "nested" | "none";
+}
+
+declare interface Clients {
+  get(id: string): Promise<Client>;
+  matchAll(options?: ClientsMatchAllOptions): Promise<Client[]>;
+  openWindow(url: string): Promise<Client>;
+  claim(): Promise<void>;
+}
+
+declare interface ClientsMatchAllOptions {
+  includeUncontrolled?: boolean;
+  type?: "window" | "worker" | "sharedworker" | "all";
 }

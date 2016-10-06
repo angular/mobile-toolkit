@@ -7,8 +7,11 @@ import {
   Operation,
   Plugin,
   PluginFactory,
-  VersionWorker
+  VersionWorker,
+  LOG,
+  Verbosity
 } from '@angular/service-worker/worker';
+import {Observable} from 'rxjs/Observable';
 
 interface UrlToHashMap {
   [url: string]: string;
@@ -42,8 +45,21 @@ export class StaticContentCacheImpl implements Plugin<StaticContentCacheImpl> {
   setup(operations: Operation[]): void {
     operations.push(...Object
       .keys(this.staticManifest.urls)
-      .map(url => cacheFromNetworkOp(this.worker, url, this.cacheKey))
-    );
+      .map(url => () => {
+        return this
+        .worker
+        .cache
+        .load(this.cacheKey, url)
+        .switchMap(resp => {
+          if (!!resp) {
+            LOG.technical(`setup(${this.cacheKey}, ${url}): no need to refresh ${url} in the cache`);
+            return Observable.empty();
+          }
+          LOG.technical(`setup(${this.cacheKey}, ${url}): caching from network`);
+          return cacheFromNetworkOp(this.worker, url, this.cacheKey)();
+        })
+      }
+      ));
   }
 
   update(operations: Operation[], previous: StaticContentCacheImpl): void {
@@ -53,8 +69,10 @@ export class StaticContentCacheImpl implements Plugin<StaticContentCacheImpl> {
         const hash = this.staticManifest.urls[url];
         const previousHash = previous.staticManifest.urls[url];
         if (previousHash === hash) {
+          LOG.technical(`update(${this.cacheKey}, ${url}): no need to refresh ${url} in the cache`);
           return copyExistingOrFetchOp(previous.worker, this.worker, url, this.cacheKey);
         } else {
+          LOG.technical(`update(${this.cacheKey}, ${url}): caching from network`);
           return cacheFromNetworkOp(this.worker, url, this.cacheKey);
         }
       })

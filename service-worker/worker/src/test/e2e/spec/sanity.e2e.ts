@@ -10,7 +10,20 @@ let po: HarnessPageObject;
 const SIMPLE_MANIFEST = {
   static: {
     urls: {
-      '/hello.txt': 'test'
+      '/hello.txt': 'test',
+      '/goodbye.txt': 'same',
+    }
+  },
+  push: {
+    showNotifications: true
+  }
+};
+
+const UPDATE_MANIFEST = {
+  static: {
+    urls: {
+      '/hello.txt': 'changed',
+      '/goodbye.txt': 'same'
     }
   },
   push: {
@@ -30,13 +43,14 @@ beforeEach(() => {
   po = new HarnessPageObject();
 });
 
+
 afterAll(done => {
-  po
+/*  po
     .ping()
     .then(() => po.log())
     .then(entries => setTimeout(() => entries.forEach(entry => console.log(entry)), 0))
     .then(() => server.shutdown())
-    .then(done);
+    .then(done); */ server.shutdown(); done();
 });
 
 function expectNoServiceWorker(): Promise<void> {
@@ -73,6 +87,14 @@ describe('world sanity', () => {
       })
       .then(done);
   });
+  it('starts without cache keys', done => {
+    po
+      .cacheKeys()
+      .then(keys => {
+        expect(keys).toEqual([]);
+      })
+      .then(done);
+  })
   it('able to mock a request', done => {
     server.addResponse('/hello.txt', 'Hello world!');
     po
@@ -86,7 +108,8 @@ describe('world sanity', () => {
     server.addResponse('/ngsw-manifest.json.js', '/* mocked */');
     server.addResponse('/ngsw-manifest.json', JSON.stringify(SIMPLE_MANIFEST));
     server.addResponse('/hello.txt', 'Hello world!');
-    po.installServiceWorker('/worker-basic.js');
+    server.addResponse('/goodbye.txt', 'Goodbye world!');
+    po.installServiceWorker('/worker-test.js');
     po
       .hasActiveWorker()
       .then(hasWorker => {
@@ -106,12 +129,10 @@ describe('world sanity', () => {
   it('after reload, worker serves cached /hello.txt', done => {
     browser.get('/index.html');
     server.addResponse('/hello.txt', 'Goodbye world?');
-    po
+    setTimeout(() => po
       .request('/hello.txt')
-      .then(result => {
-        expect(result).toBe('Hello world!');
-      })
-      .then(done);
+      .then(result => expect(result).toBe('Hello world!'))
+      .then(done), 2000);
   });
   it('worker responds to ping', done => {
     po
@@ -142,5 +163,20 @@ describe('world sanity', () => {
         expect(result['message']).toBe('hello from the server');
       })
       .then(done);
+  });
+  it('updates the page', done => {
+    server.addResponse('/ngsw-manifest.json', JSON.stringify(UPDATE_MANIFEST));
+    server.addResponse('/hello.txt', 'Hola mundo!');
+    server.addResponse('/goodbye.txt', 'Should not be re-fetched.');
+    po
+      .checkForUpdate()
+      .then(updated => expect(updated).toBeTruthy())
+      .then(() => browser.refresh())
+      .then(() => server.addResponse('/hello.txt', 'Should not be re-fetched either.'))
+      .then(() => po.request('/hello.txt'))
+      .then(result => expect(result).toBe('Hola mundo!'))
+      .then(() => po.request('/goodbye.txt'))
+      .then(result => expect(result).toBe('Goodbye world!'))
+      .then(() => done());
   });
 });

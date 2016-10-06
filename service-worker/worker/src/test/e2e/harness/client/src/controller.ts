@@ -21,6 +21,7 @@ import 'rxjs/add/operator/startWith';
     <option value="SW_INSTALL">Install service worker</option>
     <option value="COMPANION_PING">Ping from the companion</option>
     <option value="COMPANION_REG_PUSH">Register for push notifications</option>
+    <option value="FORCE_UPDATE">Force an update</option>
     <option value="RESET">Reset</option>
   </select>
   <span *ngIf="alert" id="alert">ASYNC ALERT</span>
@@ -87,6 +88,15 @@ export class ControllerCmp {
       case 'RESET':
         this.alert = false;
         this.result = 'reset';
+        break;
+      case 'FORCE_UPDATE':
+        this
+          .sw
+          .checkForUpdate()
+          .subscribe(res => {
+            this.result = JSON.stringify(res);
+            this.alert = true;
+          });
         break;
       case 'CACHE_KEYS':
         this.loadCacheKeys();

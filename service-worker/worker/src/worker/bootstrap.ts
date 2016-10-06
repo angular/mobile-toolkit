@@ -1,6 +1,7 @@
 import {PluginFactory} from './api';
 import {NgSwAdapter, NgSwCacheImpl, NgSwEvents, NgSwFetch} from './facade';
 import {Driver} from './driver';
+import {Verbosity, LogHandler, LOGGER} from './logging';
 
 declare var global;
 
@@ -38,6 +39,8 @@ class NgSwBrowserAdapter implements NgSwAdapter {
 export interface BootstrapOptions {
   manifestUrl?: string;
   plugins?: PluginFactory<any>[];
+  logLevel?: Verbosity;
+  logHandlers?: LogHandler[];
 }
 
 export function bootstrapServiceWorker(options?: BootstrapOptions): Driver {
@@ -48,5 +51,10 @@ export function bootstrapServiceWorker(options?: BootstrapOptions): Driver {
   const cache = new NgSwCacheImpl(scope.caches, adapter);
   const events = new NgSwEvents(scope);
   const fetch = new NgSwFetch(scope, adapter);
+  LOGGER.setVerbosity(options.logLevel);
+  if (!!options.logHandlers) {
+    LOGGER.messages.subscribe(entry => options.logHandlers.forEach(handler => handler.handle(entry)));
+  }
+  LOGGER.release();
   return new Driver(manifestUrl, plugins, scope, adapter, cache, events, fetch);
 }
