@@ -26,6 +26,7 @@
     "@angular/forms": "^2.0.0-rc.6",
     "@angular/platform-browser": "^2.0.0-rc.6",
     "@angular/platform-browser-dynamic": "^2.0.0-rc.6",
+    "copy-webpack-plugin": "^3.0.1",
     "express": "^4.13.4",
     "gulp": "^3.9.0",
     "gulp-clean": "^0.3.1",

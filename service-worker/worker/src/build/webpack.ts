@@ -1,7 +1,5 @@
-declare var require;
-
-let fs = require('fs');
-let SHA1 = require('jshashes').SHA1;
+declare var require, Buffer;
+const crypto = require('crypto');
 
 /**
  * Webpack plugin that generates a basic Angular service worker manifest.
@@ -11,48 +9,54 @@ export class AngularServiceWorkerPlugin {
   constructor(public manifestFile = 'ngsw-manifest.json', public manifestKey = 'static') {}
 
   apply(compiler) {
-    // Determine the destination directory and the URL prefix for the app.
-    let outputPath = compiler.options.output.path;
+    // Determine the URL prefix under which all files will be served.
     let publicPrefix = compiler.options.output.publicPath || '';
-    if (!outputPath) {
-      throw 'Must have output path set.';
-    }
-
-    // Used to compute version hashes.
-    let sha1 = new SHA1();
-
-    // Wait until webpack builds the whole output directory. Every file being
-    // deployed to the server needs to be included in the manifest.
-    compiler.plugin('done', stats => {
+    compiler.plugin('emit', (compilation, callback) => {
       // Manifest into which assets to be fetched will be recorded. This will either
       // be read from the existing template or created fresh.
       let manifest: any = {};
 
       // Look for an existing manifest. If there is one, parse it.
-      let manifestPath = `${outputPath}/${this.manifestFile}`;
-      if (fs.existsSync(manifestPath)) {
-        manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) || {};
+      try {
+        if (compilation.assets.hasOwnProperty(this.manifestFile)) {
+          manifest = JSON.parse(compilation.assets[this.manifestFile].source().toString());
+        }
+      } catch (err) {
+        throw new Error(`Error reading existing service worker manifest: ${err}`);
       }
 
-      if (!manifest[this.manifestKey]) {
-        manifest[this.manifestKey] = {};
-      }
-      if (!manifest[this.manifestKey].urls) {
-        manifest[this.manifestKey].urls = {};
+      // Throw if the manifest already has this particular key.
+      if (manifest.hasOwnProperty(this.manifestKey)) {
+        throw new Error(`Manifest already contains key: ${this.manifestKey}`);
       }
 
+      // Map of urls to hashes.
+      let urls = {};
+      manifest[this.manifestKey] = {urls};
       // Go through every asset in the compilation and include it in the manifest,
       // computing a hash for proper versioning.
       Object
-        .keys(stats.compilation.assets)
-        .forEach(asset => {
-          let url = `${publicPrefix}/${asset}`;
-          // TODO(alxhub): use webpack cached version if available.
-          manifest[this.manifestKey].urls[url] = sha1.hex(fs.readFileSync(`${outputPath}/${asset}`, 'utf8'));
+        .keys(compilation.assets)
+        .filter(key => key !== this.manifestFile)
+        .forEach(key => {
+          let url = `${publicPrefix}/${key}`;
+          urls[url] = sha1(compilation.assets[key].source());
         });
       
-      // Write the merged manifest to disk.
-      fs.writeFileSync(manifestPath, JSON.stringify(manifest));
+      // Serialize the manifest to a buffer, and include (or overwrite) it in the assets.
+      let serialized = new Buffer(JSON.stringify(manifest, null, 2));
+      compilation.assets[this.manifestFile] = {
+        source: () => serialized,
+        size: () => serialized.length,
+      };
+      
+      callback();
     });
   }
+}
+
+function sha1(buffer: any): string {
+  let hash = crypto.createHash('sha1');
+  hash.update(buffer);
+  return hash.digest('hex');
 }

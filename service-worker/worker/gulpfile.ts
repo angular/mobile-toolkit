@@ -17,6 +17,7 @@ const nodeResolve = require('rollup-plugin-node-resolve');
 const commonjs = require('rollup-plugin-commonjs');
 
 const webpack = require('webpack');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 import AngularServiceWorkerPlugin from './src/webpack';
 
 declare var __dirname;
@@ -115,7 +116,6 @@ gulp.task('task:esm:deploy_metadata', () => gulp
   .pipe(gulp.dest('dist')))
 
 gulp.task('task:webpack_test:pack', done => {
-  console.log(process.cwd());
   webpack({
     context: `${process.cwd()}/src/test/webpack`,
     entry: './index.js',
@@ -124,7 +124,10 @@ gulp.task('task:webpack_test:pack', done => {
       filename: 'index.js'
     },
     plugins: [
-      new AngularServiceWorkerPlugin()
+      new CopyWebpackPlugin([
+        {from: 'ngsw-manifest.json'}
+      ]),
+      new AngularServiceWorkerPlugin(),
     ]
   }, () => done())
 });
