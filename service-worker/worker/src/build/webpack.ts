@@ -26,13 +26,14 @@ export class AngularServiceWorkerPlugin {
       }
 
       // Throw if the manifest already has this particular key.
-      if (manifest.hasOwnProperty(this.manifestKey)) {
-        throw new Error(`Manifest already contains key: ${this.manifestKey}`);
+      if (manifest.hasOwnProperty(this.manifestKey) &&
+        !manifest[this.manifestKey].hasOwnProperty('_generatedFromWebpack')) {
+          throw new Error(`Manifest already contains key: ${this.manifestKey}`);
       }
 
       // Map of urls to hashes.
       let urls = {};
-      manifest[this.manifestKey] = {urls};
+      manifest[this.manifestKey] = {urls, _generatedFromWebpack: true};
       // Go through every asset in the compilation and include it in the manifest,
       // computing a hash for proper versioning.
       Object
