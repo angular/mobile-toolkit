@@ -35,7 +35,7 @@ export function gulpAddStaticFiles(files: any, options?: GulpAddStaticFileOption
       urls: {}
     };
     let property = options.manifestKey || 'static';
-    manifest[property] = property;
+    manifest[property] = staticConfig;
 
     files.on('data', file => {
       staticConfig.urls['/' + file.relative] = sha1(file.contents);
