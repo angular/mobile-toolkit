@@ -48,6 +48,7 @@ export class Driver {
         });
 
         events.fetch.subscribe(event => {
+          let req = event.request;
           event.respondWith(this.onFetch(event).then((resp) => {
             return resp;
           }));
@@ -198,7 +199,7 @@ export class Driver {
       this.fetchManifestFromCache('active')
     ]).then(manifests => {
       let [network, active] = manifests;
-      if (!active || network._json === active._json) {
+      if (!active || !network || network._json === active._json) {
         return false;
       }
       return this.manifestToWorker(active)

@@ -40,18 +40,40 @@ export class RouteRedirectionImpl implements Plugin<RouteRedirectionImpl> {
     if (!manifest || !manifest.routes) {
       return;
     }
-    if (req.url === '/') {
+    let [base, path] = parseUrl(req.url);
+    if (path === '/') {
       // TODO(alxhub): configurable base url
-      ops.unshift(rewriteUrlInstruction(this.worker, req, manifest.index));
+      ops.unshift(rewriteUrlInstruction(this.worker, req, base + manifest.index));
     }
     const matchesRoutingTable = Object.keys(manifest.routes).some(route => {
       const config = manifest.routes[route];
       return config.prefix
-        ? req.url.indexOf(route) === 0
-        : req.url === route;
+        ? path.indexOf(route) === 0
+        : path === route;
     });
     if (matchesRoutingTable) {
-      ops.unshift(rewriteUrlInstruction(this.worker, req, manifest.index));
+      ops.unshift(rewriteUrlInstruction(this.worker, req, base + manifest.index));
     }
   }
+}
+
+function parseUrl(full: string) {
+  let isHttp = full.toLowerCase().startsWith('http://');
+  let isHttps = full.toLowerCase().startsWith('https://');
+  if (!isHttp && !isHttps) {
+    // Relative url.
+    return ['', full];
+  }
+
+  let protocol = 'http://';
+  let protocolSuffix = full.substr('http://'.length);
+  if (isHttps) {
+    protocol = 'https://';
+    protocolSuffix = full.substr('https://'.length);
+  }
+  let rootSlash = protocolSuffix.indexOf('/');
+  if (rootSlash === -1) {
+    return [full, '/'];
+  }
+  return [full.substr(0, protocol.length + rootSlash), protocolSuffix.substr(rootSlash)];
 }

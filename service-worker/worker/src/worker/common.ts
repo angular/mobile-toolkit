@@ -57,8 +57,9 @@ export function fetchFromNetworkInstruction(worker: VersionWorker, req: Request)
 }
 
 export function rewriteUrlInstruction(worker: VersionWorker, req: Request, destUrl: string): FetchInstruction {
+  const newReq = worker.adapter.newRequest(destUrl);
   const op: FetchInstruction = () => worker
-    .fetch(worker.adapter.newRequest(req, {url: destUrl}));
+    .fetch(newReq);
   op.desc = {type: 'rewriteUrlInstruction', worker, req, destUrl};
   return op;
 }

@@ -16,8 +16,8 @@ class TestAdapter implements NgSwAdapter {
     return new MockRequest(req, options);
   }
 
-  newResponse(body: string | Blob): Response {
-    return new MockResponse(body);
+  newResponse(body: string | Blob, init = {}): Response {
+    return new MockResponse(body, init);
   }
 }
 

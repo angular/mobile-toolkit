@@ -9,7 +9,8 @@ export class NgSwFetch {
     let result: Observable<Response> = Observable.defer(() => Observable
       .fromPromise<Response>(this
         .scope
-        .fetch(req)));
+        .fetch(req)
+        .catch(err => this.adapter.newResponse('', {status: 503}))));
     return result;
   }
 

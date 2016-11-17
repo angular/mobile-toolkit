@@ -229,8 +229,9 @@ export class MockResponse extends MockBody implements Response {
   body: ReadableStream;
   trailer: Promise<Headers>;
 
-  constructor(body: string | Blob) {
+  constructor(body: string | Blob, init: Object = {status: 200}) {
     super(<string>body);
+    this.status = init['status'] | 200;
   }
 
   clone(): MockResponse {

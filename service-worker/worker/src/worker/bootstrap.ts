@@ -31,8 +31,8 @@ class NgSwBrowserAdapter implements NgSwAdapter {
     return new Request(req, init);
   }
 
-  newResponse(body: string | Blob): Response {
-    return new Response(body);
+  newResponse(body: string | Blob, init?: Object): Response {
+    return new Response(body, init);
   }
 }
 
