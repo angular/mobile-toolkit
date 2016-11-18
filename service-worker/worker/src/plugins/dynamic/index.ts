@@ -44,10 +44,14 @@ export class DynamicImpl implements Plugin<DynamicImpl> {
     private worker: VersionWorker,
     private manifestKey: string) {
       this.cacheKey = manifestKey === 'dynamic' ? 'dynamic' : `dynamic:${manifestKey}`;
-      this.errGatewayTimeout = 
-          this.worker.adapter.newResponse('Gateway Timeout', 504, 'Gateway Timeout');
-      this.errNotFound =
-        this.worker.adapter.newResponse('Not Found', 404, 'Not Found');
+      this.errGatewayTimeout = this.worker.adapter.newResponse('Gateway Timeout', {
+        status: 504,
+        statusText: 'Gateway Timeout'
+      });
+      this.errNotFound = this.worker.adapter.newResponse('Not Found', {
+        status: 404,
+        statusText: 'Not Found'
+      });
   }
 
   private get config(): DynamicContentCacheManifest {
@@ -141,7 +145,7 @@ export class DynamicImpl implements Plugin<DynamicImpl> {
         .list(this.cacheKey)
         .mergeMap(keys => keys
           .filter(key => patterns.some(pattern => this.matchesPattern(key, pattern)))
-          .map(key => this.worker.cache.invalidate(this.cacheKey, key))
+          .map(key => this.worker.cache.invalidate(this.cacheKey, key) as Observable<any>)
         )
         .switch()
         .ignoreElements();
