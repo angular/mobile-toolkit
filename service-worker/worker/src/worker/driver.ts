@@ -49,9 +49,9 @@ export class Driver {
 
         events.fetch.subscribe(event => {
           let req = event.request;
-          event.respondWith(this.onFetch(event).then((resp) => {
-            return resp;
-          }));
+          const [response, carryOn] = this.onFetch(event);
+          event.respondWith(response);
+          event.waitUntil(carryOn);
         });
 
         events
@@ -84,8 +84,8 @@ export class Driver {
           });
       }
 
-  private onFetch(event: FetchEvent): Promise<Response> {
-    return this
+  private onFetch(event: FetchEvent): [Promise<Response>, Promise<any>] {
+    let start = this
       .maybeUpdate(event)
       .then(worker => {
         if (worker) {
@@ -98,7 +98,11 @@ export class Driver {
           return this.activeWorker;
         }
       })
-      .then(worker => worker.fetch(event.request).toPromise());
+      .then(worker => worker.fetch(event.request));
+    return [
+      start.then(v => v[0].toPromise()),
+      start.then(v => v[1].toPromise()),
+    ];
   }
 
   private maybeUpdate(event: FetchEvent): Promise<VersionWorker> {

@@ -1,9 +1,10 @@
 import {FetchInstruction, NgSwCache, Operation, Plugin, PluginFactory, VersionWorker} from '@angular/service-worker/worker';
 import {Observable} from 'rxjs/Observable';
+import {doAsync} from '../../worker/rxjs';
 
 const DEFAULT_NETWORK_WAIT_TIME_MS = 30000;
 
-export function DynamicContentCache(options?: DynamicContentCacheOptions): PluginFactory<DynamicImpl> {
+export function DynamicContentCache(options: DynamicContentCacheOptions = {}): PluginFactory<DynamicImpl> {
   return (worker: VersionWorker) => new DynamicImpl(worker, options.manifestKey || 'dynamic');
 }
 
@@ -67,21 +68,24 @@ export class DynamicImpl implements Plugin<DynamicImpl> {
 
   setup(ops: Operation[]): void {}
 
-  fetch(req: Request, instructions: FetchInstruction[]): void {
+  fetch(req: Request, instructions: FetchInstruction[], carryOn: Operation[]): void {
     const match = this.match(req);
     if (!match) {
       return;
     }
+    console.log('fetch matches', match);
     if (req.method === 'GET') {
-      this.fetchGet(req, instructions, match);
+      this.fetchGet(req, instructions, carryOn, match);
     } else {
-      this.fetchMutate(req, instructions, match);
+      this.fetchMutate(req, instructions, carryOn, match);
     }
   }
 
-  private fetchGet(req: Request, instructions: FetchInstruction[], match: UrlMatchConfig) {
+  private fetchGet(req: Request, instructions: FetchInstruction[], carryOnOps: Operation[], match: UrlMatchConfig) {
     let instruction: FetchInstruction = null;
+    let carryOn: Operation = null;
     const timeoutMs = match.waitForNetworkMs || DEFAULT_NETWORK_WAIT_TIME_MS;
+    console.log('running fetch for', req.url);
     switch (match.strategy) {
       case 'cacheFirst':
         instruction = this.fetchCacheFirst(req, timeoutMs);
@@ -90,7 +94,7 @@ export class DynamicImpl implements Plugin<DynamicImpl> {
         instruction = this.fetchCacheOnly(req);
         break;
       case 'fastest':
-        instruction = this.fetchFastest(req, timeoutMs);
+        [instruction, carryOn] = this.fetchFastest(req, timeoutMs);
         break;
       case 'networkFirst':
         instruction = this.fetchNetworkFirst(req, timeoutMs);
@@ -101,10 +105,11 @@ export class DynamicImpl implements Plugin<DynamicImpl> {
       default:
         throw new Error(`Unknown caching strategy: ${match.strategy}`);
     }
-    instructions.push(instruction);
+    console.log('adding instruction', instruction.desc);
+    instructions.unshift(instruction);
   }
 
-  private fetchMutate(req: Request, instructions: FetchInstruction[], match: UrlMatchConfig) {
+  private fetchMutate(req: Request, instructions: FetchInstruction[], carryOn: Operation[], match: UrlMatchConfig) {
     if (!match.invalidates) {
       return;
     }
@@ -112,6 +117,9 @@ export class DynamicImpl implements Plugin<DynamicImpl> {
   }
 
   private match(req: Request): UrlMatchConfig {
+    if (!this.config || !this.config.match) {
+      return null;
+    }
     return this
       .config
       .match
@@ -167,19 +175,21 @@ export class DynamicImpl implements Plugin<DynamicImpl> {
 
   private fetchNetworkOnly(req: Request, timeoutMs: number): FetchInstruction {
     const instruction: FetchInstruction = () => {
+      console.log('fetchNetworkOnly(', req.url, ')', timeoutMs)
       return Observable
         .merge(
           this.worker.refresh(req),
           this.networkTimeout(timeoutMs)
         )
         .do(resp => {
+          console.log('got answer', resp)
           if (!resp.ok) {
             return;
           }
           this
             .worker
             .cache
-            .store(this.cacheKey, req, resp);
+            .store(this.cacheKey, req, resp.clone());
         });
     };
     instruction.desc = {type: 'fetchNetworkOnly', req, timeoutMs, plugin: this};
@@ -191,6 +201,7 @@ export class DynamicImpl implements Plugin<DynamicImpl> {
       return Observable.concat(
         this.worker.cache.load(this.cacheKey, req),
         this.fetchNetworkOnly(req, timeoutMs)()
+          .let(doAsync(resp => resp ? this.worker.cache.store(this.cacheKey, req, resp) : Observable.empty())),
       );
     }
     instruction.desc = {type: 'fetchCacheFirst', req, timeoutMs, plugin: this};
@@ -202,7 +213,8 @@ export class DynamicImpl implements Plugin<DynamicImpl> {
       return Observable.concat(
         this
           .fetchNetworkOnly(req, timeoutMs)()
-          .filter(resp => resp !== this.errGatewayTimeout),
+          .filter(resp => resp !== this.errGatewayTimeout)
+          .let(doAsync(resp => this.worker.cache.store(this.cacheKey, req, resp))),
         this.fetchCacheOnly(req)()
       );
     }
@@ -210,19 +222,28 @@ export class DynamicImpl implements Plugin<DynamicImpl> {
     return instruction;
   }
 
-  private fetchFastest(req: Request, timeoutMs: number): FetchInstruction {
+  private fetchFastest(req: Request, timeoutMs: number): [FetchInstruction, Operation] {
+    let fetchFromNetwork = this.fetchNetworkOnly(req, timeoutMs)()
+      .filter(resp => resp !== this.errGatewayTimeout)
+      .publishReplay()
+      .refCount();
     const instruction: FetchInstruction = () => {
       return Observable
         .merge(
-          this.fetchNetworkOnly(req, timeoutMs)()
+          fetchFromNetwork
             .filter(resp => resp !== this.errGatewayTimeout),
           this.fetchCacheOnly(req)()
             .filter(resp => resp !== this.errNotFound)
         )
-        .concat(Observable.of(this.errNotFound));
+        .concat(Observable.of(this.errNotFound.clone()));
+    };
+    let carryOn = () => {
+      return fetchFromNetwork
+        .filter(v => v.ok)
+        .concatMap(resp => this.worker.cache.store(this.cacheKey, req, resp.clone()));
     };
     instruction.desc = {type: 'fetchFastest', req, plugin: this};
-    return instruction;
+    return [instruction, carryOn];
   }
 
   private networkTimeout(timeoutMs: number): Observable<Response> {

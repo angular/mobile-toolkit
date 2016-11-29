@@ -116,8 +116,13 @@ export class MockCache implements Cache {
   }
 
   put(request: Request, response: Response): Promise<void> {
-    this.entries.unshift(new MockCacheEntry(request, response));
-    return Promise.resolve(undefined);
+    let idx = this.entries.findIndex(entry => entry.match(request));
+    if (idx !== -1) {
+      this.entries[idx] = new MockCacheEntry(request, response);
+    } else {
+      this.entries.unshift(new MockCacheEntry(request, response));
+    }
+    return Promise.resolve();
   }
 }
 

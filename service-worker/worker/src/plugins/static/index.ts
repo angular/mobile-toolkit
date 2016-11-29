@@ -43,6 +43,9 @@ export class StaticContentCacheImpl implements Plugin<StaticContentCacheImpl> {
   }
 
   setup(operations: Operation[]): void {
+    if (!this.staticManifest || !this.staticManifest.urls) {
+      return;
+    }
     operations.push(...Object
       .keys(this.staticManifest.urls)
       .map(url => () => {
@@ -63,6 +66,9 @@ export class StaticContentCacheImpl implements Plugin<StaticContentCacheImpl> {
   }
 
   update(operations: Operation[], previous: StaticContentCacheImpl): void {
+    if (!this.staticManifest || !this.staticManifest.urls) {
+      return;
+    }
     operations.push(...Object
       .keys(this.staticManifest.urls)
       .map(url => {

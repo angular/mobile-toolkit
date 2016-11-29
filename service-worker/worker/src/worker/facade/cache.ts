@@ -29,10 +29,15 @@ export class NgSwCacheImpl implements NgSwCache {
   }
 
   store(cache: string, req: string | Request, resp: Response): Observable<any> {
+    console.log('store', cache, req, resp);
     return Observable.defer(() => Observable.fromPromise(this
       .caches
       .open(cache)
-      .then(cache => cache.put(this.normalize(req), resp))));
+      .then(cache => cache.put(this.normalize(req), resp))
+      .then(v => {
+        console.log('done caching', cache, req, resp)
+        return v;
+      })));
   }
 
   invalidate(cache: string, req: string | Request): Observable<void> {

@@ -3,6 +3,7 @@ import {SHA1} from 'jshashes';
 import {Driver, LOG, LOGGER, ConsoleHandler} from '../../worker';
 import {StaticContentCache} from '../../plugins/static';
 import {RouteRedirection} from '../../plugins/routes';
+import {DynamicContentCache} from '../../plugins/dynamic';
 import {TestWorkerDriver} from '../../testing/mock';
 import {Observable} from 'rxjs/Rx';
 import {MockRequest} from '../../testing/mock_cache';
@@ -57,6 +58,15 @@ const HASHED_MANIFEST_2 = JSON.stringify({
   }
 });
 
+const DYNAMIC_MANIFEST = JSON.stringify({
+  dynamic: {
+    match: [{
+      url: '/test.txt',
+      strategy: 'fastest',
+    }]
+  }
+})
+
 const consoleLogger = new ConsoleHandler();
 LOGGER.messages.subscribe(entry => consoleLogger.handle(entry));
 LOGGER.release();
@@ -88,6 +98,10 @@ function expectServed(driver: TestWorkerDriver, url: string, contents: string, i
     .triggerFetch(new MockRequest(url), false, id)
     .then(expectOkResponse)
     .then(resp => resp.text())
+    .then(body => {
+      console.log('got', body, 'for', url);
+      return body;
+    })
     .then(body => expect(body).toBe(contents))
     .then(() => null);
 }
@@ -103,11 +117,10 @@ function createServiceWorker(scope, adapter, cache, fetch, events) {
   const plugins = [
     StaticContentCache(),
     RouteRedirection(),
+    DynamicContentCache(),
   ]
   return new Driver(MANIFEST_URL, plugins, scope, adapter, cache, events, fetch);
 }
-
-LOG
 
 describe('ngsw', () => {
   const simpleManifestCache = `manifest:${SIMPLE_MANIFEST_HASH}:static`;
@@ -226,5 +239,24 @@ describe('ngsw', () => {
       .then(() => expectServed(driver, '/hello.txt', 'Hello world!'))
       .then(() => expectServed(driver, '/', 'Hello world!'))
       .then(done, err => errored(err, done)))
+  });
+  sequence('dynamic content caching', () => {
+    let driver: TestWorkerDriver = new TestWorkerDriver(createServiceWorker);
+    beforeAll(done => {
+      driver.mockUrl(MANIFEST_URL, DYNAMIC_MANIFEST);
+      driver.mockUrl('/test.txt', 'dynamic content');
+      driver.startup();
+      done();
+    });
+    fit('successfully caches the first time', done => Promise
+      .resolve(null)
+      .then(() => expectServed(driver, '/test.txt', 'dynamic content'))
+      .then(() => console.log('all done?'))
+      .then(done, err => errored(err, done)));
+    it('serves from cache the second time', done => Promise
+      .resolve(null)
+      .then(() => driver.mockUrl('/test.txt', 'updated content'))
+      .then(() => expectServed(driver, '/test','dynamic content'))
+      .then(done, err => errored(err, done)));
   });
 });
