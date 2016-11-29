@@ -77,7 +77,6 @@ declare interface ExtendableEvent {
 }
 
 declare interface PushSubscription {
-  id: string;
   endpoint: string;
   getKey(method: string): ArrayBuffer;
   toJSON(): Object;

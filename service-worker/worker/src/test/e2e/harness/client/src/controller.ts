@@ -119,7 +119,6 @@ export class ControllerCmp {
           .registerForPush()
           .subscribe(handler => {
             this.result = JSON.stringify({
-              id: handler.id,
               url: handler.url,
               key: handler.key(),
               auth: handler.auth()
