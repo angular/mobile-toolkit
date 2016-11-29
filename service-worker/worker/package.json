@@ -21,6 +21,7 @@
   "homepage": "https://mobile.angular.io",
   "devDependencies": {
     "@angular/common": "~2.2.0",
+    "@angular/core": "~2.2.0",
     "@angular/compiler": "~2.2.0",
     "@angular/compiler-cli": "~2.2.0",
     "@angular/forms": "~2.2.0",
@@ -60,10 +61,12 @@
     "zone.js": "^0.6.5"
   },
   "dependencies": {
-    "@angular/core": "~2.2.0",
     "base64-js": "^1.1.2",
     "jshashes": "^1.0.5",
     "protractor": "^4.0.10",
     "webdriver-manager": "^10.2.6"
+  },
+  "peerDependencies": {
+    "@angular/core": "^2.0.0"
   }
 }
