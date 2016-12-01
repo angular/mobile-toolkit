@@ -49,9 +49,8 @@ export function fetchFromCacheInstruction(worker: VersionWorker, req: string | R
   return op;
 }
 
-export function fetchFromNetworkInstruction(worker: VersionWorker, req: Request): FetchInstruction {
-  const op: FetchInstruction = () => worker
-    .refresh(req);
+export function fetchFromNetworkInstruction(worker: VersionWorker, req: Request, shouldRefresh: boolean = true): FetchInstruction {
+  const op: FetchInstruction = () => shouldRefresh ? worker.refresh(req) : (worker as VersionWorkerImpl).scope.fetch(req);
   op.desc = {type: 'fetchFromNetworkInstruction', worker, req};
   return op;
 }

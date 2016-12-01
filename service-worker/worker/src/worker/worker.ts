@@ -27,7 +27,7 @@ export class VersionWorkerImpl implements VersionWorker {
 
   fetch(req: Request): Observable<Response> {
     const instructions: FetchInstruction[] = [
-      fetchFromNetworkInstruction(this, req),
+      fetchFromNetworkInstruction(this, req, false),
     ];
     this
       .plugins
