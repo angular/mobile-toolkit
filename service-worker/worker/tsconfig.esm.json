@@ -21,6 +21,7 @@
   },
   "files": [
     "src/index.ts",
+    "src/plugins/dynamic/index.ts",
     "src/plugins/push/index.ts",
     "src/plugins/routes/index.ts",
     "src/plugins/static/index.ts",

@@ -22,22 +22,33 @@ export class VersionWorkerImpl implements VersionWorker {
       private plugins: Plugin<any>[]) {}
 
   refresh(req: Request): Observable<Response> {
-    return this.fetcher.refresh(req);
+    console.log('actually fetching', req.url);
+    return this.fetcher.refresh(req).do(resp =>console.log('and the response is', resp));
   }
 
-  fetch(req: Request): Observable<Response> {
+  fetch(req: Request): [Observable<Response>, Observable<any>] {
     const instructions: FetchInstruction[] = [
       fetchFromNetworkInstruction(this, req, false),
     ];
+    const carryOnInstructions: FetchInstruction[] = [];
+
     this
       .plugins
       .filter(plugin => !!plugin.fetch)
-      .forEach(plugin => plugin.fetch(req, instructions));
-    return Observable
+      .forEach(plugin => plugin.fetch(req, instructions, carryOnInstructions));
+    console.log('fetch for', req.url, instructions.map(i => i.desc));
+    const fetchResponse = Observable
       .from(instructions)
-      .concatMap(op => op())
+      .do(instruction => console.log('processing', instruction.desc))
+      .concatMap(op => op()
+        .do(resp => console.log('resp', op.desc['type'], (resp && resp.status))))
       .filter(resp => resp !== null)
       .first();
+    const carryOnResponse = Observable
+      .from(carryOnInstructions)
+      .concatMap(op => op())
+      .ignoreElements();
+    return [fetchResponse, carryOnResponse];
   }
 
   setup(previous: VersionWorkerImpl): Observable<any> {

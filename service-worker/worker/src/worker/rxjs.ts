@@ -4,7 +4,9 @@ import 'rxjs/add/observable/empty';
 import 'rxjs/add/observable/from';
 import 'rxjs/add/observable/fromEvent';
 import 'rxjs/add/observable/fromPromise';
+import 'rxjs/add/observable/merge';
 import 'rxjs/add/observable/of';
+import 'rxjs/add/observable/timer';
 
 import 'rxjs/add/operator/concat';
 import 'rxjs/add/operator/concatMap';
@@ -55,6 +57,8 @@ export class LiteSubject<T> {
 
 export function doAsync<T>(fn: (T) => Observable<any>): any {
   return (obs: Observable<T>) => obs
+    .do(v => console.log('doAsync before', v))
     .concatMap(value => fn(value)
-      .reduce(() => value, value));
+      .reduce(() => value, value))
+    .do(v => console.log('doAsync after', v));
 }
