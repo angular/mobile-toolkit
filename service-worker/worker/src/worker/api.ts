@@ -1,30 +1,31 @@
-import {Observable} from 'rxjs/Observable';
-
 import {NgSwAdapter, NgSwCache} from './facade';
 import {Manifest} from './manifest';
 
-export interface CustomOperator<T> {
-  (obs: Observable<T>): Observable<T>;
-}
-
 export interface FetchInstruction {
-  (): Observable<Response>;
+  (): Promise<Response>;
   desc?: Object;
 }
 
 export interface Operation {
-  (): Observable<any>;
+  (): Promise<any>;
   desc?: Object;
 }
 
-export interface VersionWorker {
+export interface VersionWorker extends StreamController {
   readonly manifest: Manifest;
   readonly cache: NgSwCache;
   readonly adapter: NgSwAdapter;
 
-  refresh(req: Request): Observable<Response>;
-  fetch(req: Request): Observable<Response>;
+  refresh(req: Request): Promise<Response>;
+  fetch(req: Request): Promise<Response>;
   showNotification(title: string, options?: Object): void;
+  sendToStream(id: number, message: Object): void;
+  closeStream(id: number): void;
+}
+
+export interface StreamController {
+  sendToStream(id: number, message: Object): void;
+  closeStream(id: number): void;
 }
 
 export interface Plugin<T extends Plugin<T>> {
@@ -32,7 +33,8 @@ export interface Plugin<T extends Plugin<T>> {
   update?(operations: Operation[], previous: T): void;
   fetch?(req: Request, instructions: FetchInstruction[]): void;
   cleanup?(operations: Operation[]): void;
-  message?(message: any, operations: Operation[]): void;
+  message?(message: any, id: number): void;
+  messageClosed?(id: number);
   push?(data: any): void;
 }
 

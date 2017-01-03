@@ -31,7 +31,7 @@ class NgSwBrowserAdapter implements NgSwAdapter {
     return new Request(req, init);
   }
 
-  newResponse(body: string | Blob, init?: Object): Response {
+  newResponse(body: string | Blob, init?: ResponseInit): Response {
     return new Response(body, init);
   }
 }
@@ -53,7 +53,7 @@ export function bootstrapServiceWorker(options?: BootstrapOptions): Driver {
   const fetch = new NgSwFetch(scope, adapter);
   LOGGER.setVerbosity(options.logLevel);
   if (!!options.logHandlers) {
-    LOGGER.messages.subscribe(entry => options.logHandlers.forEach(handler => handler.handle(entry)));
+    LOGGER.messages = (entry => options.logHandlers.forEach(handler => handler.handle(entry)));
   }
   LOGGER.release();
   return new Driver(manifestUrl, plugins, scope, adapter, cache, events, fetch);

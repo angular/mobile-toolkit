@@ -1,20 +1,15 @@
-import {Observable} from 'rxjs/Observable';
 import {NgSwAdapter} from './adapter';
 
 export class NgSwFetch {
 
   constructor(private scope: ServiceWorkerGlobalScope, private adapter: NgSwAdapter) {}
 
-  request(req: Request): Observable<Response> {
-    let result: Observable<Response> = Observable.defer(() => Observable
-      .fromPromise<Response>(this
-        .scope
-        .fetch(req)
-        .catch(err => this.adapter.newResponse('', {status: 503}))));
-    return result;
+  request(req: Request): Promise<Response> {
+    return this.scope.fetch(req)
+      .catch(err => this.adapter.newResponse('', {status: 503}));
   }
 
-  refresh(req: string | Request): Observable<Response> {
+  refresh(req: string | Request): Promise<Response> {
     let request: Request;
     if (typeof req == 'string') {
       request = this.adapter.newRequest(this._cacheBust(<string>req));

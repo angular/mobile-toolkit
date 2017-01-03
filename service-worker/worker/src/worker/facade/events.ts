@@ -1,19 +1,21 @@
-import {Observable} from 'rxjs/Observable';
+export interface Callback<T> {
+  (event: T): void;
+}
+
+function nop(event: any): void {}
 
 export class NgSwEvents {
-  install: Observable<InstallEvent>;
-  activate: Observable<ActivateEvent>;
-  fetch: Observable<FetchEvent>;
-  message: Observable<MessageEvent>;
-  push: Observable<PushEvent>;
+  install: Callback<InstallEvent> = nop;
+  activate: Callback<ActivateEvent> = nop;
+  fetch: Callback<FetchEvent> = nop;
+  message: Callback<MessageEvent> = nop;
+  push: Callback<PushEvent> = nop;
 
   constructor(scope: ServiceWorkerGlobalScope) {
-    var req: FetchEvent;
-
-    this.install = Observable.fromEvent<InstallEvent>(<any>scope, 'install');
-    this.activate = Observable.fromEvent<ActivateEvent>(<any>scope, 'activate');
-    this.fetch = Observable.fromEvent<FetchEvent>(<any>scope, 'fetch');
-    this.message = Observable.fromEvent<MessageEvent>(<any>scope, 'message');
-    this.push = Observable.fromEvent<PushEvent>(<any>scope, 'push');
+    scope.addEventListener('install', (event: InstallEvent) => this.install(event));
+    scope.addEventListener('activate', (event: ActivateEvent) => this.activate(event));
+    scope.addEventListener('fetch', (event: FetchEvent) => this.fetch(event));
+    scope.addEventListener('message', (event: MessageEvent) => this.message(event));
+    scope.addEventListener('push', (event: PushEvent) => this.push(event));
   }
 }

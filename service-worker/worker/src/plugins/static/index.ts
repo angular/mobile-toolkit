@@ -11,7 +11,6 @@ import {
   LOG,
   Verbosity
 } from '@angular/service-worker/worker';
-import {Observable} from 'rxjs/Observable';
 
 interface UrlToHashMap {
   [url: string]: string;
@@ -31,7 +30,6 @@ export function StaticContentCache(options?: StaticContentCacheOptions): PluginF
 }
 
 export class StaticContentCacheImpl implements Plugin<StaticContentCacheImpl> {
-
   private cacheKey: string;
 
   constructor(public worker: VersionWorker, public key: string) {
@@ -50,10 +48,10 @@ export class StaticContentCacheImpl implements Plugin<StaticContentCacheImpl> {
         .worker
         .cache
         .load(this.cacheKey, url)
-        .switchMap(resp => {
+        .then(resp => {
           if (!!resp) {
             LOG.technical(`setup(${this.cacheKey}, ${url}): no need to refresh ${url} in the cache`);
-            return Observable.empty();
+            return null;
           }
           LOG.technical(`setup(${this.cacheKey}, ${url}): caching from network`);
           return cacheFromNetworkOp(this.worker, url, this.cacheKey)();

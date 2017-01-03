@@ -1,13 +1,9 @@
 import {
-  LiteSubject,
   Operation,
   Plugin,
   PluginFactory,
-  VersionWorker
+  VersionWorker,
 } from '@angular/service-worker/worker';
-
-import {Observable} from 'rxjs/Observable';
-import {Observer} from 'rxjs/Observer';
 
 interface PushManifest {
   showNotifications?: boolean;
@@ -28,58 +24,53 @@ const NOTIFICATION_OPTION_NAMES = [
   'data'
 ];
 
-function pushesOp(push: PushImpl): Operation {
-  const op: Operation = () => push.pushes;
-  op.desc = {type: 'pushesOp', push};
-  return op;
-}
-
 export function Push(): PluginFactory<PushImpl> {
   return (worker: VersionWorker) => new PushImpl(worker);
 }
 
 export class PushImpl implements Plugin<PushImpl> {
-
-  private pushBuffer: any[] = [];
-  private pushSubject: LiteSubject<any> = new LiteSubject<any>();
-  pushes: Observable<any>;
+  private streams: number[] = [];
+  private buffer: Object[] = [];
 
   private get pushManifest(): PushManifest {
     return this.worker.manifest['push'] as PushManifest || EMPTY_MANIFEST;
   }
 
-  constructor(private worker: VersionWorker) {
-    this.pushes = Observable.create((observer: Observer<any>) => {
-      if (this.pushBuffer !== null) {
-        this.pushBuffer.forEach(data => observer.next(data));
-      }
-      this.pushBuffer = null;
-      const sub = this.pushSubject.observable.subscribe(observer);
-      return () => {
-        sub.unsubscribe();
-        if (!this.pushSubject.hasSubscribers) {
-          this.pushBuffer = [];
-        }
-      };
-    });
-  }
+  constructor(private worker: VersionWorker) {}
 
   setup(ops: Operation[]): void {}
 
-  message(message: any, ops: Operation[]): void {
+  message(message: any, id: number): void {
     switch (message['cmd']) {
       case 'push':
-        ops.push(pushesOp(this));
+        this.streams.push(id);
+        if (this.buffer !== null) {
+          this.buffer.forEach(message => this.worker.sendToStream(id, message));
+          this.buffer = null;
+        }
         break;
+    }
+  }
+
+  messageClosed(id: number): void {
+    const index = this.streams.indexOf(id);
+    if (index === -1) {
+      return;
+    }
+    this.streams.splice(index, 1);
+    if (this.streams.length === 0) {
+      this.buffer = [];
     }
   }
 
   push(data: any): void {
     this.maybeShowNotification(data);
-    if (this.pushBuffer === null) {
-      this.pushSubject.next(data);
+    if (this.buffer !== null) {
+      this.buffer.push(data);
     } else {
-      this.pushBuffer.push(data);
+      this.streams.forEach(id => {
+        this.worker.sendToStream(id, data);
+      })
     }
   }
 
@@ -88,7 +79,7 @@ export class PushImpl implements Plugin<PushImpl> {
       return;
     }
     const manifest = this.pushManifest;
-    if (!manifest.showNotifications || (!!manifest.backgroundOnly && this.pushBuffer === null)) {
+    if (!manifest.showNotifications || (!!manifest.backgroundOnly && this.buffer === null)) {
       return;
     }
     const desc = data.notification as Object;

@@ -1,13 +1,11 @@
-import {Observable} from 'rxjs/Observable';
-
 import {NgSwAdapter} from './adapter';
 
 export interface NgSwCache {
 
-  load(cache: string, req: string | Request): Observable<Response>;
-  store(cache: string, req: string | Request, resp: Response): Observable<any>;
-  remove(cache: string): Observable<any>;
-  invalidate(cache: string, req: string | Request): Observable<void>;
+  load(cache: string, req: string | Request): Promise<Response>;
+  store(cache: string, req: string | Request, resp: Response): Promise<any>;
+  remove(cache: string): Promise<any>;
+  invalidate(cache: string, req: string | Request): Promise<void>;
 }
 
 export class NgSwCacheImpl implements NgSwCache {
@@ -20,30 +18,22 @@ export class NgSwCacheImpl implements NgSwCache {
     return <Request>req;
   }
 
-  load(cache: string, req: string | Request): Observable<Response> {
-    return <Observable<Response>>Observable.defer(() => Observable.fromPromise(this
-      .caches
-      .open(cache)
-      .then(cache => cache.match(this.normalize(req)))));
+  load(cache: string, req: string | Request): Promise<Response> {
+    return this.caches.open(cache)
+      .then(cache => cache.match(this.normalize(req)));
   }
 
-  store(cache: string, req: string | Request, resp: Response): Observable<any> {
-    return Observable.defer(() => Observable.fromPromise(this
-      .caches
-      .open(cache)
-      .then(cache => cache.put(this.normalize(req), resp))));
+  store(cache: string, req: string | Request, resp: Response): Promise<any> {
+    return this.caches.open(cache)
+      .then(cache => cache.put(this.normalize(req), resp));
   }
 
-  invalidate(cache: string, req: string | Request): Observable<any> {
-    return Observable.defer(() => Observable.fromPromise(this
-      .caches
-      .open(cache)
-      .then(cache => cache.delete(this.normalize(req)))));
+  invalidate(cache: string, req: string | Request): Promise<any> {
+    return this.caches.open(cache)
+      .then(cache => cache.delete(this.normalize(req)));
   }
 
-  remove(cache: string): Observable<any> {
-    return Observable.defer(() => Observable.fromPromise(this
-      .caches
-      .delete(cache)));
+  remove(cache: string): Promise<any> {
+    return this.caches.delete(cache);
   }
 }

@@ -58,7 +58,7 @@ const HASHED_MANIFEST_2 = JSON.stringify({
 });
 
 const consoleLogger = new ConsoleHandler();
-LOGGER.messages.subscribe(entry => consoleLogger.handle(entry));
+LOGGER.messages = (entry => consoleLogger.handle(entry));
 LOGGER.release();
 
 function errored(err, done) {
@@ -106,8 +106,6 @@ function createServiceWorker(scope, adapter, cache, fetch, events) {
   ]
   return new Driver(MANIFEST_URL, plugins, scope, adapter, cache, events, fetch);
 }
-
-LOG
 
 describe('ngsw', () => {
   const simpleManifestCache = `manifest:${SIMPLE_MANIFEST_HASH}:static`;

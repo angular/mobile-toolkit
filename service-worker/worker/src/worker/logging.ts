@@ -1,6 +1,3 @@
-import {Observable} from 'rxjs/Observable';
-import {LiteSubject} from './rxjs';
-
 export enum Verbosity {
   DEBUG = 1,
   TECHNICAL = 2,
@@ -29,14 +26,11 @@ export interface LogHandler {
 export class Logger implements Logging {
 
   private buffer: LogEntry[] = [];
-  private subject = new LiteSubject<LogEntry>();
   private verbosity = Verbosity.DISABLED;
 
   constructor() {}
 
-  get messages(): Observable<LogEntry> {
-    return this.subject.observable;
-  }
+  messages: Function = () => null;
 
   debug(message: string, ...args: any[]): void {
     this._log(Verbosity.DEBUG, message, args);
@@ -63,7 +57,7 @@ export class Logger implements Logging {
   }
 
   release(): void {
-    this.buffer.forEach(entry => this.subject.next(entry));
+    this.buffer.forEach(entry => this.messages(entry));
     this.buffer = null;
   }
 
@@ -80,7 +74,7 @@ export class Logger implements Logging {
     if (this.buffer !== null) {
       this.buffer.push({verbosity, message});
     } else {
-      this.subject.next({verbosity, message});
+      this.messages({verbosity, message});
     }
   }
 

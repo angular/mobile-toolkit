@@ -137,13 +137,28 @@ export class NgServiceWorker {
   // Sends a single message to the worker, and awaits one (or more) responses.
   private sendToWorker(worker: ServiceWorker, message: Object): Observable<any> {
     // A MessageChannel is sent with the message so responses can be correlated.
-    let channel = new MessageChannel()
+    const channel = new MessageChannel()
     // Observe replies.
-    let result = Observable
-      // Subscribe to port1's message event, which will deliver any response(s).
-      .fromEvent(channel.port1, 'message')
-      // Extract the data from the MessageEvent.
-      .map((event: MessageEvent) => event.data)
+    const result = new Observable<any>(observer => {
+        let cancelId = null;
+        const listener = (event: MessageEvent) => {
+          const data = event.data;
+          if (!!data && typeof data === "object" && data.hasOwnProperty('$ngsw') && data.hasOwnProperty('id')) {
+            cancelId = data['id'];
+          } else if (data === null) {
+            observer.complete();
+            channel.port1.removeEventListener('message', listener);
+            return;
+          } else {
+            observer.next(data);
+          }
+        };
+        channel.port1.addEventListener('message', listener);
+        return () => {
+          channel.port1.removeEventListener('message', listener);
+          this.sendToWorker(worker, {cmd: 'cancel', id: cancelId});
+        };
+      })
       // Instead of complicating this with 'close' events, complete on a null value.
       .takeWhile(v => !!v)
       // The message will be sent before the consumer has a chance to subscribe to

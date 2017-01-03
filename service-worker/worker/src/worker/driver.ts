@@ -4,15 +4,15 @@ import {ScopedCache} from './cache';
 import {NgSwAdapter, NgSwCache, NgSwEvents, NgSwFetch} from './facade';
 import {LOG, LOGGER, Verbosity} from './logging';
 import {Manifest, parseManifest} from './manifest';
-import {doAsync} from './rxjs';
-
-import {Observable} from 'rxjs/Observable';
 
 let driverId: number = 0;
 
 export class Driver {
   
   private id: number;
+  private streamId: number = 0;
+
+  private streams: {[key: number]: MessagePort} = {};
   private activeWorker: Promise<VersionWorker> = null;
   private scopedCache: ScopedCache;
 
@@ -31,58 +31,52 @@ export class Driver {
       private cache: NgSwCache,
       private events: NgSwEvents,
       public fetcher: NgSwFetch) {
-        this.id = driverId++;
-        this.scopedCache = new ScopedCache(this.cache, 'ngsw:');
+    this.id = driverId++;
+    this.scopedCache = new ScopedCache(this.cache, 'ngsw:');
 
-        this.updateCheck = this.checkForUpdates();
+    this.updateCheck = this.checkForUpdates();
 
-        // On installation, load the worker as if a fetch event happened.
-        // This will prime the caches.
-        events.install.subscribe(event => {
-          LOG.info('INSTALL EVENT');
-          event.waitUntil(this.workerFromActiveOrFreshManifest());
-        });
+    // On installation, load the worker as if a fetch event happened.
+    // This will prime the caches.
+    events.install = (event: InstallEvent) => {
+      LOG.info('INSTALL EVENT');
+      event.waitUntil(this.workerFromActiveOrFreshManifest());
+    };
 
-        events.activate.subscribe(() => {
-          LOG.info('ACTIVATE EVENT');
-        });
+    events.activate = (event: ActivateEvent) => {
+      LOG.info('ACTIVATE EVENT');
+    };
 
-        events.fetch.subscribe(event => {
-          let req = event.request;
-          event.respondWith(this.onFetch(event).then((resp) => {
-            return resp;
-          }));
-        });
+    events.fetch = (event: FetchEvent) => {
+      let req = event.request;
+      event.respondWith(this.onFetch(event).then((resp) => {
+        return resp;
+      }));
+    };
 
-        events
-          .message
-          .filter(event => event.ports.length === 1 && event.data && event.data.hasOwnProperty('$ngsw'))
-          .mergeMap(event => {
-            const respond: MessagePort = event.ports[0];
-            return this
-            .handleMessage(event.data)
-            .do(
-              response => respond.postMessage(response),
-              undefined,
-              () => respond.postMessage(null)
-            )
-            .ignoreElements();
-          })
-          .subscribe();
-
-        events
-          .push
-          .filter(event => !!event.data)
-          .map(event => event.data.json())
-          .subscribe(data => {
-            if (!this.activeWorker) {
-              return;
-            }
-            this
-              .activeWorker
-              .then(worker => (worker as VersionWorkerImpl).push(data));
-          });
+    events.message = (event: MessageEvent) => {
+      if (event.ports.length !== 1 || !event.data || !event.data.hasOwnProperty('$ngsw')) {
+        return;
       }
+      const respond: MessagePort = event.ports[0];
+      const id = this.streamId++;
+      this.streams[id] = respond;
+      respond.postMessage({'$ngsw': true, 'id': id});
+      this.handleMessage(event.data, id);
+    }
+
+    events.push = (event: PushEvent) => {
+      if (!this.activeWorker || !event.data) {
+        return;
+      }
+      Promise
+        .all([
+          this.activeWorker,
+          event.data.json(),
+        ])
+        .then(result => (result[0] as VersionWorkerImpl).push(result[1]));
+    };
+  }
 
   private onFetch(event: FetchEvent): Promise<Response> {
     return this
@@ -98,7 +92,7 @@ export class Driver {
           return this.activeWorker;
         }
       })
-      .then(worker => worker.fetch(event.request).toPromise());
+      .then(worker => worker.fetch(event.request));
   }
 
   private maybeUpdate(event: FetchEvent): Promise<VersionWorker> {
@@ -154,11 +148,10 @@ export class Driver {
 
   private manifestToWorker(manifest: Manifest, existing: VersionWorker = null): Promise<VersionWorker> {
     const plugins: Plugin<any>[] = [];
-    const worker = new VersionWorkerImpl(this.scope, manifest, this.adapter, new ScopedCache(this.cache, `manifest:${manifest._hash}:`), this.fetcher, plugins);
+    const worker = new VersionWorkerImpl(this, this.scope, manifest, this.adapter, new ScopedCache(this.cache, `manifest:${manifest._hash}:`), this.fetcher, plugins);
     plugins.push(...this.plugins.map(factory => factory(worker)));
     return worker
       .setup(existing as VersionWorkerImpl)
-      .toPromise()
       .then(() => worker);
   }
 
@@ -166,7 +159,6 @@ export class Driver {
     return this
       .scopedCache
       .load(cache, this.manifestUrl)
-      .toPromise()
       .then(resp => this.manifestFromResponse(resp));
   }
 
@@ -174,7 +166,6 @@ export class Driver {
     return this
       .fetcher
       .refresh(this.manifestUrl)
-      .toPromise()
       .then(resp => this.manifestFromResponse(resp));
   }
 
@@ -186,11 +177,11 @@ export class Driver {
   }
 
   private setManifestInCache(manifest: Manifest, cache: string): Promise<void> {
-    return this.scopedCache.store(cache, this.manifestUrl, this.adapter.newResponse(manifest._json)).toPromise();
+    return this.scopedCache.store(cache, this.manifestUrl, this.adapter.newResponse(manifest._json));
   }
 
   private deleteManifestInCache(cache: string): Promise<void> {
-    return this.scopedCache.invalidate(cache, this.manifestUrl).toPromise();
+    return this.scopedCache.invalidate(cache, this.manifestUrl);
   }
 
   private checkForUpdates(): Promise<boolean> {
@@ -222,35 +213,61 @@ export class Driver {
         return this
           .setManifestInCache(staged, 'active')
           .then(() => this.deleteManifestInCache('staged'))
-          .then(() => Observable
-            .from((activeWorker as VersionWorkerImpl).cleanup())
-            .concatMap(op => op())
-            .ignoreElements()
-            .toPromise()
+          .then(() => (activeWorker as VersionWorkerImpl)
+            .cleanup()
+            .reduce<Promise<Response>>(
+              (prev, curr) => prev.then(resp => resp ? resp : curr()),
+              Promise.resolve(null)
+            )
           )
           .then(() => stagedWorker)
       });
   }
 
-  private handleMessage(message: Object): Observable<Object> {
+  sendToStream(id: number, message: Object): void {
+    if (!this.streams.hasOwnProperty(id)) {
+      return;
+    }
+    this.streams[id].postMessage(message);
+  }
+
+  closeStream(id: number): void {
+    if (!this.streams.hasOwnProperty(id)) {
+      return;
+    }
+    this.streams[id].postMessage(null);
+    delete this.streams[id]
+  }
+
+  private handleMessage(message: Object, id: number): Promise<Object> {
     if (!this.activeWorker) {
-      return Observable.empty();
+      return;
     }
 
     switch (message['cmd']) {
       case 'ping':
-        return Observable.empty();
+        this.closeStream(id);
+        break;
       case 'checkUpdate':
-        return Observable.fromPromise(this.checkForUpdates());
+        this.checkForUpdates().then(value => {
+          this.sendToStream(id, value);
+          this.closeStream(id);
+        });
+        break;
+      case 'cancel':
+        const idToCancel = message['id'];
+        if (!this.streams.hasOwnProperty(id)) {
+          return;
+        }
+        this.activeWorker.then(active => (active as VersionWorkerImpl).messageClosed(id));
+        break;
       case 'log':
-        return LOGGER.messages;
+        LOGGER.messages = (message: string) => {
+          this.sendToStream(id, message);
+        };
+        break;
       default:
-        return Observable
-          .fromPromise(this.activeWorker)
-          .switchMap(active => active
-            ? (active as VersionWorkerImpl).message(message)
-            : Observable.empty<Operation>())
-          .switchMap(op => op());
+        this.activeWorker.then(active => (active as VersionWorkerImpl).message(message, id));
     }
   }
 }
