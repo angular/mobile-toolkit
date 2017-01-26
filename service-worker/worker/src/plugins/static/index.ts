@@ -84,4 +84,13 @@ export class StaticContentCacheImpl implements Plugin<StaticContentCacheImpl> {
   cleanup(operations: Operation[]): void {
     operations.push(deleteCacheOp(this.worker, this.cacheKey));
   }
+
+  validate(): Promise<boolean> {
+    return Promise
+      .all(Object
+        .keys(this.staticManifest.urls)
+        .map(url => this.worker.cache.load(this.cacheKey, url))
+      )
+      .then(resps => resps.every(resp => !!resp && resp.ok));
+  }
 }

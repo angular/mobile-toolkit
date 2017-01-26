@@ -36,6 +36,7 @@ export interface Plugin<T extends Plugin<T>> {
   message?(message: any, id: number): void;
   messageClosed?(id: number);
   push?(data: any): void;
+  validate?(): Promise<boolean>;
 }
 
 export interface PluginFactory<T extends Plugin<T>> {

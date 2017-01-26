@@ -22,7 +22,7 @@ export function gulpGenerateManifest() {
   return readable;
 }
 
-export function gulpAddStaticFiles(files: any, options?: GulpAddStaticFileOptions) {
+export function gulpAddStaticFiles(files: any, options: GulpAddStaticFileOptions = {}) {
   let manifestTransform = new stream.Transform({objectMode: true});
   let singleFile = true;
 

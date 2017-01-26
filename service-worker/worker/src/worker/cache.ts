@@ -19,4 +19,14 @@ export class ScopedCache implements NgSwCache {
   invalidate(cache: string, req: string | Request): Promise<void> {
     return this.delegate.invalidate(this.prefix + cache, req);
   }
+
+  keys(): Promise<string[]> {
+    return this
+      .delegate
+      .keys()
+      .then(keys => keys
+        .filter(key => key.startsWith(this.prefix))
+        .map(key => key.substr(this.prefix.length))
+      );
+  }
 }

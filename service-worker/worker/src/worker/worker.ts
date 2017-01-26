@@ -34,6 +34,15 @@ export class VersionWorkerImpl implements VersionWorker {
     );
   }
 
+  validate(): Promise<boolean> {
+    return Promise
+      .all(this
+        .plugins
+        .filter(plugin => !!plugin.validate)
+        .map(plugin => plugin.validate())
+      )
+      .then(results => results.every(v => v));
+  }
 
   setup(previous: VersionWorkerImpl): Promise<any> {
     let operations: Operation[] = [];

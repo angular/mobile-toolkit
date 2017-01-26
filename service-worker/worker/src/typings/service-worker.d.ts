@@ -6,6 +6,7 @@ declare interface ServiceWorkerGlobalScope {
   removeEventListener(type: string, listener: Function, last?: any): void;
   registration: ServiceWorkerRegistration;
   importScripts(scripts: string): void;
+  skipWaiting(): Promise<void>;
 }
 
 declare interface ServiceWorkerContainer extends EventTarget {

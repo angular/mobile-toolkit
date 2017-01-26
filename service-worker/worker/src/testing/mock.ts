@@ -60,7 +60,7 @@ export class MockClients implements Clients {
   }
 
   claim(): Promise<void> {
-    return Promise.reject('not implemented');
+    return Promise.resolve();
   }
 }
 
@@ -133,6 +133,10 @@ export class TestWorkerScope implements ServiceWorkerGlobalScope {
   removeEventListener(type: string, listener: Function): void {
     throw 'Remove unsupported!';
   }
+
+  skipWaiting(): Promise<void> {
+    return Promise.resolve();
+  }
 }
 
 interface TestExtendableEvent extends ExtendableEvent {
@@ -158,6 +162,28 @@ export class TestWorkerDriver {
     this.scope = new TestWorkerScope(this.caches, this.clients);
   }
 
+  waitForReady(): Promise<void> {
+    return this.instance.ready;
+  }
+
+  forceStartup(): Promise<void> {
+    if (!this.instance.init) {
+      this.instance.startup();
+    }
+    return this.waitForReady();
+  }
+
+  waitForUpdatePending(): Promise<void> {
+    return this.instance.updatePending;
+  }
+
+  waitForUpdate(): Promise<void> {
+    return this
+      .instance
+      .updatePending
+      .then(() => this.waitForReady);
+  }
+
   emptyCaches(): void {
     this.caches.caches = {};
   }
@@ -179,13 +205,12 @@ export class TestWorkerDriver {
     this.startup();
   }
 
-  startup(): Promise<boolean> {
+  startup(): void {
     let workerAdapter = new TestAdapter();
     let cache = new NgSwCacheImpl(this.caches, workerAdapter);
     let fetch = new NgSwFetch(this.scope, workerAdapter);
     let events = new NgSwEvents(this.scope);
     this.instance = this.createWorker(this.scope, workerAdapter, cache, fetch, events);
-    return this.instance.updateCheck || Promise.resolve(false);
   }
 
   triggerInstall(): Promise<any> {

@@ -108,7 +108,7 @@ function createServiceWorker(scope, adapter, cache, fetch, events) {
 }
 
 describe('ngsw', () => {
-  const simpleManifestCache = `manifest:${SIMPLE_MANIFEST_HASH}:static`;
+  const simpleManifestCache = `ngsw:manifest:${SIMPLE_MANIFEST_HASH}:static`;
   describe('initial load', () => {
     let driver: TestWorkerDriver = new TestWorkerDriver(createServiceWorker);
     beforeAll(() => {
@@ -119,25 +119,27 @@ describe('ngsw', () => {
       driver.mockUrl('/goodbye.txt', 'Goodbye world!');
       driver.mockUrl('/solong.txt', 'So long world!');
     })
-    it('caches a single file', (done) => driver
+    it('activates', (done) => driver
       .triggerInstall()
+      .then(() => driver.triggerActivate())
+      .then(() => driver.waitForReady())
+      .then(() => driver.unmockAll())
+      .then(done, err => errored(err, done)));
+    then('caches a single file', (done) => Promise
+      .resolve()
       .then(() => expectCached(driver, simpleManifestCache, '/hello.txt', 'Hello world!'))
       .then(done, err => errored(err, done)));
-    it('caches multiple files', (done) => driver
-      .triggerInstall()
+    then('caches multiple files', (done) => Promise
+      .resolve()
       .then(() => expectCached(driver, simpleManifestCache, '/goodbye.txt', 'Goodbye world!'))
       .then(() => expectCached(driver, simpleManifestCache, '/solong.txt', 'So long world!'))
       .then(done, err => errored(err, done)))
-    it('saves the manifest as activated', (done) => driver
-      .triggerInstall()
-      .then(() => driver.unmockUrl(MANIFEST_URL))
-      .then(() => driver.triggerActivate())
+    then('saves the manifest as activated', (done) => Promise
+      .resolve()
       .then(() => expectCached(driver, CACHE_ACTIVE, MANIFEST_URL, SIMPLE_MANIFEST))
       .then(done, err => errored(err, done)));
-    it('serves files from cache after activation', (done) => driver
-      .triggerInstall()
-      .then(() => driver.unmockAll())
-      .then(() => driver.triggerActivate())
+    then('serves cached files', (done) => Promise
+      .resolve()
       .then(() => expectServed(driver, '/hello.txt', 'Hello world!'))
       .then(() => expectServed(driver, '/goodbye.txt', 'Goodbye world!'))
       .then(() => expectServed(driver, '/solong.txt', 'So long world!'))
@@ -152,8 +154,9 @@ describe('ngsw', () => {
       driver.startup();
       driver
         .triggerInstall()
-        .then(() => driver.unmockAll())
         .then(() => driver.triggerActivate())
+        .then(() => driver.forceStartup())
+        .then(() => driver.unmockAll())
         .then(done, err => errored(err, done));
     });
     it('successfully activates', done => Promise
@@ -166,11 +169,11 @@ describe('ngsw', () => {
       driver.mockUrl('/hello.txt', 'Hola mundo!');
       driver.mockUrl('/goodbye.txt', 'Should not be reloaded from the server');
       let existingClient = driver.clients.add();
+      driver.startup();
       driver
-        .startup()
-        .then(updateAvailable => {
-          expect(updateAvailable).toBeTruthy();
-        })
+        .forceStartup()
+        .then(() => driver.waitForUpdatePending())
+        .then(() => driver.unmockAll())
         .then(() => expectServed(driver, '/hello.txt', 'Hello world!', existingClient))
         .then(done, err => errored(err, done));
     });
@@ -195,8 +198,8 @@ describe('ngsw', () => {
       driver.startup();
       driver
         .triggerInstall()
-        .then(() => driver.unmockAll())
         .then(() => driver.triggerActivate())
+        .then(() => driver.waitForReady())
         .then(() => driver.unmockAll())
         .then(done, err => errored(err, done));
     });
@@ -215,8 +218,9 @@ describe('ngsw', () => {
       driver.startup();
       driver
         .triggerInstall()
-        .then(() => driver.unmockAll())
         .then(() => driver.triggerActivate())
+        .then(() => driver.waitForReady())
+        .then(() => driver.unmockAll())
         .then(done, err => errored(err, done));
     });
     it('successfully serves the index', done => Promise

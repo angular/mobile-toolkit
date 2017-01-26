@@ -117,15 +117,6 @@ describe('world sanity', () => {
       })
       .then(done);
   });
-  it('worker is not yet controlling the page', done => {
-    server.addResponse('/hello.txt', 'Still from the server');
-    po
-      .request('/hello.txt')
-      .then(response => {
-        expect(response).toBe('Still from the server');
-      })
-      .then(done);
-  });
   it('after reload, worker serves cached /hello.txt', done => {
     browser.get('/index.html');
     server.addResponse('/hello.txt', 'Goodbye world?');
