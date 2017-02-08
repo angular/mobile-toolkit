@@ -1,4 +1,5 @@
 import {Injectable, NgZone} from '@angular/core';
+import {BehaviorSubject} from 'rxjs/BehaviorSubject';
 import {Observable} from 'rxjs/Observable';
 import {Observer} from 'rxjs/Observer';
 import {fromByteArray} from 'base64-js';
@@ -17,7 +18,6 @@ import 'rxjs/add/observable/fromEvent';
 import 'rxjs/add/observable/merge';
 import 'rxjs/add/observable/of';
 import 'rxjs/add/observable/timer';
-import 'rxjs/add/operator/cache';
 import 'rxjs/add/operator/concatMap';
 import 'rxjs/add/operator/do';
 import 'rxjs/add/operator/expand';
@@ -80,7 +80,7 @@ export class NgServiceWorker {
   private container: ServiceWorkerContainer;
 
   // Always returns the current controlling worker, or undefined if there isn't one.
-  private controllingWorker: Observable<ServiceWorker>;
+  private controllingWorker = new BehaviorSubject<ServiceWorker>(undefined);
 
   // Always returns the current controlling worker, and waits for one to exist
   // if it does not.
@@ -94,7 +94,7 @@ export class NgServiceWorker {
 
     // Final Observable that will always give back the current controlling worker,
     // and follow changes over time.
-    this.controllingWorker = Observable
+    Observable
       // Combine current and future controllers.
       .concat(
         // Current controlling worker (if any).
@@ -107,7 +107,11 @@ export class NgServiceWorker {
           .map(_ => this.container.controller)
       )
       // Cache the latest controller for immediate delivery.
-      .cache(1);
+      .subscribe(
+        worker => this.controllingWorker.next(worker),
+        err => this.controllingWorker.error(err),
+        () => this.controllingWorker.complete(),
+      );
     
     // To make one-off calls to the worker, awaitSingleControllingWorker waits for
     // a controlling worker to exist.
@@ -123,15 +127,12 @@ export class NgServiceWorker {
   }
 
   private registrationForWorker(): ((obs: Observable<ServiceWorker>) => Observable<ServiceWorkerRegistration>) {
-    return (obs: Observable<ServiceWorker>) => {
-      return obs
-        .switchMap<ServiceWorkerRegistration>((worker, index) => {
-          return fromPromise(() => this.container.getRegistrations())
-            .expand<ServiceWorkerRegistration>(v => Observable.from(v))
-            .filter(reg => reg.active === worker)
-            .take(1);
-        });
-    };
+    return (obs: Observable<ServiceWorker>) => obs
+      .switchMap(worker => fromPromise(() => this.container.getRegistrations())
+        .expand(regs => Observable.from(regs))
+        .filter(reg => reg.active === worker)
+        .take(1)
+      );
   }
 
   // Sends a single message to the worker, and awaits one (or more) responses.

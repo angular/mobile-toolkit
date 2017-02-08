@@ -148,7 +148,6 @@ gulp.task('task:companion:bundle', done => {
       'rxjs/add/observable/merge': 'Rx',
       'rxjs/add/observable/of': 'Rx',
       'rxjs/add/observable/timer': 'Rx',
-      'rxjs/add/operator/cache': 'Rx',
       'rxjs/add/operator/concatMap': 'Rx',
       'rxjs/add/operator/do': 'Rx',
       'rxjs/add/operator/expand': 'Rx',
@@ -163,7 +162,8 @@ gulp.task('task:companion:bundle', done => {
       'rxjs/add/operator/share': 'Rx',
       'rxjs/add/operator/take': 'Rx',
       'rxjs/add/operator/takeWhile': 'Rx',
-      'rxjs/Observable': 'Rx'
+      'rxjs/BehaviorSubject': 'Rx',
+      'rxjs/Observable': 'Rx',
     }
   }))
   .catch(err => console.log(err))
