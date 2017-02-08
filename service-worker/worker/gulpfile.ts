@@ -65,12 +65,19 @@ gulp.task('task:build', done => runSequence(
   done));
 
 gulp.task('task:deploy', done => runSequence(
+  'task:assets:deploy',
   'task:bundles:deploy',
   'task:commonjs:deploy',
   'task:esm:deploy',
   'task:esm:deploy_metadata',
   'task:package:deploy',
   done));
+
+gulp.task('task:assets:deploy', () => gulp
+  .src([
+    'src/build/assets/**.js',
+  ], {base: 'src'})
+  .pipe(gulp.dest('dist')));
 
 gulp.task('task:commonjs:compile', () => {
   childProcess.execSync('node_modules/.bin/tsc -p tsconfig.es5.json');
@@ -123,7 +130,7 @@ gulp.task('task:webpack_test:pack', done => {
     },
     plugins: [
       new CopyWebpackPlugin([
-        {from: 'ngsw-manifest.json'}
+        {from: 'ngsw-manifest.json'},
       ]),
       new AngularServiceWorkerPlugin(),
     ]
