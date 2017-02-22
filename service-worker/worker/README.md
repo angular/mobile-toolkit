@@ -2,7 +2,7 @@
 
 ## What is a service worker?
 
-A service worker is a special script which runs in the background in the browser and manages network requests to a given origin. It's originally installed by an app and stays resident on the user's machine/device. It's activated by the browser when a page from its origin is loaded, and has the option to respond to HTTP requests during the page loading, including the initial navigation request (for `/index.html`). This makes service workers very useful for true offline support in applications.
+A [service worker](https://developers.google.com/web/fundamentals/getting-started/primers/service-workers) is a special script which runs in the background in the browser and manages network requests to a given origin. It's originally installed by an app and stays resident on the user's machine/device. It's activated by the browser when a page from its origin is loaded, and has the option to respond to HTTP requests during the page loading, including the initial navigation request (for `/index.html`). This makes service workers very useful for true offline support in applications.
 
 Additionally, service workers are the client-side endpoint for push notifications on the web. 
 
@@ -169,3 +169,64 @@ To monitor current push notifications, subscribe to `NgServiceWorker.push`.
 When a new version of the Angular service worker itself is published on a server, browsers will notice and download the new script before following the [Service Worker Update Process](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API/Using_Service_Workers#Updating_your_service_worker).
 
 The Angular service worker, on update, will clear its caches, deleting all saved data. The new version will then proceed to start up as if it was the first install. This protects against from bugs in the service worker causing updates to fail against incompatible old caches, leaving users in a broken state.
+
+## Build integrations
+
+The `@angular/service-worker` package includes several integrations with common build systems.
+
+### Gulp
+
+For projects which use Gulp to orchestrate build-related tasks, it's possible to generate or augment a `ngsw-manifest.json` file using utilities bundled with the service worker package.
+
+#### New manifest
+
+This example uses the helper function `gulpGenerateManifest()` to start a new stream with an empty `ngsw-manifest.json` file, then `gulpAddStaticFiles()` to add a `"static"` section with the hashes of all `.html`, `.css`, and `.js` files in `dist/`.
+
+    import {gulpGenerateManifest, gulpAddStaticFiles} from '@angular/service-worker/build/gulp';
+    
+    gulp.task('sw-manifest', () => gulpGenerateManifest()
+      .pipe(gulpAddStaticFiles(gulp.src([
+          'dist/**/*.html',
+          'dist/**/*.css',
+          'dist/**/*.js',
+        ], {base: 'dist'}])))
+      .pipe(gulp.dest('dist')));
+
+#### Augmenting existing manifest
+
+If, like many projects, you have other configuration to give the service worker besides `"static"`, you can create a `ngsw-manifest.json` in your project directory to store this configuration, and use `gulpAddStaticFiles()` to add the `"static"` section of the configuration:
+
+    import {gulpAddStaticFiles} from '@angular/service-worker/build/gulp';
+    
+    gulp.task('sw-manifest', () => gulp
+      .src(['src/ngsw-manifest.json'])
+      .pipe(gulpAddStaticFiles(gulp.src([
+          'dist/**/*.html',
+          'dist/**/*.css',
+          'dist/**/*.js',
+        ], {base: 'dist'}])))
+      .pipe(gulp.dest('dist')));
+
+### Webpack
+
+If instead of Gulp, you use Webpack to build your project, the service worker also ships with a Webpack plugin to generate (or augment) a `ngsw-manifest.json` file using the compilation assets from a webpack build. The `AngularServiceWorkerPlugin` should be the last plugin in your configuration, so it can pick up assets added by all the plugins before it.
+
+    import {AngularServiceWorkerPlugin} from '@angular/service-worker/build/webpack';
+    // or
+    const AngularServiceWorkerPlugin = require('@angular/service-worker/webpack');
+    
+    webpack({
+      entry: 'index.js',
+      output: {
+        path: 'dist/',
+        filename: 'index.js',
+      },
+      plugins: [
+        // This pulls an existing ngsw-manifest.json into the build.
+        // The static configuration will be merged in.
+        new CopyWebpackPlugin([
+          {from: 'ngsw-manifest.json'},
+        ]),
+        new AngularServiceWorkerPlugion(),
+      ],
+    }, () => { /* done */ });
