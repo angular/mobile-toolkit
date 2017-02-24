@@ -3,7 +3,10 @@ import express = require('express');
 export function create(port: number, harnessPath: string): Promise<Server> {
   return new Promise((resolve, reject) => {
     let server;
-    server = new Server(port, harnessPath, () => resolve(server));
+    server = new Server(port, harnessPath, () => {
+      console.log('SERVER RUNNING');
+      resolve(server);
+    });
   });
 }
 
@@ -12,6 +15,7 @@ export class Server {
   server: any;
   
   responses: Object = {};
+  delays: Object = {};
 
   constructor(port: number, harnessPath: string, readyCallback: Function) {
     this.app = express();
@@ -25,11 +29,12 @@ export class Server {
     });
   }
 
-  addResponse(url: string, response: string) {
+  addResponse(url: string, response: string, delayMs?: number) {
     let urlExisted = this.responses.hasOwnProperty(url);
 
     // Add the response.
     this.responses[url] = response;
+    this.delays[url] = (!!delayMs ? delayMs : undefined);
 
     if (urlExisted) {
       // A handler for this URL is already registered.
@@ -40,10 +45,15 @@ export class Server {
     // passed but instead return  
     this.app.get(url, (req, resp) => {
       let response = this.responses[url];
+      let delay = this.delays[url];
       if (!response) {
         return;
       }
-      resp.send(response);
+      if (!!delay) {
+        setTimeout(() => resp.send(response), delay);
+      } else {
+        resp.send(response);
+      }
     });
   }
 

@@ -21,9 +21,9 @@
   "homepage": "https://mobile.angular.io",
   "devDependencies": {
     "@angular/common": "^2.1.0",
-    "@angular/core": "^2.1.0",
     "@angular/compiler": "^2.1.0",
     "@angular/compiler-cli": "^2.1.0",
+    "@angular/core": "^2.1.0",
     "@angular/forms": "^2.1.0",
     "@angular/platform-browser": "^2.1.0",
     "@angular/platform-browser-dynamic": "^2.1.0",
@@ -33,7 +33,6 @@
     "@types/node": "^6.0.42",
     "@types/protractor": "^1.5.20",
     "@types/selenium-webdriver": "2.44.26",
-    "@types/whatwg-fetch": "0.0.31",
     "copy-webpack-plugin": "^3.0.1",
     "express": "^4.13.4",
     "gulp": "^3.9.0",
@@ -54,11 +53,11 @@
     "rxjs": "^5.0.0-beta.12",
     "systemjs": "^0.19.17",
     "ts-node": "^0.7.3",
-    "typescript": "~2.0.9",
+    "typescript": "^2.2.2",
     "uglify-js": "^2.7.3",
     "web-push": "^2.1.1",
-    "webpack": "^2.1.0-beta.22",
     "webdriver-manager": "^10.2.6",
+    "webpack": "^2.1.0-beta.22",
     "zone.js": "^0.7.2"
   },
   "dependencies": {

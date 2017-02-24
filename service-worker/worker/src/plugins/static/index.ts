@@ -77,8 +77,8 @@ export class StaticContentCacheImpl implements Plugin<StaticContentCacheImpl> {
     );
   }
 
-  fetch(req: Request, instructions: FetchInstruction[]): void {
-    instructions.unshift(fetchFromCacheInstruction(this.worker, req, this.cacheKey));
+  fetch(req: Request): FetchInstruction {
+    return fetchFromCacheInstruction(this.worker, req, this.cacheKey);
   }
 
   cleanup(operations: Operation[]): void {

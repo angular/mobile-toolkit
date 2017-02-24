@@ -1,4 +1,4 @@
-import {FetchInstruction, Operation, VersionWorker} from './api';
+import {FetchDelegate, FetchInstruction, Operation, VersionWorker} from './api';
 import {LOG} from './logging';
 import {VersionWorkerImpl} from './worker';
 
@@ -40,20 +40,21 @@ export function deleteCacheOp(worker: VersionWorker, key: string): Operation {
 }
 
 export function fetchFromCacheInstruction(worker: VersionWorker, req: string | Request, cache: string): FetchInstruction {
-  const op: FetchInstruction = () => worker.cache.load(cache, req);
+  const op: FetchInstruction = (next: FetchDelegate) => worker.cache.load(cache, req)
+    .then(res => !!res ? res : next());
   op.desc = {type: 'fetchFromCacheInstruction', worker, req, cache};
   return op;
 }
 
 export function fetchFromNetworkInstruction(worker: VersionWorker, req: Request, shouldRefresh: boolean = true): FetchInstruction {
-  const op: FetchInstruction = () => shouldRefresh ? worker.refresh(req) : (worker as any as VersionWorkerImpl).scope.fetch(req);
+  const op: FetchInstruction = (next: FetchDelegate) => shouldRefresh ? worker.refresh(req) : (worker as any as VersionWorkerImpl).scope.fetch(req);
   op.desc = {type: 'fetchFromNetworkInstruction', worker, req};
   return op;
 }
 
 export function rewriteUrlInstruction(worker: VersionWorker, req: Request, destUrl: string): FetchInstruction {
   const newReq = worker.adapter.newRequest(destUrl);
-  const op: FetchInstruction = () => worker.fetch(newReq);
+  const op: FetchInstruction = (next: FetchDelegate) => worker.fetch(newReq);
   op.desc = {type: 'rewriteUrlInstruction', worker, req, destUrl};
   return op;
 }

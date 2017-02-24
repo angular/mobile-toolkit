@@ -34,7 +34,7 @@ export class MockCacheStorage implements CacheStorage {
     return Promise.resolve(keys);
   }
 
-  match(request: Request, options?: CacheOptions): Promise<Response> {
+  match(request: Request, options?: CacheQueryOptions): Promise<Response> {
     if (options !== undefined && options !== null) {
       throw 'CacheOptions are unsupported';
     }
@@ -76,22 +76,26 @@ export class MockCache implements Cache {
       .then(() => undefined);
   }
 
-  delete(request: Request, options?: CacheOptions): Promise<void> {
+  delete(request: Request, options?: CacheQueryOptions): Promise<boolean> {
     if (options !== undefined) {
       throw 'CacheOptions are unsupported';
     }
     var idx = findIndex(this.entries, (entry) => entry.match(request));
     if (idx !== -1) {
       this.entries.splice(idx, 1);
+      return Promise.resolve(true);
     }
-    return Promise.resolve(undefined);
+    return Promise.resolve(false);
   }
 
-  keys(request?: Request, options?: CacheOptions): Promise<Request[]> {
-    throw 'Unimplemented';
+  keys(request?: Request, options?: CacheQueryOptions): Promise<Request[]> {
+    if (request || options) {
+      throw 'Unimplemented';
+    }
+    return Promise.resolve(this.entries.map(entry => entry.request));
   }
 
-  match(request: Request, options?: CacheOptions): Promise<Response> {
+  match(request: Request, options?: CacheQueryOptions): Promise<Response> {
     if (options !== undefined) {
       throw 'CacheOptions are unsupported';
     }
@@ -102,7 +106,7 @@ export class MockCache implements Cache {
     return Promise.resolve(this.entries[idx].response.clone());
   }
 
-  matchAll(request: Request, options?: CacheOptions): Promise<Response[]> {
+  matchAll(request: Request, options?: CacheQueryOptions): Promise<Response[]> {
     if (options !== undefined) {
       throw 'CacheOptions are unsupported';
     }
@@ -113,6 +117,7 @@ export class MockCache implements Cache {
   }
 
   put(request: Request, response: Response): Promise<void> {
+    this.delete(request);
     this.entries.unshift(new MockCacheEntry(request, response));
     return Promise.resolve(undefined);
   }
@@ -144,7 +149,7 @@ export class MockBody {
   }
 
   json(): Promise<any> {
-    throw 'Unimplemented: json()';
+    return this.text().then(json => JSON.parse(json));
   }
 
   text(): Promise<string> {
@@ -163,7 +168,7 @@ export class MockBody {
 export class MockRequest extends MockBody implements Request {
   url: string;
   method: string = "GET";
-  cache: RequestCache = "default";
+  cache: string = "default";
 
   headers: any;
   redirect: any;
@@ -171,13 +176,14 @@ export class MockRequest extends MockBody implements Request {
     return this;
   }
 
-  mode: RequestMode;
+  mode: string;
   referrer: string;
-  credentials: RequestCredentials;
-  type: RequestType;
-  destination: RequestDestination;
-  referrerPolicy: ReferrerPolicy;
+  credentials: string;
+  type: string;
+  destination: string;
+  referrerPolicy: string;
   integrity: string;
+  keepalive: boolean;
 
   constructor(req: string | Request, init?: Object) {
     super(null);
@@ -223,7 +229,7 @@ export class MockResponse extends MockBody implements Response {
   status: number = 200;
   url: string;
   headers: any;
-  type: ResponseType = "default";
+  type: string = "default";
   redirected: boolean;
 
   body: ReadableStream;

@@ -1,7 +1,7 @@
 import {VersionWorker, Plugin, PluginFactory, Operation} from './api';
 import {VersionWorkerImpl} from './worker';
 import {ScopedCache} from './cache';
-import {NgSwAdapter, NgSwCache, NgSwEvents, NgSwFetch} from './facade';
+import {NgSwAdapter, NgSwCache, NgSwEvents, NgSwFetch, Clock} from './facade';
 import {LOG, LOGGER, Verbosity} from './logging';
 import {Manifest, parseManifest} from './manifest';
 
@@ -122,7 +122,8 @@ export class Driver {
       private adapter: NgSwAdapter,
       private cache: NgSwCache,
       private events: NgSwEvents,
-      public fetcher: NgSwFetch) {
+      public fetcher: NgSwFetch,
+      public clock: Clock) {
     this.id = driverId++;
 
     // Set up Promises for testing.
@@ -424,7 +425,7 @@ export class Driver {
               // a pending update, so transition to READY.
               this.transition(DriverState.READY);
               return true;
-            })
+            }) as Promise<boolean>
           );
       });
   }
@@ -699,7 +700,7 @@ export class Driver {
    */
   private workerFromManifest(manifest: Manifest): VersionWorkerImpl {
     const plugins: Plugin<any>[] = [];
-    const worker = new VersionWorkerImpl(this, this.scope, manifest, this.adapter, new ScopedCache(this.scopedCache, `manifest:${manifest._hash}:`), this.fetcher, plugins);
+    const worker = new VersionWorkerImpl(this, this.scope, manifest, this.adapter, new ScopedCache(this.scopedCache, `manifest:${manifest._hash}:`), this.clock, this.fetcher, plugins);
     plugins.push(...this.plugins.map(factory => factory(worker)));
     return worker;
 

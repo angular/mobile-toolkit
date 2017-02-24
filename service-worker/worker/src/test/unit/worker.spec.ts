@@ -103,12 +103,12 @@ function then(desc, fn) {
 let sequence = describe;
 let fsequence = fdescribe;
 
-function createServiceWorker(scope, adapter, cache, fetch, events) {
+function createServiceWorker(scope, adapter, cache, fetch, events, clock) {
   const plugins = [
     StaticContentCache(),
     RouteRedirection(),
   ]
-  return new Driver(MANIFEST_URL, plugins, scope, adapter, cache, events, fetch);
+  return new Driver(MANIFEST_URL, plugins, scope, adapter, cache, events, fetch, clock);
 }
 
 describe('ngsw', () => {

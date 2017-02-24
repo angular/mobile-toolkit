@@ -12,19 +12,18 @@
     "rootDir": ".",
     "baseUrl": ".",
     "paths": {
-      "@angular/service-worker": ["src/"],
-      "@angular/service-worker/worker": ["src/worker/"]
+      "@angular/service-worker": ["src"],
+      "@angular/service-worker/worker": ["src/worker"]
     },
     "lib": [
-      "es2015",
-      "dom"
+      "dom",
+      "es2015"
     ],
     "types": [
       "jasmine",
       "protractor",
       "node",
-      "selenium-webdriver",
-      "whatwg-fetch"
+      "selenium-webdriver"
     ]
 	},
   "exclude": [

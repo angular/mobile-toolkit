@@ -29,4 +29,10 @@ export class ScopedCache implements NgSwCache {
         .map(key => key.substr(this.prefix.length))
       );
   }
+
+  keysOf(cache: string): Promise<Request[]> {
+    return this
+      .delegate
+      .keysOf(this.prefix + cache);
+  }
 }

@@ -88,6 +88,7 @@ gulp.task('task:commonjs:rewrite_plugins', () => gulp
     'tmp/es5/src/plugins/**/*.js'
   ])
   .pipe(replace(/'@angular\/service-worker\/worker'/, "'../../worker'"))
+  .pipe(replace(/"@angular\/service-worker\/worker"/g, "'../../worker'"))
   .pipe(gulp.dest('tmp/es5/src/plugins')));
 
 gulp.task('task:commonjs:deploy', () => gulp
