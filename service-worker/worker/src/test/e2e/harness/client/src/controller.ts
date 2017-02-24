@@ -95,6 +95,7 @@ export class ControllerCmp {
   request(url: string): void {
     fetch(url).then(resp => resp.text()).then(text => {
       this.result = text;
+      this.alert = true;
     });
   }
   

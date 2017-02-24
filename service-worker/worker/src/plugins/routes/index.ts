@@ -41,7 +41,7 @@ export class RouteRedirectionImpl implements Plugin<RouteRedirectionImpl> {
     // No setup needed.
   }
 
-  fetch(req: Request, ops: FetchInstruction[]): void {
+  fetch(req: Request): FetchInstruction {
     const manifest = this.routeManifest;
     if (!manifest || !manifest.routes) {
       return;
@@ -49,7 +49,7 @@ export class RouteRedirectionImpl implements Plugin<RouteRedirectionImpl> {
     let [base, path] = parseUrl(req.url);
     if (path === '/') {
       // TODO(alxhub): configurable base url
-      ops.unshift(rewriteUrlInstruction(this.worker, req, base + manifest.index));
+      return rewriteUrlInstruction(this.worker, req, base + manifest.index);
     }
     const matchesRoutingTable = Object.keys(manifest.routes).some(route => {
       const config = manifest.routes[route];
@@ -61,7 +61,9 @@ export class RouteRedirectionImpl implements Plugin<RouteRedirectionImpl> {
       return matchesPathAndExtension;
     });
     if (matchesRoutingTable) {
-      ops.unshift(rewriteUrlInstruction(this.worker, req, base + manifest.index));
+      return rewriteUrlInstruction(this.worker, req, base + manifest.index);
+    } else {
+      return null;
     }
   }
 }

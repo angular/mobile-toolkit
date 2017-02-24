@@ -140,7 +140,7 @@ export class NgServiceWorker {
 
   private registrationForWorker(): ((obs: Observable<ServiceWorker>) => Observable<ServiceWorkerRegistration>) {
     return (obs: Observable<ServiceWorker>) => obs
-      .switchMap(worker => fromPromise(() => this.container.getRegistrations())
+      .switchMap(worker => fromPromise(() => this.container.getRegistrations() as Promise<ServiceWorkerRegistration[]>)
         .expand(regs => Observable.from(regs))
         .filter(reg => reg.active === worker)
         .take(1)

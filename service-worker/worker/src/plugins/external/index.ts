@@ -47,7 +47,7 @@ export class ExternalPlugin implements Plugin<ExternalPlugin> {
       .map(url => cacheFromNetworkOp(this.worker, url.url, this.cacheKey)));
   }
 
-  fetch(req: Request, instructions: FetchInstruction[]): void {
-    instructions.unshift(fetchFromCacheInstruction(this.worker, req, this.cacheKey));
+  fetch(req: Request): FetchInstruction {
+    return fetchFromCacheInstruction(this.worker, req, this.cacheKey);
   }
 }

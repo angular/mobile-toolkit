@@ -1,8 +1,10 @@
 import {NgSwAdapter, NgSwCache} from './facade';
 import {Manifest} from './manifest';
 
+export type FetchDelegate = () => Promise<Response>;
+
 export interface FetchInstruction {
-  (): Promise<Response>;
+  (next: FetchDelegate): Promise<Response>;
   desc?: Object;
 }
 
@@ -31,7 +33,7 @@ export interface StreamController {
 export interface Plugin<T extends Plugin<T>> {
   setup(operations: Operation[]): void;
   update?(operations: Operation[], previous: T): void;
-  fetch?(req: Request, instructions: FetchInstruction[]): void;
+  fetch?(req: Request): FetchInstruction;
   cleanup?(operations: Operation[]): void;
   message?(message: any, id: number): void;
   messageClosed?(id: number);

@@ -34,10 +34,11 @@ export class HarnessPageObject {
   }
 
   request(url: string): Promise<string> {
+    this.reset();
     this.selectAction('MAKE_REQUEST');
     this.setTextOn('requestUrl', url);
     this.clickButton('requestAction');
-    return this.result;
+    return this.asyncResult;
   }
   
   installServiceWorker(url: string): void {

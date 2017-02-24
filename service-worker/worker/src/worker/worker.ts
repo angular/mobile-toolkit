@@ -1,8 +1,8 @@
 
-import {Operation, Plugin, VersionWorker, FetchInstruction, StreamController} from './api';
+import {Operation, Plugin, VersionWorker, FetchDelegate, FetchInstruction, StreamController} from './api';
 import {fetchFromNetworkInstruction} from './common';
 import {ScopedCache} from './cache';
-import {NgSwAdapter, NgSwFetch} from './facade';
+import {NgSwAdapter, NgSwFetch, Clock} from './facade';
 import {Manifest} from './manifest';
 
 export class VersionWorkerImpl implements VersionWorker {
@@ -13,6 +13,7 @@ export class VersionWorkerImpl implements VersionWorker {
       public manifest: Manifest,
       public adapter: NgSwAdapter,
       public cache: ScopedCache,
+      public clock: Clock,
       private fetcher: NgSwFetch,
       private plugins: Plugin<any>[]) {}
 
@@ -21,17 +22,17 @@ export class VersionWorkerImpl implements VersionWorker {
   }
 
   fetch(req: Request): Promise<Response> {
-    const instructions: FetchInstruction[] = [
-      fetchFromNetworkInstruction(this, req, false),
-    ];
-    this
+    const fromNetwork = fetchFromNetworkInstruction(this, req, false);
+    return this
       .plugins
       .filter(plugin => !!plugin.fetch)
-      .forEach(plugin => plugin.fetch(req, instructions));
-    return instructions.reduce<Promise<Response>>(
-      (prev, curr) => prev.then(resp => resp ? resp : curr()),
-      Promise.resolve(null),
-    );
+      .map(plugin => plugin.fetch(req))
+      .filter(instruction => !!instruction)
+      .reduceRight<FetchDelegate>(
+        (delegate: FetchDelegate, curr: FetchInstruction) => () => curr(delegate),
+        () => this.scope.fetch(req)
+      )
+      ();
   }
 
   validate(): Promise<boolean> {

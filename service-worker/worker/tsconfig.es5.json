@@ -12,8 +12,8 @@
     "rootDir": ".",
     "baseUrl": ".",
     "paths": {
-      "@angular/service-worker": ["src/"],
-      "@angular/service-worker/worker": ["src/worker/"]
+      "@angular/service-worker": ["src"],
+      "@angular/service-worker/worker": ["src/worker"]
     },
     "lib": [
       "dom",
@@ -23,8 +23,7 @@
       "jasmine",
       "node",
       "protractor",
-      "selenium-webdriver",
-      "whatwg-fetch"
+      "selenium-webdriver"
     ]
 	},
   "files": [
@@ -32,6 +31,8 @@
     "src/webpack.ts",
     "src/worker/index.ts",
     "src/test/unit/worker.spec.ts",
+    "src/plugins/dynamic/group.spec.ts",
+    "src/plugins/dynamic/linked.spec.ts",
     "src/test/e2e/harness/client/main.ts",
     "src/test/e2e/harness/server/server.ts",
     "src/test/e2e/spec/sanity.e2e.ts",

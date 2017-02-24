@@ -6,7 +6,8 @@ export interface NgSwCache {
   store(cache: string, req: string | Request, resp: Response): Promise<any>;
   remove(cache: string): Promise<any>;
   invalidate(cache: string, req: string | Request): Promise<void>;
-  keys(): Promise<string[]>
+  keys(): Promise<string[]>;
+  keysOf(cache: string): Promise<Request[]>;
 }
 
 export class NgSwCacheImpl implements NgSwCache {
@@ -40,5 +41,10 @@ export class NgSwCacheImpl implements NgSwCache {
 
   keys(): Promise<string[]> {
     return this.caches.keys();
+  }
+
+  keysOf(cache: string): Promise<Request[]> {
+    return this.caches.open(cache)
+      .then(cache => cache.keys());
   }
 }

@@ -3,7 +3,8 @@ import {
   NgSwCache,
   NgSwCacheImpl,
   NgSwEvents,
-  NgSwFetch
+  NgSwFetch,
+  Clock
 } from '../worker/index';
 import {
   MockCacheStorage,
@@ -11,13 +12,17 @@ import {
   MockResponse
 } from './mock_cache';
 
-class TestAdapter implements NgSwAdapter {
+export class TestAdapter implements NgSwAdapter {
   newRequest(req: string | Request, options = {}): Request {
     return new MockRequest(req, options);
   }
 
   newResponse(body: string | Blob, init = {}): Response {
     return new MockResponse(body, init);
+  }
+
+  get scope(): string {
+    return 'http://localhost';
   }
 }
 
@@ -148,7 +153,7 @@ interface TestActivateEvent extends TestExtendableEvent, ActivateEvent {}
 interface TestFetchEvent extends TestExtendableEvent, FetchEvent {}
 
 export interface TestWorkerCreationFn {
-  (scope: ServiceWorkerGlobalScope, adapter: NgSwAdapter, cache: NgSwCache, fetch: NgSwFetch, events: NgSwEvents): any;
+  (scope: ServiceWorkerGlobalScope, adapter: NgSwAdapter, cache: NgSwCache, fetch: NgSwFetch, events: NgSwEvents, clock: Clock): any;
 }
 
 export class TestWorkerDriver {
@@ -157,6 +162,7 @@ export class TestWorkerDriver {
   caches: MockCacheStorage = new MockCacheStorage();
   clients: MockClients = new MockClients();
   lifecycle: Promise<any> = Promise.resolve(null);
+  clock: Clock = new MockClock();
 
   constructor(private createWorker: TestWorkerCreationFn) {
     this.scope = new TestWorkerScope(this.caches, this.clients);
@@ -210,7 +216,7 @@ export class TestWorkerDriver {
     let cache = new NgSwCacheImpl(this.caches, workerAdapter);
     let fetch = new NgSwFetch(this.scope, workerAdapter);
     let events = new NgSwEvents(this.scope);
-    this.instance = this.createWorker(this.scope, workerAdapter, cache, fetch, events);
+    this.instance = this.createWorker(this.scope, workerAdapter, cache, fetch, events, this.clock);
   }
 
   triggerInstall(): Promise<any> {
@@ -268,5 +274,32 @@ export class TestWorkerDriver {
       done: Promise.resolve(null)
     };
     return event;
+  }
+}
+
+export class MockClock implements Clock {
+  private time: number = 0;
+  private delays: {fn: Function, triggerAt: number}[] = [];
+
+  reset(): void {
+    this.time = 0;
+  }
+
+  dateNow(): number {
+    return this.time;
+  }
+
+  setTimeout(fn: Function, delay: number) {
+    const triggerAt = delay + this.time;
+    this.delays.push({fn, triggerAt});
+  }
+
+  advance(millis: number): void {
+    this.time += millis;
+    this
+      .delays
+      .filter(delay => delay.triggerAt <= this.time)
+      .forEach(delay => delay.fn());
+    this.delays = this.delays.filter(delay => delay.triggerAt > this.time);
   }
 }

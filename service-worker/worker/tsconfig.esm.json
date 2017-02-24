@@ -14,10 +14,7 @@
     "paths": {
       "@angular/service-worker/worker": ["src/worker"]
     },
-    "lib": ["es2015", "dom"],
-    "types": [
-      "whatwg-fetch"
-    ]
+    "lib": ["es2015", "dom"]
   },
   "files": [
     "src/index.ts",

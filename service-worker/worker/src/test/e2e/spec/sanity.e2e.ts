@@ -41,8 +41,37 @@ const FORCED_UPDATE_MANIFEST = {
     urls: {
       '/hello.txt': 'changed_again',
       '/goodbye.txt': 'same',
-    }
-  }
+    },
+  },
+  dynamic: {
+    group: [{
+      name: 'testPerf',
+      urls: {
+        '/perf': {
+          match: 'prefix',
+        },
+      },
+      cache: {
+        optimizeFor: 'performance',
+        strategy: 'fifo',
+        maxEntries: 10,
+        refreshAheadMs: 1000,
+      },
+    }, {
+      name: 'testFresh',
+      urls: {
+        '/fresh': {
+          match: 'prefix',
+        },
+      },
+      cache: {
+        optimizeFor: 'freshness',
+        strategy: 'fifo',
+        maxEntries: 10,
+        networkTimeoutMs: 1000,
+      },
+    }],
+  },
 };
 
 beforeAll(done => {
@@ -59,12 +88,8 @@ beforeEach(() => {
 
 
 afterAll(done => {
-/*  po
-    .ping()
-    .then(() => po.log())
-    .then(entries => setTimeout(() => entries.forEach(entry => console.log(entry)), 0))
-    .then(() => server.shutdown())
-    .then(done); */ server.shutdown(); done();
+  server.shutdown();
+  done();
 });
 
 function expectNoServiceWorker(): Promise<void> {
@@ -226,4 +251,25 @@ describe('world sanity', () => {
       .then(result => expect(result).toBe('Goodbye world!'))
       .then(() => done());
   });
+  it('requests fresh data from the server', done => {
+    server.addResponse('/fresh/test', 'Returned right away.');
+    Promise
+      .resolve()
+      .then(() => po.request('/fresh/test'))
+      .then(result => expect(result).toBe('Returned right away.'))
+      .then(() => server.addResponse('/fresh/test', 'Delayed long', 2000))
+      .then(() => po.request('/fresh/test'))
+      .then(result => expect(result).toBe('Returned right away.'))
+      .then(() => wait(1500))
+      .then(() => server.addResponse('/fresh/test', 'Delayed longer', 3000))
+      .then(() => po.request('/fresh/test'))
+      .then(result => expect(result).toBe('Delayed long'))
+      .then(() => done());
+  })
 });
+
+function wait(delayMs: number): Promise<void> {
+  return new Promise<void>(resolve => {
+    setTimeout(() => resolve(), delayMs);
+  });
+}
