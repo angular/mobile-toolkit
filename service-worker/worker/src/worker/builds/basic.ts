@@ -4,7 +4,7 @@ import {RouteRedirection} from '../../plugins/routes';
 import {Push} from '../../plugins/push';
 
 bootstrapServiceWorker({
-  manifestUrl: '/ngsw-manifest.json',
+  manifestUrl: 'ngsw-manifest.json',
   plugins: [
     StaticContentCache(),
     RouteRedirection(),
