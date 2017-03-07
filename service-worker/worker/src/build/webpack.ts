@@ -1,16 +1,32 @@
 declare var require, Buffer;
 const crypto = require('crypto');
 
+export interface SwPluginConfig {
+  manifestFile?: string;
+  manifestKey?: string;
+  baseHref?: string;
+}
+
 /**
  * Webpack plugin that generates a basic Angular service worker manifest.
  */
 export class AngularServiceWorkerPlugin {
 
-  constructor(public manifestFile = 'ngsw-manifest.json', public manifestKey = 'static') {}
+  public manifestFile: string;
+  public manifestKey: string;
+  public baseHref: string;
+
+  constructor(config?: SwPluginConfig) {
+    this.manifestFile = (config && config.manifestFile) || 'ngsw-manifest.json';
+    this.manifestKey = (config && config.manifestKey) || 'static';
+    this.baseHref = (config && config.baseHref) || '/';
+    if (!this.baseHref.endsWith('/')) {
+      this.baseHref += '/';
+    }
+  }
 
   apply(compiler) {
     // Determine the URL prefix under which all files will be served.
-    let publicPrefix = compiler.options.output.publicPath || '';
     compiler.plugin('emit', (compilation, callback) => {
       // Manifest into which assets to be fetched will be recorded. This will either
       // be read from the existing template or created fresh.
@@ -40,7 +56,7 @@ export class AngularServiceWorkerPlugin {
         .keys(compilation.assets)
         .filter(key => key !== this.manifestFile)
         .forEach(key => {
-          let url = `${publicPrefix}/${key}`;
+          let url = `${this.baseHref}${key}`;
           urls[url] = sha1(compilation.assets[key].source());
         });
       
