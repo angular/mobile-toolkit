@@ -1,3 +1,6 @@
 {
-  "other": true
+  "other": true,
+  "static.ignore": [
+    "^\/test\/ig.*$"
+  ]
 }
