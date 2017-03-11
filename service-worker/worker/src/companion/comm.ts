@@ -112,7 +112,7 @@ export class NgServiceWorker {
         err => this.controllingWorker.error(err),
         () => this.controllingWorker.complete(),
       );
-    
+
     // To make one-off calls to the worker, awaitSingleControllingWorker waits for
     // a controlling worker to exist.
     this.awaitSingleControllingWorker = this
@@ -187,7 +187,7 @@ export class NgServiceWorker {
       // Wait for a controlling worker to exist.
       .awaitSingleControllingWorker
       // Send the message and await any replies. switchMap is chosen so if a new
-      // controlling worker arrives somehow, the message will still get through. 
+      // controlling worker arrives somehow, the message will still get through.
       .switchMap(worker => this.sendToWorker(worker, message));
   }
 
@@ -205,7 +205,7 @@ export class NgServiceWorker {
     });
   }
 
-  registerForPush(): Observable<NgPushRegistration> {
+  registerForPush(options?: PushSubscribeOptions): Observable<NgPushRegistration> {
     return this
       // Wait for a controlling worker to exist.
       .awaitSingleControllingWorker
@@ -229,9 +229,13 @@ export class NgServiceWorker {
               if (!!sub) {
                 return regFromSub(sub);
               }
-              // No existing subscription, register (with userVisibleOnly: true).
+              var ops: PushSubscribeOptions = {userVisibleOnly: true};
+              if (options) {
+                ops = options;
+              }
+              // No existing subscription, register (with user provided options or userVisibleOnly: true).
               return pushManager
-                .subscribe({userVisibleOnly: true})
+                .subscribe(ops)
                 .then(regFromSub);
             })
             // Map from promises to the Observable being returned.
