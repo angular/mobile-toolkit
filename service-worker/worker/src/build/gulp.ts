@@ -37,7 +37,20 @@ export function gulpAddStaticFiles(files: any, options: GulpAddStaticFileOptions
     let property = options.manifestKey || 'static';
     manifest[property] = staticConfig;
 
+    // Look for ignored patterns in the manifest.
+    let ignored: RegExp[] = [];
+    const ignoreKey = `${options.manifestKey}.ignore`;
+    if (manifest.hasOwnProperty(ignoreKey)) {
+      ignored.push(...(manifest[ignoreKey] as string[])
+        .map(regex => new RegExp(regex)));
+      delete manifest[ignoreKey];
+    }
+
     files.on('data', file => {
+      const url = '/' + file.relative;
+      if (ignored.some(regex => regex.test(url))) {
+        return;
+      }
       staticConfig.urls['/' + file.relative] = sha1(file.contents);
     });
     files.on('end', () => {

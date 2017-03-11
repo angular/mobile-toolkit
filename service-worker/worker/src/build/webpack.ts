@@ -47,6 +47,15 @@ export class AngularServiceWorkerPlugin {
           throw new Error(`Manifest already contains key: ${this.manifestKey}`);
       }
 
+      // Look for ignored patterns in the manifest.
+      let ignored: RegExp[] = [];
+      const ignoreKey = `${this.manifestKey}.ignore`;
+      if (manifest.hasOwnProperty(ignoreKey)) {
+        ignored.push(...(manifest[ignoreKey] as string[])
+          .map(regex => new RegExp(regex)));
+        delete manifest[ignoreKey];
+      }
+
       // Map of urls to hashes.
       let urls = {};
       manifest[this.manifestKey] = {urls, _generatedFromWebpack: true};
@@ -57,6 +66,9 @@ export class AngularServiceWorkerPlugin {
         .filter(key => key !== this.manifestFile)
         .forEach(key => {
           let url = `${this.baseHref}${key}`;
+          if (ignored.some(regex => regex.test(url))) {
+            return;
+          }
           urls[url] = sha1(compilation.assets[key].source());
         });
       

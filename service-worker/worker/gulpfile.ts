@@ -130,6 +130,8 @@ gulp.task('task:webpack_test:pack', done => {
     },
     plugins: [
       new CopyWebpackPlugin([
+        {from: 'other.js'},
+        {from: 'ignored.js'},
         {from: 'ngsw-manifest.json'},
       ]),
       new AngularServiceWorkerPlugin({baseHref: '/test'}),
