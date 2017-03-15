@@ -13,6 +13,7 @@ interface RouteMap {
 
 interface RouteConfig {
   prefix?: boolean;
+  onlyWithoutExtension?: boolean;
 }
 
 interface RouteRedirectionManifest {
@@ -31,6 +32,11 @@ export class RouteRedirectionImpl implements Plugin<RouteRedirectionImpl> {
     return this.worker.manifest['routing'] as RouteRedirectionManifest;
   }
 
+  private hasExtension(path: string): boolean {
+    const lastSegment = path.substr(path.lastIndexOf('/') + 1);
+    return lastSegment.indexOf('.') !== -1;
+  }
+
   setup(operations: Operation[]): void {
     // No setup needed.
   }
@@ -47,9 +53,12 @@ export class RouteRedirectionImpl implements Plugin<RouteRedirectionImpl> {
     }
     const matchesRoutingTable = Object.keys(manifest.routes).some(route => {
       const config = manifest.routes[route];
-      return config.prefix
+      const matchesPath = config.prefix
         ? path.indexOf(route) === 0
         : path === route;
+      const matchesPathAndExtension = matchesPath &&
+          (!config.onlyWithoutExtension || !this.hasExtension(path));
+      return matchesPathAndExtension;
     });
     if (matchesRoutingTable) {
       ops.unshift(rewriteUrlInstruction(this.worker, req, base + manifest.index));

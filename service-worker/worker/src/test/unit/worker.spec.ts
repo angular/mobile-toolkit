@@ -34,6 +34,10 @@ const ROUTING_MANIFEST = JSON.stringify({
     routes: {
       '/goodbye.txt': {
         prefix: false
+      },
+      '/prefix': {
+        prefix: true,
+        onlyWithoutExtension: true,
       }
     }
   }
@@ -194,13 +198,14 @@ describe('ngsw', () => {
     beforeAll(done => {
       driver.mockUrl(MANIFEST_URL, ROUTING_MANIFEST);
       driver.mockUrl('/hello.txt', 'Hello world!');
-      driver.mockUrl('/goodbye.txt', 'Should never be fetched!');
       driver.startup();
       driver
         .triggerInstall()
         .then(() => driver.triggerActivate())
         .then(() => driver.waitForReady())
         .then(() => driver.unmockAll())
+        .then(() => driver.mockUrl('/goodbye.txt', 'Should never be fetched!'))
+        .then(() => driver.mockUrl('/prefix/test.json', 'Some json'))
         .then(done, err => errored(err, done));
     });
     it('successfully falls back', done => Promise
@@ -208,6 +213,11 @@ describe('ngsw', () => {
       .then(() => expectServed(driver, '/hello.txt', 'Hello world!'))
       .then(() => expectServed(driver, '/goodbye.txt', 'Hello world!'))
       .then(done, err => errored(err, done)))
+    it('successfully falls back prefixed routes', done => Promise
+      .resolve(null)
+      .then(() => expectServed(driver, '/prefix/test', 'Hello world!'))
+      .then(() => expectServed(driver, '/prefix/test.json', 'Some json'))
+      .then(done, err => errored(err, done)));
   });;
   sequence('index fallback', () => {
     let driver: TestWorkerDriver = new TestWorkerDriver(createServiceWorker);
