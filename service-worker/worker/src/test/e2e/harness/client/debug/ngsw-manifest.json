@@ -3,5 +3,10 @@
     "urls": {
       "/hello.txt": "test"
     }
+  },
+  "external": {
+    "urls": [
+      {"url": "http://localhost:8080/full.txt"}
+    ]
   }
 }
