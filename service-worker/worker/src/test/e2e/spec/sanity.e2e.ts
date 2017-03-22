@@ -14,6 +14,11 @@ const SIMPLE_MANIFEST = {
       '/goodbye.txt': 'same',
     }
   },
+  external: {
+    urls: [
+      {url: 'http://localhost:8080/full.txt'},
+    ],
+  },
   push: {
     showNotifications: true
   }
@@ -108,6 +113,7 @@ describe('world sanity', () => {
     server.addResponse('/ngsw-manifest.json.js', '/* mocked */');
     server.addResponse('/ngsw-manifest.json', JSON.stringify(SIMPLE_MANIFEST));
     server.addResponse('/hello.txt', 'Hello world!');
+    server.addResponse('/full.txt', 'Cached initially!');
     server.addResponse('/goodbye.txt', 'Goodbye world!');
     po.installServiceWorker('/worker-test.js');
     po
@@ -125,6 +131,13 @@ describe('world sanity', () => {
       .then(result => expect(result).toBe('Hello world!'))
       .then(done), 2000);
   });
+  it('and cached /full.txt with full url', done => {
+    server.addResponse('/full.txt', 'Not cached?');
+    po
+      .request('http://localhost:8080/full.txt')
+      .then(result => expect(result).toBe('Cached initially!'))
+      .then(done);
+});
   it('worker responds to ping', done => {
     po
       .ping()
@@ -159,6 +172,7 @@ describe('world sanity', () => {
     server.addResponse('/ngsw-manifest.json', JSON.stringify(UPDATE_MANIFEST));
     server.addResponse('/hello.txt', 'Hola mundo!');
     server.addResponse('/goodbye.txt', 'Should not be re-fetched.');
+    server.addResponse('/full.txt', 'Should be reloaded');
     po
       .checkForUpdate()
       .then(updated => expect(updated).toBeTruthy())
@@ -168,6 +182,8 @@ describe('world sanity', () => {
       .then(result => expect(result).toBe('Hola mundo!'))
       .then(() => po.request('/goodbye.txt'))
       .then(result => expect(result).toBe('Goodbye world!'))
+      .then(() => po.request('http://localhost:8080/full.txt'))
+      .then(result => expect(result).toBe('Should be reloaded'))
       .then(() => done());
   });
 });
