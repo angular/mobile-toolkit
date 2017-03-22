@@ -42,6 +42,11 @@ function fromPromise<T>(promiseFn: (() => Promise<T>)): Observable<T> {
   });
 }
 
+export interface UpdateEvent {
+  type: "pending" | "activation";
+  version?: string;
+}
+
 // A push notification registration, including the endpoint URL and encryption keys.
 export class NgPushRegistration {
   private ps: PushSubscription;
@@ -88,6 +93,8 @@ export class NgServiceWorker {
 
   push: Observable<any>;
 
+  updates: Observable<UpdateEvent>;
+
   constructor(private zone: NgZone) {
     // Extract a typed version of navigator.serviceWorker.
     this.container = navigator['serviceWorker'] as ServiceWorkerContainer;
@@ -123,6 +130,11 @@ export class NgServiceWorker {
     // Setup the push Observable as a broadcast mechanism for push notifications.
     this.push = Observable
       .defer(() => this.send({cmd: 'push'}))
+      .share();
+
+    // Setup the updates Observable as a broadcast mechanism for update notifications.
+    this.updates = Observable
+      .defer(() => this.send({cmd: 'update'}))
       .share();
   }
 
@@ -202,6 +214,13 @@ export class NgServiceWorker {
   log(): Observable<string> {
     return this.send({
       cmd: 'log'
+    });
+  }
+
+  activateUpdate(version: string): Observable<boolean> {
+    return this.send({
+      cmd: 'activateUpdate',
+      version,
     });
   }
 

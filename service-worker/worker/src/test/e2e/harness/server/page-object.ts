@@ -23,11 +23,16 @@ export class HarnessPageObject {
     return element(by.css('#result')).getText() as any as Promise<string>;
   }
 
+  get updates(): Promise<string> {
+    browser.wait(protractor.ExpectedConditions.presenceOf(element(by.id('updateAlert'))));
+    return element(by.id('updates')).getText() as any as Promise<string>;
+  }
+
   get asyncResult(): Promise<string> {
     browser.wait(protractor.ExpectedConditions.presenceOf(element(by.id('alert'))));
     return this.result;
   }
-  
+
   request(url: string): Promise<string> {
     this.selectAction('MAKE_REQUEST');
     this.setTextOn('requestUrl', url);
@@ -39,6 +44,13 @@ export class HarnessPageObject {
     this.selectAction('SW_INSTALL');
     this.setTextOn('workerUrl', url);
     this.clickButton('installAction');
+  }
+
+  forceUpdate(version: string): Promise<string> {
+    this.selectAction('FORCE_UPDATE');
+    this.setTextOn('updateVersion', version);
+    this.clickButton('updateAction');
+    return this.result;
   }
   
   hasActiveWorker(): Promise<boolean> {
@@ -93,6 +105,8 @@ export class HarnessPageObject {
     this.selectAction('RESET');
     browser.wait(protractor.ExpectedConditions.not(
         protractor.ExpectedConditions.presenceOf(element(by.id('alert')))));
+    browser.wait(protractor.ExpectedConditions.not(
+        protractor.ExpectedConditions.presenceOf(element(by.id('updateAlert')))));
   }
 
   registerForPush(): Promise<string> {
@@ -103,9 +117,14 @@ export class HarnessPageObject {
 
   checkForUpdate(): Promise<boolean> {
     this.reset();
-    this.selectAction('FORCE_UPDATE');
+    this.selectAction('CHECK_FOR_UPDATES');
     return this
       .asyncResult
       .then(JSON.parse);
+  }
+
+  subscribeToUpdates(): void {
+    this.reset();
+    this.selectAction('COMPANION_SUBSCRIBE_TO_UPDATES');
   }
 }
