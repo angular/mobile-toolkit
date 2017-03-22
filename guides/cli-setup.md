@@ -12,7 +12,8 @@ less on getting the underlying tooling and technology set up.
 To get started, install Angular CLI from [npm](https://www.npmjs.com/).
 
 ```
-$ npm install -g angular-cli
+$ npm install -g @angular/cli
+
 ```
 
 (Note: this recipe is based on version 1.0.0-beta.4 of Angular CLI.)
