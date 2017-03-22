@@ -36,6 +36,15 @@ const UPDATE_MANIFEST = {
   }
 };
 
+const FORCED_UPDATE_MANIFEST = {
+  static: {
+    urls: {
+      '/hello.txt': 'changed_again',
+      '/goodbye.txt': 'same',
+    }
+  }
+};
+
 beforeAll(done => {
   create(8080, 'tmp/es5/src/test/e2e/harness/client').then(s => {
     server = s;
@@ -184,6 +193,37 @@ describe('world sanity', () => {
       .then(result => expect(result).toBe('Goodbye world!'))
       .then(() => po.request('http://localhost:8080/full.txt'))
       .then(result => expect(result).toBe('Should be reloaded'))
+      .then(() => done());
+  });
+  it('notifies the app when an update is available', done => {
+    server.addResponse('/ngsw-manifest.json', JSON.stringify(FORCED_UPDATE_MANIFEST));
+    server.addResponse('/hello.txt', 'And again');
+    server.addResponse('/goodbye.txt', 'Should still not be re-fetched.');
+    Promise
+      .resolve()
+      .then(() => po.subscribeToUpdates())
+      .then(() => po.checkForUpdate())
+      .then(updated => expect(updated).toBeTruthy())
+      .then(() => po.updates)
+      .then(updates => JSON.parse(updates))
+      .then(updates => {
+        expect(updates.length).toBe(1);
+        const update = updates[0];
+        expect(update['type']).toBe('pending');
+        const hash = update['version'];
+        po.reset();
+        return po.forceUpdate(hash);
+      })
+      .then(() => po.updates)
+      .then(updates => JSON.parse(updates))
+      .then(updates => {
+        expect(updates.length).toBe(2);
+        expect(updates[1].type).toBe('activation');
+      })
+      .then(() => po.request('/hello.txt'))
+      .then(result => expect(result).toBe('And again'))
+      .then(() => po.request('/goodbye.txt'))
+      .then(result => expect(result).toBe('Goodbye world!'))
       .then(() => done());
   });
 });

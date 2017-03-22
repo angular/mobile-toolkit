@@ -70,6 +70,9 @@ export class Driver {
   // The worker always starts in STARTUP.
   private state: DriverState = DriverState.STARTUP;
 
+  // A hash of the pending manifest, if the worker is in an UPDATE_PENDING state.
+  private pendingUpdateHash: string = null;
+
   // Tracks which `Driver` instance this is, useful for testing only.
   private id: number;
 
@@ -108,6 +111,9 @@ export class Driver {
 
   // A resolve function that resolves the `ready` promise. Used only for testing.
   updatePendingResolve: Function;
+
+  // Stream IDs that are actively listening for update lifecycle events.
+  private updateListeners: number[] = [];
 
   constructor(
       private manifestUrl: string,
@@ -360,18 +366,24 @@ export class Driver {
   /**
    * Switch to the staged worker (if any).
    *
-   * After updating, the worker will be in state READY, always.
-   *
-   * If a staged manifest was present and validated, it will be set as active.
+   * After updating, the worker will be in state READY, always. If a staged manifest
+   * was present and validated, it will be set as active.
+   * 
+   * If `expectVersion` is set but the staged manifest does not match the expected
+   * version, the update is skipped and the result resolves to false.
    */
-  private doUpdate(): Promise<any> {
+  private doUpdate(expectVersion?: string): Promise<boolean> {
     return this
       .fetchManifestFromCache('staged')
       .then(manifest => {
         // If no staged manifest exists in the cache, just transition to READY now.
         if (!manifest) {
           this.transition(DriverState.READY);
-          return null;
+          return false;
+        }
+        // If a particular version is expected 
+        if (!!expectVersion && manifest._hash !== expectVersion) {
+          return false;
         }
         return this
           // Open the new manifest. This implicitly validates that the manifest was
@@ -396,12 +408,22 @@ export class Driver {
                 this
                   .cleanup(oldActive)
                   .then(() => this.lifecycle(`cleaned up old version ${oldActive.manifest._hash}`));
+                
+                // Notify update listeners that an update has occurred.
+                this.updateListeners.forEach(id => {
+                  this.sendToStream(id, {
+                    type: 'activation',
+                    version: manifest._hash,
+                  });
+                });
+
                 this.lifecycle(`updated to manifest ${manifest._hash}`);
               }
 
               // Regardless of whether the manifest successfully validated, it is no longer
               // a pending update, so transition to READY.
               this.transition(DriverState.READY);
+              return true;
             })
           );
       });
@@ -470,6 +492,7 @@ export class Driver {
           // the UPDATE_PENDING state by initialize(), but this is here for safety.
           if (!!staged) {
             // If there is a staged manifest, transition to UPDATE_PENDING.
+            this.pendingUpdateHash = staged._hash;
             this.transition(DriverState.UPDATE_PENDING);
             return true;
           } else {
@@ -487,6 +510,7 @@ export class Driver {
         // UPDATE_PENDING, but as above, this is here for safety.
         if (!!staged && staged._hash === network._hash) {
           this.lifecycle(`network manifest ${network._hash} is already staged`);
+          this.pendingUpdateHash = staged._hash;
           this.transition(DriverState.UPDATE_PENDING);
           return true;
         }
@@ -511,6 +535,7 @@ export class Driver {
           .then(() => this.setManifest(network, 'staged'))
           .then(() => {
             // Finally, transition to UPDATE_PENDING to indicate updates should be checked.
+            this.pendingUpdateHash = network._hash;
             this.transition(DriverState.UPDATE_PENDING);
             this.lifecycle(`staged update to ${network._hash}`);
             return true;
@@ -574,6 +599,7 @@ export class Driver {
             // If a staged manifest exist, go to UPDATE_PENDING instead of READY.
             if (!!staged) {
               this.lifecycle(`staged manifest ${staged._hash} present at initialization`);
+              this.pendingUpdateHash = staged._hash;
               this.transition(DriverState.UPDATE_PENDING);
               return null;
             }
@@ -769,6 +795,18 @@ export class Driver {
       this.updatePendingResolve = null;
       resolve();
     }
+
+    // If the driver entered the UPDATE_PENDING state, notify all update subscribers
+    // about the pending update.
+    if (state === DriverState.UPDATE_PENDING && this.pendingUpdateHash !== null) {
+      this.updateListeners.forEach(id => this.sendToStream(id, {
+        type: 'pending',
+        version: this.pendingUpdateHash,
+      }));
+    } else if (state !== DriverState.UPDATE_PENDING) {
+      // Reset the pending update hash if not transitioning to UPDATE_PENDING.
+      this.pendingUpdateHash = null;
+    }
   }
 
   /**
@@ -791,11 +829,31 @@ export class Driver {
         this.lifecycle(`responding to ping on ${id}`)
         this.closeStream(id);
         break;
+      // An update message is a request for the service worker to keep the application
+      // apprised of any pending update events, such as a new manifest becoming pending.
+      case 'update':
+        this.updateListeners.push(id);
+
+        // Since this is a new subscriber, check if there's a pending update now and
+        // deliver an initial event if so.
+        if (this.state === DriverState.UPDATE_PENDING && this.pendingUpdateHash !== null) {
+          this.sendToStream(id, {
+            type: 'pending',
+            version: this.pendingUpdateHash,
+          });
+        }
+        break;
       // Check for a pending update, fetching a new manifest from the network if necessary,
       // and return the result as a boolean value beore completing.
       case 'checkUpdate':
         this.checkForUpdate().then(value => {
           this.sendToStream(id, value);
+          this.closeStream(id);
+        });
+        break;
+      case 'activateUpdate':
+        this.doUpdate(message['version'] || undefined).then(success => {
+          this.sendToStream(id, success);
           this.closeStream(id);
         });
         break;
@@ -808,8 +866,15 @@ export class Driver {
           // Not found - nothing to do but exit.
           return;
         }
+
         // Notify the active `VersionWorker` that the client has unsubscribed.
         this.active.messageClosed(id);
+
+        // This listener may have been a subscriber to 'update' events.
+        this.maybeRemoveUpdateListener(id);
+
+        // Finally, remove the stream.
+        delete this.streams[id];
         break;
       // A request to stream the service worker debugging log. Only one of these is valid
       // at a time.
@@ -821,6 +886,16 @@ export class Driver {
       // If the command is unknown, delegate to the active `VersionWorker` to handle it.
       default:
         this.active.message(message, id);
+    }
+  }
+
+  /**
+   * Remove the given stream id from the set of subscribers to update events, if present.
+   */
+  private maybeRemoveUpdateListener(id: number): void {
+    const idx = this.updateListeners.indexOf(id);
+    if (idx !== -1) {
+      this.updateListeners.splice(idx, 1);
     }
   }
 
