@@ -86,6 +86,7 @@ declare interface PushSubscription {
 
 declare interface PushSubscribeOptions {
   userVisibleOnly?: boolean;
+  applicationServerKey?: Uint8Array;
 }
 
 declare interface PushManager {
