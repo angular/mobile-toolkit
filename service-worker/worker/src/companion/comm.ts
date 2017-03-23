@@ -92,27 +92,29 @@ export class NgServiceWorker {
     // Extract a typed version of navigator.serviceWorker.
     this.container = navigator['serviceWorker'] as ServiceWorkerContainer;
 
-    // Final Observable that will always give back the current controlling worker,
-    // and follow changes over time.
-    Observable
-      // Combine current and future controllers.
-      .concat(
-        // Current controlling worker (if any).
-        Observable.of(this.container.controller),
-        // Future changes of the controlling worker.
-        Observable
-          // Track changes of the controlling worker via the controllerchange event.
-          .fromEvent(this.container, 'controllerchange')
-          // Read the new controller when it changes.
-          .map(_ => this.container.controller)
-      )
-      // Cache the latest controller for immediate delivery.
-      .subscribe(
-        worker => this.controllingWorker.next(worker),
-        err => this.controllingWorker.error(err),
-        () => this.controllingWorker.complete(),
-      );
-    
+    if (this.container) {
+      // Final Observable that will always give back the current controlling worker,
+      // and follow changes over time.
+      Observable
+        // Combine current and future controllers.
+        .concat(
+          // Current controlling worker (if any).
+          Observable.of(this.container.controller),
+          // Future changes of the controlling worker.
+          Observable
+            // Track changes of the controlling worker via the controllerchange event.
+            .fromEvent(this.container, 'controllerchange')
+            // Read the new controller when it changes.
+            .map(_ => this.container.controller)
+        )
+        // Cache the latest controller for immediate delivery.
+        .subscribe(
+          worker => this.controllingWorker.next(worker),
+          err => this.controllingWorker.error(err),
+          () => this.controllingWorker.complete(),
+        );
+    }
+
     // To make one-off calls to the worker, awaitSingleControllingWorker waits for
     // a controlling worker to exist.
     this.awaitSingleControllingWorker = this
@@ -187,7 +189,7 @@ export class NgServiceWorker {
       // Wait for a controlling worker to exist.
       .awaitSingleControllingWorker
       // Send the message and await any replies. switchMap is chosen so if a new
-      // controlling worker arrives somehow, the message will still get through. 
+      // controlling worker arrives somehow, the message will still get through.
       .switchMap(worker => this.sendToWorker(worker, message));
   }
 
