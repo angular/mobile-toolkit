@@ -21,10 +21,13 @@ import 'rxjs/add/operator/startWith';
     <option value="SW_INSTALL">Install service worker</option>
     <option value="COMPANION_PING">Ping from the companion</option>
     <option value="COMPANION_REG_PUSH">Register for push notifications</option>
-    <option value="FORCE_UPDATE">Force an update</option>
+    <option value="CHECK_FOR_UPDATES">Check for updates</option>
+    <option value="COMPANION_SUBSCRIBE_TO_UPDATES">Subscribe to update notifications</option>
+    <option value="FORCE_UPDATE">Force install pending update</option>
     <option value="RESET">Reset</option>
   </select>
   <span *ngIf="alert" id="alert">ASYNC ALERT</span>
+  <span *ngIf="updateAlert" id="updateAlert">UPDATE ALERT</span>
   <input id="actionInput" #actionInput [(ngModel)]="action">
   <button id="actionExec" (click)="refresh(actionInput.value)">Exec</button>
 </div>
@@ -49,19 +52,35 @@ import 'rxjs/add/operator/startWith';
     </div>
     <button id="installAction" (click)="installWorker(workerUrl.value)">Install service worker</button>
   </div>
+  <div *ngSwitchCase="'FORCE_UPDATE'">
+    <div>
+      <label for="updateVersion">
+        Version:
+      </label>
+      <input #updateVersion id="updateVersion">
+    </div>
+    <button id="updateAction" (click)="forceUpdate(updateVersion.value)">Force update</button>
+  </div>
 </div>
 
+<h5>Result</h5>
 <pre id="result">{{result}}</pre>
+<h5>Updates</h5>
+<pre id="updates">{{updates}}</pre>
+<h5>Log</h5>
 <pre id="log">{{log | json}}</pre>
 `
 })
 export class ControllerCmp {
   result: string = null;
+  updates: string = null;
   action: string = '';
   alert: boolean = false;
+  updateAlert: boolean = false;
   log: string[] = [];
 
   pushSub = null;
+  updateSub = null;
   pushes = [];
 
   constructor(public sw: NgServiceWorker) {
@@ -69,6 +88,7 @@ export class ControllerCmp {
   }
   
   actionSelected(action): void {
+    console.log('set action', action);
     this.action = action;
   }
   
@@ -87,9 +107,10 @@ export class ControllerCmp {
     switch (action) {
       case 'RESET':
         this.alert = false;
+        this.updateAlert = false;
         this.result = 'reset';
         break;
-      case 'FORCE_UPDATE':
+      case 'CHECK_FOR_UPDATES':
         this
           .sw
           .checkForUpdate()
@@ -136,6 +157,21 @@ export class ControllerCmp {
               this.result = value;
               this.alert = true;
             });
+          break;
+        case 'COMPANION_SUBSCRIBE_TO_UPDATES':
+          this.updateSub = this
+            .sw
+            .updates
+            .scan((acc, value) => acc.concat(value), [])
+            .startWith([])
+            .map(value => JSON.stringify(value))
+            .subscribe(value => {
+              this.updates = value;
+              if (value.length > 2) {
+                this.updateAlert = true;
+              }
+            });
+          break;
       default:
         this.result = null;
     }
@@ -160,6 +196,16 @@ export class ControllerCmp {
           error: `${err}`
         })
       });
+  }
+
+  forceUpdate(version: string): void {
+    this
+      .sw
+      .activateUpdate(version)
+      .subscribe(value => {
+        this.result = JSON.stringify(value);
+        this.alert = true;
+      })
   }
   
   checkServiceWorker(): void {
