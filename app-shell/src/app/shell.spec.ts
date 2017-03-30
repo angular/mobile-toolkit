@@ -20,7 +20,7 @@ export default function () {
         .createComponent(NoRenderTestComponent);
       fixture.detectChanges();
       expect(fixture.debugElement.childNodes.length).toBe(1);
-      expect(fixture.debugElement.childNodes[0].nativeNode.data).toBe('template bindings={}');
+      expect(fixture.debugElement.childNodes[0].nativeNode.type).toBe('comment');
     });
     it('should render the element at runtime', () => {
       const fixture = TestBed
@@ -31,7 +31,7 @@ export default function () {
         .createComponent(NoRenderTestComponent);
       fixture.detectChanges();
       expect(fixture.debugElement.childNodes.length).toBe(2);
-      expect(fixture.debugElement.childNodes[0].nativeNode.data).toBe('template bindings={}');
+      expect(fixture.debugElement.childNodes[0].nativeNode.type).toBe('comment');
       expect(fixture.debugElement.childNodes[1].nativeNode.name).toBe('div');
     });
   });
@@ -52,7 +52,7 @@ export default function () {
         .createComponent(RenderTestComponent);
       fixture.detectChanges();
       expect(fixture.debugElement.childNodes.length).toBe(2);
-      expect(fixture.debugElement.childNodes[0].nativeNode.data).toBe('template bindings={}');
+      expect(fixture.debugElement.childNodes[0].nativeNode.type).toBe('comment');
       expect(fixture.debugElement.childNodes[1].nativeNode.name).toBe('div');
     });
     it('should NOT render the element at runtime', () => {
@@ -64,7 +64,7 @@ export default function () {
         .createComponent(RenderTestComponent);
       fixture.detectChanges();
       expect(fixture.debugElement.childNodes.length).toBe(1);
-      expect(fixture.debugElement.childNodes[0].nativeNode.data).toBe('template bindings={}');
+      expect(fixture.debugElement.childNodes[0].nativeNode.type).toBe('comment');
     });
   });
 }
