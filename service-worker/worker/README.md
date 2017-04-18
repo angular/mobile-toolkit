@@ -227,6 +227,6 @@ If instead of Gulp, you use Webpack to build your project, the service worker al
         new CopyWebpackPlugin([
           {from: 'ngsw-manifest.json'},
         ]),
-        new AngularServiceWorkerPlugion(),
+        new AngularServiceWorkerPlugin(),
       ],
     }, () => { /* done */ });
