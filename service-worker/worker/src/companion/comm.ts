@@ -31,7 +31,6 @@ import 'rxjs/add/operator/reduce';
 import 'rxjs/add/operator/share';
 import 'rxjs/add/operator/switchMap';
 import 'rxjs/add/operator/take';
-import 'rxjs/add/operator/takeWhile';
 
 function fromPromise<T>(promiseFn: (() => Promise<T>)): Observable<T> {
   return Observable.create(observer => {
@@ -119,7 +118,7 @@ export class NgServiceWorker {
         err => this.controllingWorker.error(err),
         () => this.controllingWorker.complete(),
       );
-    
+
     // To make one-off calls to the worker, awaitSingleControllingWorker waits for
     // a controlling worker to exist.
     this.awaitSingleControllingWorker = this
@@ -172,8 +171,6 @@ export class NgServiceWorker {
           this.sendToWorker(worker, {cmd: 'cancel', id: cancelId});
         };
       })
-      // Instead of complicating this with 'close' events, complete on a null value.
-      .takeWhile(v => !!v)
       // The message will be sent before the consumer has a chance to subscribe to
       // the response Observable, so publishReplay() records any responses and ensures
       // they arrive properly.
@@ -199,7 +196,7 @@ export class NgServiceWorker {
       // Wait for a controlling worker to exist.
       .awaitSingleControllingWorker
       // Send the message and await any replies. switchMap is chosen so if a new
-      // controlling worker arrives somehow, the message will still get through. 
+      // controlling worker arrives somehow, the message will still get through.
       .switchMap(worker => this.sendToWorker(worker, message));
   }
 
