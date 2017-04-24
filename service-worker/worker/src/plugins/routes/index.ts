@@ -4,11 +4,13 @@ import {
   Operation,
   Plugin,
   PluginFactory,
-  VersionWorker
+  VersionWorker,
+  UrlConfig,
+  UrlMatcher,
 } from '@angular/service-worker/worker';
 
 interface RouteMap {
-  [url: string]: RouteConfig;
+  [url: string]: RouteConfig|UrlConfig;
 }
 
 interface RouteConfig {
@@ -47,18 +49,20 @@ export class RouteRedirectionImpl implements Plugin<RouteRedirectionImpl> {
       return;
     }
     let [base, path] = parseUrl(req.url);
-    if (path === '/') {
-      // TODO(alxhub): configurable base url
-      return rewriteUrlInstruction(this.worker, req, base + manifest.index);
-    }
     const matchesRoutingTable = Object.keys(manifest.routes).some(route => {
       const config = manifest.routes[route];
-      const matchesPath = config.prefix
-        ? path.indexOf(route) === 0
-        : path === route;
-      const matchesPathAndExtension = matchesPath &&
-          (!config.onlyWithoutExtension || !this.hasExtension(path));
-      return matchesPathAndExtension;
+      if (config['match']) {
+        const matcher = new UrlMatcher(route, config as UrlConfig, this.worker.adapter.scope);
+        return matcher.matches(req.url);
+      } else {
+        const oldConfig = config as RouteConfig;
+        const matchesPath = oldConfig.prefix
+          ? path.indexOf(route) === 0
+          : path === route;
+        const matchesPathAndExtension = matchesPath &&
+            (!oldConfig.onlyWithoutExtension || !this.hasExtension(path));
+        return matchesPathAndExtension;
+      }
     });
     if (matchesRoutingTable) {
       return rewriteUrlInstruction(this.worker, req, base + manifest.index);

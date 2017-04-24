@@ -32,13 +32,19 @@ const ROUTING_MANIFEST = JSON.stringify({
   routing: {
     index: '/hello.txt',
     routes: {
+      '/': {
+        prefix: false,
+      },
       '/goodbye.txt': {
         prefix: false
       },
       '/prefix': {
         prefix: true,
         onlyWithoutExtension: true,
-      }
+      },
+      '^/regex/.*/route$': {
+        match: 'regex',
+      },
     }
   }
 });
@@ -212,11 +218,15 @@ describe('ngsw', () => {
       .resolve(null)
       .then(() => expectServed(driver, '/hello.txt', 'Hello world!'))
       .then(() => expectServed(driver, '/goodbye.txt', 'Hello world!'))
-      .then(done, err => errored(err, done)))
+      .then(done, err => errored(err, done)));
     it('successfully falls back prefixed routes', done => Promise
       .resolve(null)
       .then(() => expectServed(driver, '/prefix/test', 'Hello world!'))
       .then(() => expectServed(driver, '/prefix/test.json', 'Some json'))
+      .then(done, err => errored(err, done)));
+    it('successfully falls back regex routes', done => Promise
+      .resolve(null)
+      .then(() => expectServed(driver, '/regex/some/path/route', 'Hello world!'))
       .then(done, err => errored(err, done)));
   });;
   sequence('index fallback', () => {
