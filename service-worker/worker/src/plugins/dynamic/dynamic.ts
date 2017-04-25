@@ -46,7 +46,19 @@ export class DynamicImpl implements Plugin<DynamicImpl> {
     strategies.forEach(strategy => this.strategies[strategy.name] = strategy);
   }
 
-  setup(ops: Operation[]): void {}
+  /**
+   * After installation, setup the group array for immediate use. On
+   * subsequent startups, this step is performed by `validate()`.
+   */
+  setup(ops: Operation[]): void {
+    // If no dynamic caching configuration is provided, skip this plugin.
+    if (!this.manifest) {
+      return;
+    }
+    // Ensure even on first installation, the cache groups are loaded and
+    // ready to serve traffic.
+    ops.push(() => this._setupGroups());
+  }
 
   fetch(req: Request): FetchInstruction|null {
     // If no dynamic caching configuration is provided, skip this plugin.
@@ -110,18 +122,26 @@ export class DynamicImpl implements Plugin<DynamicImpl> {
       return Promise.resolve(true);
     }
 
+    return this
+      ._setupGroups()
+      // Success or failure depends on the error state.
+      .then(() => true)
+      .catch(() => false);
+  }
+
+  /*
+   * For every group configured in the manifest, instantiate the DynamicGroup
+   * associated with it, which will validate the configuration. This is an async
+   * operation as initializing the DynamicGroup involves loading stored state
+   * from the cache.
+   */
+  private _setupGroups(): Promise<any> {
     return Promise
-      // For every group configured in the manifest, instantiate the DynamicGroup
-      // associated with it, which will validate the configuration. This is an async
-      // operation as initializing the DynamicGroup involves loading stored state
-      // from the cache.
+      // Open a DynamicGroup for each configured group.
       .all(this.manifest.group.map(config =>
           DynamicGroup.open(config, this.worker.adapter, this.worker.cache, this.worker.clock, this.strategies)))
       // Once all groups are active, assign the array to this.group which is needed
       // to serve requests to the groups.
-      .then(groups => this.group = groups)
-      // Success or failure depends on the error state.
-      .then(() => true)
-      .catch(() => false);
+      .then(groups => this.group = groups);
   }
 }
