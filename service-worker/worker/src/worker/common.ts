@@ -3,8 +3,20 @@ import {LOG} from './logging';
 import {VersionWorkerImpl} from './worker';
 
 export function cacheFromNetworkOp(worker: VersionWorker, url: string, cache: string): Operation {
-  const op: Operation = () => worker
-    .refresh(worker.adapter.newRequest(url))
+  let limit = 3;
+  const helper = (url: string): Promise<Response> => {
+    if (limit-- === 0) {
+      return Promise.reject(`Hit redirect limit when attempting to fetch ${url}.`);
+    }
+    const req = worker.adapter.newRequest(url);
+    return worker.refresh(req).then(res => {
+      if (res['redirected'] as boolean && res.url && res.url !== '') {
+        return helper(res.url);
+      }
+      return res;
+    });
+  };
+  const op: Operation = () => helper(url)
     .then(resp => worker.cache.store(cache, url, resp));
   op.desc = {type: 'cacheFromNetworkOp', worker, url, cache};
   return op;
