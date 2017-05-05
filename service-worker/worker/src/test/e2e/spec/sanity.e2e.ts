@@ -41,6 +41,7 @@ const FORCED_UPDATE_MANIFEST = {
     urls: {
       '/hello.txt': 'changed_again',
       '/goodbye.txt': 'same',
+      '/index2.html': 'added'
     },
   },
   dynamic: {
@@ -265,7 +266,13 @@ describe('world sanity', () => {
       .then(() => po.request('/fresh/test'))
       .then(result => expect(result).toBe('Delayed long'))
       .then(() => done());
-  })
+  });
+  it('reloads from /index2.html without failure', done => {
+    browser
+      .get('http://localhost:8080/index2.html')
+      .then(() => po.ping())
+      .then(() => done());
+  });
 });
 
 function wait(delayMs: number): Promise<void> {

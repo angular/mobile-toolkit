@@ -21,6 +21,9 @@ export class Server {
     this.app = express();
     this.app.use(express.static(harnessPath));
     this.server = this.app.listen(port, () => readyCallback());
+    this.app.get('/index2.html', (req, resp) => {
+      resp.redirect(301, '/index.html');
+    });
     this.app.post('/ngsw-log', (req, resp) => {
       let content = '';
       req.on('data', data => content += data);
