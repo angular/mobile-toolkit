@@ -18,7 +18,7 @@ export interface VersionWorker extends StreamController {
   readonly cache: NgSwCache;
   readonly adapter: NgSwAdapter;
 
-  refresh(req: Request): Promise<Response>;
+  refresh(req: Request, cacheBust?: boolean): Promise<Response>;
   fetch(req: Request): Promise<Response>;
   showNotification(title: string, options?: Object): void;
   sendToStream(id: number, message: Object): void;

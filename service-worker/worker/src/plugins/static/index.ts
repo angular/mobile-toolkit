@@ -18,6 +18,7 @@ interface UrlToHashMap {
 
 interface StaticManifest {
   urls: UrlToHashMap;
+  versioned?: string[];
 }
 
 export interface StaticContentCacheOptions {
@@ -40,7 +41,17 @@ export class StaticContentCacheImpl implements Plugin<StaticContentCacheImpl> {
     return this.worker.manifest[this.key];
   }
 
+  private shouldCacheBustFn(): (url: string) => boolean {
+    let shouldCacheBust = (url: string): boolean => true;
+    if (!!this.staticManifest.versioned && Array.isArray(this.staticManifest.versioned)) {
+      const regexes = this.staticManifest.versioned.map(expr => new RegExp(expr));
+      shouldCacheBust = url => !regexes.some(regex => regex.test(url));
+    }
+    return shouldCacheBust;
+  }
+
   setup(operations: Operation[]): void {
+    const shouldCacheBust = this.shouldCacheBustFn();
     operations.push(...Object
       .keys(this.staticManifest.urls)
       .map(url => () => {
@@ -54,13 +65,14 @@ export class StaticContentCacheImpl implements Plugin<StaticContentCacheImpl> {
             return null;
           }
           LOG.technical(`setup(${this.cacheKey}, ${url}): caching from network`);
-          return cacheFromNetworkOp(this.worker, url, this.cacheKey)();
+          return cacheFromNetworkOp(this.worker, url, this.cacheKey, shouldCacheBust(url))();
         })
       }
       ));
   }
 
   update(operations: Operation[], previous: StaticContentCacheImpl): void {
+    const shouldCacheBust = this.shouldCacheBustFn();
     operations.push(...Object
       .keys(this.staticManifest.urls)
       .map(url => {
@@ -71,7 +83,7 @@ export class StaticContentCacheImpl implements Plugin<StaticContentCacheImpl> {
           return copyExistingOrFetchOp(previous.worker, this.worker, url, this.cacheKey);
         } else {
           LOG.technical(`update(${this.cacheKey}, ${url}): caching from network`);
-          return cacheFromNetworkOp(this.worker, url, this.cacheKey);
+          return cacheFromNetworkOp(this.worker, url, this.cacheKey, shouldCacheBust(url));
         }
       })
     );

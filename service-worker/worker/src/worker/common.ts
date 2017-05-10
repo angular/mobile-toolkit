@@ -2,14 +2,15 @@ import {FetchDelegate, FetchInstruction, Operation, VersionWorker} from './api';
 import {LOG} from './logging';
 import {VersionWorkerImpl} from './worker';
 
-export function cacheFromNetworkOp(worker: VersionWorker, url: string, cache: string): Operation {
+export function cacheFromNetworkOp(worker: VersionWorker, url: string, cache: string, cacheBust = true): Operation {
   let limit = 3;
   const helper = (url: string): Promise<Response> => {
     if (limit-- === 0) {
       return Promise.reject(`Hit redirect limit when attempting to fetch ${url}.`);
     }
     const req = worker.adapter.newRequest(url);
-    return worker.refresh(req).then(res => {
+    let reqPromise: Promise<Response> = null;
+    return worker.refresh(req, cacheBust).then(res => {
       if (res['redirected'] as boolean && res.url && res.url !== '') {
         return helper(res.url);
       }

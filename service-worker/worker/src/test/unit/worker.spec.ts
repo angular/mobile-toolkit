@@ -17,8 +17,12 @@ const SIMPLE_MANIFEST = JSON.stringify({
     urls: {
       '/hello.txt': 'test',
       '/goodbye.txt': 'other',
-      '/solong.txt': 'other'
+      '/solong.txt': 'other',
+      '/versioned.txt': 'versioned'
     },
+    versioned: [
+      '.*versioned.*',
+    ],
   },
 });
 const SIMPLE_MANIFEST_HASH = new SHA1().hex(SIMPLE_MANIFEST);
@@ -128,6 +132,7 @@ describe('ngsw', () => {
       driver.mockUrl('/hello.txt', 'Hello world!');
       driver.mockUrl('/goodbye.txt', 'Goodbye world!');
       driver.mockUrl('/solong.txt', 'So long world!');
+      driver.mockUrl('/versioned.txt', 'Not cache busted', true);
     })
     it('activates', (done) => driver
       .triggerInstall()
@@ -153,6 +158,10 @@ describe('ngsw', () => {
       .then(() => expectServed(driver, '/hello.txt', 'Hello world!'))
       .then(() => expectServed(driver, '/goodbye.txt', 'Goodbye world!'))
       .then(() => expectServed(driver, '/solong.txt', 'So long world!'))
+      .then(done, err => errored(err, done)));
+    then('serves cached files that were versioned', (done) => Promise
+      .resolve()
+      .then(() => expectServed(driver, '/versioned.txt', 'Not cache busted'))
       .then(done, err => errored(err, done)));
   });
   sequence('upgrade load', () => {

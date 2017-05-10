@@ -77,13 +77,13 @@ export class TestWorkerScope implements ServiceWorkerGlobalScope {
   activateListener: Function = () => null;
   fetchListener: Function = () => null;
 
-  mockResponses: {[key: string]: MockResponse} = {};
+  mockResponses: {[key: string]: {response: MockResponse, exact: boolean}} = {};
 
-  mockFetch(url: string, response: string | MockResponse) {
+  mockFetch(url: string, response: string | MockResponse, exact: boolean) {
     if (typeof response == 'string') {
       response = new MockResponse(<string>response);
     }
-    this.mockResponses[url] = <MockResponse>response;
+    this.mockResponses[url] = {response, exact};
   }
 
   unmockFetch(url: string): void {
@@ -103,10 +103,14 @@ export class TestWorkerScope implements ServiceWorkerGlobalScope {
   }
 
   fetch(req: string | Request): Promise<Response> {
-    let url: string = (typeof req == 'string') ? <string>req : (<Request>req).url;
-    url = url.split('?')[0];
+    const fullUrl: string = (typeof req == 'string') ? <string>req : (<Request>req).url;
+    const url = fullUrl.split('?')[0];
     if (this.mockResponses.hasOwnProperty(url)) {
-      return Promise.resolve(this.mockResponses[url].clone()) ;
+      const mock = this.mockResponses[url];
+      if (mock.exact && url !== fullUrl) {
+        return Promise.reject(new Error(`${url} != ${fullUrl} but exact match required`));
+      }
+      return Promise.resolve(mock.response.clone());
     }
     var resp = new MockResponse('');
     resp.ok = false;
@@ -194,8 +198,8 @@ export class TestWorkerDriver {
     this.caches.caches = {};
   }
 
-  mockUrl(url: string, response: string | MockResponse): void {
-    this.scope.mockFetch(url, response);
+  mockUrl(url: string, response: string | MockResponse, exact: boolean = false): void {
+    this.scope.mockFetch(url, response, exact);
   }
 
   unmockUrl(url: string): void {

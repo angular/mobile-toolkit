@@ -17,8 +17,12 @@ export class VersionWorkerImpl implements VersionWorker {
       private fetcher: NgSwFetch,
       private plugins: Plugin<any>[]) {}
 
-  refresh(req: Request): Promise<Response> {
-    return this.fetcher.refresh(req);
+  refresh(req: Request, cacheBust: boolean = true): Promise<Response> {
+    if (cacheBust) {
+      return this.fetcher.refresh(req);
+    } else {
+      return this.fetcher.request(req);
+    }
   }
 
   fetch(req: Request): Promise<Response> {
