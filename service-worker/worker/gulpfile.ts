@@ -290,7 +290,6 @@ gulp.task('task:e2e_tests:debug', done => runSequence(
   done));
 
 gulp.task('task:e2e_tests:prep', done => runSequence(
-  'task:e2e_tests:config_check',
   [
     'task:commonjs:compile',
     'task:esm:compile',
@@ -310,15 +309,6 @@ gulp.task('task:e2e_tests:prep', done => runSequence(
     'task:e2e_tests:copy_protractor',
   ],
   done));
-
-gulp.task('task:e2e_tests:config_check', done => {
-  fs.exists('./ngsw-config.json', (exists) => {
-    if (!exists) {
-      throw `ERROR: can't run e2e tests without a ngsw-config.json file`;
-    }
-    done();
-  });
-});
 
 gulp.task('task:e2e_tests:copy_modules', () => gulp
   .src([

@@ -138,13 +138,9 @@ export class ControllerCmp {
       case 'COMPANION_REG_PUSH':
         this
           .sw
-          .registerForPush()
+          .registerForPush({applicationServerKey: 'BLRl_fG1TCTc1D2JwzOpdZjaRcJucXtG8TAd5g9vuYjl6KUUDxgoRjQPCgjZfY-_Rusd_qtjNvanHXeFvOFlxH4'})
           .subscribe(handler => {
-            this.result = JSON.stringify({
-              url: handler.url,
-              key: handler.key(),
-              auth: handler.auth()
-            });
+            this.result = JSON.stringify(handler.toJSON());
             this.alert = true;
           });
           break;

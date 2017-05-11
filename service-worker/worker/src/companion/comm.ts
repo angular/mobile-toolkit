@@ -33,6 +33,10 @@ import 'rxjs/add/operator/switchMap';
 import 'rxjs/add/operator/take';
 import 'rxjs/add/operator/takeWhile';
 
+export interface PushOptions {
+  applicationServerKey?: string;
+}
+
 function fromPromise<T>(promiseFn: (() => Promise<T>)): Observable<T> {
   return Observable.create(observer => {
     promiseFn()
@@ -226,7 +230,7 @@ export class NgServiceWorker {
     });
   }
 
-  registerForPush(): Observable<NgPushRegistration> {
+  registerForPush(pushOptions: PushOptions = {}): Observable<NgPushRegistration> {
     return this
       // Wait for a controlling worker to exist.
       .awaitSingleControllingWorker
@@ -251,8 +255,22 @@ export class NgServiceWorker {
                 return regFromSub(sub);
               }
               // No existing subscription, register (with userVisibleOnly: true).
+              let options = {
+                userVisibleOnly: true,
+              } as Object;
+              if (pushOptions.applicationServerKey) {
+                let key = atob(pushOptions
+                  .applicationServerKey
+                  .replace(/_/g, '/')
+                  .replace(/-/g, '+'));
+                let applicationServerKey = new Uint8Array(new ArrayBuffer(key.length));
+                for (let i = 0; i < key.length; i++) {
+                  applicationServerKey[i] = key.charCodeAt(i);
+                }
+                options['applicationServerKey'] = applicationServerKey;
+              }
               return pushManager
-                .subscribe({userVisibleOnly: true})
+                .subscribe(options)
                 .then(regFromSub);
             })
             // Map from promises to the Observable being returned.

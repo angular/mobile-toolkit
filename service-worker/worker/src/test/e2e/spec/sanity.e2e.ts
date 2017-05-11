@@ -1,5 +1,5 @@
 import {create, Server} from '../harness/server/server';
-import {sendPush, setGCMAPIKey} from '../harness/server/push';
+import {sendPush} from '../harness/server/push';
 import {HarnessPageObject} from '../harness/server/page-object';
 
 import fs = require('fs');
@@ -100,22 +100,6 @@ function expectNoServiceWorker(): Promise<void> {
       expect(workerPresent).toBeFalsy();
     });
 }
-
-beforeAll(done => {
-  fs.exists('./ngsw-config.json', exists => {
-    if (!exists) {
-      throw 'Must have a ngsw-config.json file with a gcm_key property';
-    }
-    fs.readFile('./ngsw-config.json', 'utf8', (err, data) => {
-      let config = JSON.parse(data);
-      if (!config.hasOwnProperty('gcm_key')) {
-        throw 'Must have a ngsw-config.json file with a gcm_key property';
-      }
-      setGCMAPIKey(config['gcm_key']);
-      return done();
-    });
-  });
-});
 
 describe('world sanity', () => {
   it('starts without a service worker', done => {
