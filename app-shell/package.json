@@ -1,6 +1,6 @@
 {
   "name": "@angular/app-shell",
-  "description": "App Shell runtime library for Angular 2 Progressive Web Apps.",
+  "description": "App Shell runtime library for Angular Progressive Web Apps.",
   "version": "0.1.0",
   "repository": {
     "type": "git",
@@ -13,6 +13,7 @@
   ],
   "keywords": [
     "angular2",
+    "angular",
     "pwa",
     "progressive web apps",
     "app shell"
@@ -27,7 +28,7 @@
   "devDependencies": {
     "@angular/common": "^2.0.0",
     "@angular/compiler": "^2.0.0",
-    "@angular/compiler-cli": "^0.6.2",
+    "@angular/compiler-cli": "^2.0.0",
     "@angular/core": "^2.0.0",
     "@angular/platform-browser": "^2.0.0",
     "@angular/platform-browser-dynamic": "^2.0.0",
@@ -37,14 +38,14 @@
     "gulp-jasmine": "^2.4.1",
     "reflect-metadata": "^0.1.8",
     "rimraf": "^2.5.4",
-    "rollup": "^0.36.0",
-    "rollup-plugin-commonjs": "^5.0.4",
+    "rollup": "^0.41.4",
+    "rollup-plugin-commonjs": "^7.0.0",
     "rollup-plugin-node-resolve": "^2.0.0",
     "run-sequence": "^1.2.2",
     "rxjs": "^5.0.0-beta.12",
-    "ts-node": "^1.3.0",
+    "ts-node": "^2.1.0",
     "typescript": "^2.0.3",
-    "zone.js": "^0.6.25"
+    "zone.js": "^0.7.7"
   },
   "peerDependencies": {
     "@angular/core": "^2.0.0"
