@@ -280,10 +280,10 @@ export class Driver {
       }
 
       Promise
-        // Wait for both initialization and the JSON data sent with the push message.
+        // Wait for both initialization and the data sent with the push message.
         .all([
           this.init,
-          event.data.json(),
+          event.data.text(),
         ])
         // Result of this.init is unimportant as long as it's resolved.
         .then(results => results[1])

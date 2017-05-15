@@ -64,12 +64,23 @@ export class PushImpl implements Plugin<PushImpl> {
   }
 
   push(data: any): void {
-    this.maybeShowNotification(data);
+    let message: any;
+    try {
+      message = JSON.parse(data);
+    } catch (e) {
+      // If the string can't be parsed, display it verbatim.
+      message = {
+        notification: {
+          title: data,
+        },
+      };
+    }
+    this.maybeShowNotification(message);
     if (this.buffer !== null) {
-      this.buffer.push(data);
+      this.buffer.push(message);
     } else {
       this.streams.forEach(id => {
-        this.worker.sendToStream(id, data);
+        this.worker.sendToStream(id, message);
       })
     }
   }
