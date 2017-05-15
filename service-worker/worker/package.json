@@ -1,6 +1,6 @@
 {
   "name": "@angular/service-worker",
-  "version": "1.0.0-beta.13",
+  "version": "1.0.0-beta.14",
   "description": "Experimental service worker by the Angular Mobile team",
   "main": "bundles/service-worker.umd.js",
   "module": "index.js",
