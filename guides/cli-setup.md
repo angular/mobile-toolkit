@@ -1,3 +1,5 @@
+#### DEPRECATED - SEE https://github.com/angular/mobile-toolkit/issues/136
+
 # Create a Progressive Web App with [Angular CLI](https://cli.angular.io)
 
 Progressive Web Apps are web apps that combine the benefits of the Web
