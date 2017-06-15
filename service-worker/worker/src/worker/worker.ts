@@ -34,7 +34,7 @@ export class VersionWorkerImpl implements VersionWorker {
       .filter(instruction => !!instruction)
       .reduceRight<FetchDelegate>(
         (delegate: FetchDelegate, curr: FetchInstruction) => () => curr(delegate),
-        () => this.scope.fetch(req)
+        () => this.fetcher.request(req, true)
       )
       ();
   }

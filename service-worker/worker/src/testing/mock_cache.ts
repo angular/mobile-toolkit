@@ -230,7 +230,7 @@ export class MockResponse extends MockBody implements Response {
   url: string;
   headers: any;
   type: string = "default";
-  redirected: boolean;
+  redirected: boolean = false;
 
   body: ReadableStream;
   trailer: Promise<Headers>;
@@ -250,6 +250,7 @@ export class MockResponse extends MockBody implements Response {
     resp.status = this.status;
     resp.headers = this.headers;
     resp.url = this.url;
+    resp.redirected = this.redirected;
     return resp;
   }
 

@@ -3,10 +3,34 @@ import {NgSwAdapter} from './adapter';
 export class NgSwFetch {
 
   constructor(private scope: ServiceWorkerGlobalScope, private adapter: NgSwAdapter) {}
+  
+  private _request(req: Request): Promise<Response> {
+    return this
+      .scope
+      .fetch(req)
+      .catch(err => this.adapter.newResponse('', {status: 503}))
+  }
 
-  request(req: Request): Promise<Response> {
-    return this.scope.fetch(req)
-      .catch(err => this.adapter.newResponse('', {status: 503}));
+  private _followRedirectIfAny(resp: Response, limit: number, origUrl: string): Response|Promise<Response> {
+    if (!!resp['redirected']) {
+      if (limit <= 0) {
+        return Promise.reject(`Hit redirect limit when attempting to fetch ${origUrl}.`);
+      }
+      if (!resp.url) {
+        return resp;
+      }
+      return this
+        ._request(this.adapter.newRequest(resp.url))
+        .then(newResp => this._followRedirectIfAny(newResp, limit - 1, origUrl));
+    }
+    return resp;
+  }
+
+  request(req: Request, redirectSafe: boolean = false): Promise<Response> {
+    if (!redirectSafe) {
+      return this._request(req); 
+    }
+    return this._request(req).then(resp => this._followRedirectIfAny(resp, 3, req.url));
   }
 
   refresh(req: string | Request): Promise<Response> {
@@ -16,7 +40,7 @@ export class NgSwFetch {
     } else {
       request = this.adapter.newRequest(this._cacheBust((<Request>req).url), <Request>req);
     }
-    return this.request(request);
+    return this.request(request, false);
   }
 
   private _cacheBust(url: string): string {
