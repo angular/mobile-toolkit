@@ -214,10 +214,10 @@ export class Driver {
             case DriverState.LAME:
               // Whether the worker is still INSTALLING or has freshly transitioned to a
               // LAME state, serve the request with the network.
-              return this.fetcher.request(req);
+              return this.fetcher.request(req, true);
             default:
               // Shouldn't happen, but just be safe and serve the request from the network.
-              return this.fetcher.request(req);
+              return this.fetcher.request(req, true);
           }
         })
       );
@@ -599,10 +599,16 @@ export class Driver {
 
             // If a staged manifest exist, go to UPDATE_PENDING instead of READY.
             if (!!staged) {
-              this.lifecycle(`staged manifest ${staged._hash} present at initialization`);
-              this.pendingUpdateHash = staged._hash;
-              this.transition(DriverState.UPDATE_PENDING);
-              return null;
+              if (staged._hash === active._hash) {
+                this.lifecycle(`staged manifest ${staged._hash} is already active, cleaning it up`);
+                this.transition(DriverState.READY);
+                return this.clearStaged();
+              } else {
+                this.lifecycle(`staged manifest ${staged._hash} present at initialization`);
+                this.pendingUpdateHash = staged._hash;
+                this.transition(DriverState.UPDATE_PENDING);
+                return null;
+              }
             }
             this.transition(DriverState.READY);
           });
