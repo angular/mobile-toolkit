@@ -29,7 +29,7 @@ function isAsciiAlphaNumeric(cp: number) {
 
 function isDigit(cp: number, isHex: boolean) {
   return isAsciiDigit(cp) || isHex && (cp >= CP.LATIN_CAPITAL_A && cp <= CP.LATIN_CAPITAL_F ||
-				       cp >= CP.LATIN_SMALL_A && cp <= CP.LATIN_SMALL_F);
+	      cp >= CP.LATIN_SMALL_A && cp <= CP.LATIN_SMALL_F);
 }
 
 Serializer.escapeString = function (str: string) {

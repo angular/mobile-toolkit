@@ -22,6 +22,7 @@ export default function () {
       expect(fixture.debugElement.childNodes.length).toBe(1);
       expect(fixture.debugElement.childNodes[0].nativeNode.data).toBe('template bindings={}');
     });
+
     it('should render the element at runtime', () => {
       const fixture = TestBed
         .configureTestingModule({
@@ -55,6 +56,7 @@ export default function () {
       expect(fixture.debugElement.childNodes[0].nativeNode.data).toBe('template bindings={}');
       expect(fixture.debugElement.childNodes[1].nativeNode.name).toBe('div');
     });
+
     it('should NOT render the element at runtime', () => {
       const fixture = TestBed
         .configureTestingModule({

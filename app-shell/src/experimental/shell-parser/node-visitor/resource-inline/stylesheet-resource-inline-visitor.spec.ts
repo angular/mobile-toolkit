@@ -1,7 +1,3 @@
-import {
-  inject
-} from '@angular/core/testing';
-
 import {ASTNode} from '../../ast';
 import {MockWorkerScope, MockResponse} from '../../testing';
 import {StylesheetResourceInlineVisitor} from './';
@@ -193,4 +189,3 @@ describe('ResourceInlineVisitor', () => {
   });
 
 });
-

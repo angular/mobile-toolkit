@@ -1,8 +1,5 @@
 import {ASTNode, ASTAttribute} from '../../ast';
 import {ResourceInlineVisitor} from './resource-inline-visitor';
-import {WorkerScope} from '../../context';
-
-const URL_REGEXP = /:\s+url\(['"]?(.*?)['"]?\)/gmi;
 
 export class InlineStyleResourceInlineVisitor extends ResourceInlineVisitor {
 

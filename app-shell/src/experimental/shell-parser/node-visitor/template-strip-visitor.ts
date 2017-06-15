@@ -1,6 +1,5 @@
 import {ASTNode} from '../ast';
 import {NodeVisitor} from './node-visitor';
-import {WorkerScope} from '../context';
 import {CssNodeMatcher} from '../node-matcher';
 
 export class TemplateStripVisitor extends NodeVisitor {
@@ -19,6 +18,4 @@ export class TemplateStripVisitor extends NodeVisitor {
     }
     return Promise.resolve(node);
   }
-
 }
-

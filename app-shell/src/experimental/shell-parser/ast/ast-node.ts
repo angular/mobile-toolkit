@@ -9,5 +9,5 @@ export interface ASTNode {
   parentNode?: ASTNode;
   nodeName: string;
   value?: string;
+  data?: string;
 }
-

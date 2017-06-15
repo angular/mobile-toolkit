@@ -1,4 +1,3 @@
-import {ASTNode} from '../../ast';
 import {NodeVisitor} from '../node-visitor';
 import {WorkerScope} from '../../context';
 
@@ -13,8 +12,7 @@ export abstract class ResourceInlineVisitor extends NodeVisitor {
   inlineAssets(style: string) {
     let urls = this.getImagesUrls(style);
     urls = urls.filter((url: string, idx: number) => urls.indexOf(url) === idx);
-    return this.processInline(urls, style)
-      .then((content: string) => content);
+    return this.processInline(urls, style);
   }
 
   protected getImagesUrls(styles: string): string[] {
@@ -55,6 +53,4 @@ export abstract class ResourceInlineVisitor extends NodeVisitor {
           img ? content.replace(new RegExp(urls[idx], 'g'), img) : content, styles);
       });
   }
-
 }
-

@@ -17,6 +17,4 @@ export class StylesheetResourceInlineVisitor extends ResourceInlineVisitor {
     }
     return Promise.resolve(node);
   }
-
 }
-

@@ -1,9 +1,5 @@
-import {
-  inject
-} from '@angular/core/testing';
-import {BrowserWorkerScope, WorkerScope} from './context';
 import {ShellParserConfig, SHELL_PARSER_DEFAULT_CONFIG} from './config';
-import {TemplateStripVisitor} from './node-visitor';
+import {NodeVisitor, TemplateRecoverVisitor, TemplateStripVisitor} from './node-visitor';
 import {cssNodeMatcherFactory} from './node-matcher';
 import {Parse5TemplateParser} from './template-parser';
 import {normalizeConfig} from './shell-parser-factory';
@@ -29,6 +25,47 @@ const prerenderedTemplate = `
   </content>
   <div shellNoRender class="bar baz">
   </div>
+</body>
+</html>
+`;
+
+const prerenderedTemplateWithCommentedShell = `
+<!DOCTYPE html>
+<html>
+<head>
+</head>
+<body>
+  <!--shellRender(
+  <header>
+    <h1>Hey I'm appshell!</h1>
+  </header>
+  )-->
+  <content shellNoRender>
+    <p>Hello world</p>
+  </content>
+  <div shellNoRender class="bar baz">
+  </div>
+  <!--shellRender(
+      <footer>
+  Test
+      </footer>
+)-->
+</body>
+</html>
+`;
+
+const processedTemplateWithCommentedShell = `
+<!DOCTYPE html>
+<html>
+<head>
+</head>
+<body>
+  <header>
+    <h1>Hey I'm appshell!</h1>
+  </header>
+  <footer>
+    Test
+  </footer>
 </body>
 </html>
 `;
@@ -83,12 +120,17 @@ const normalize = (template: string) =>
     .replace(/\s+$/gm, '')
     .replace(/\n/gm, '');
 
-const createMockedWorker = (mockScope: MockWorkerScope, config: ShellParserConfig = {}) => {
+const createMockedWorker = (mockScope: MockWorkerScope,
+    config: ShellParserConfig = {},
+    visitors: NodeVisitor[] = null) => {
   config = normalizeConfig(config);
+  visitors = visitors ||
+    [new TemplateStripVisitor(
+  cssNodeMatcherFactory(config.NO_RENDER_CSS_SELECTOR))];
   return new ShellParserImpl(
       config,
       new Parse5TemplateParser(),
-      [new TemplateStripVisitor(cssNodeMatcherFactory(config.NO_RENDER_CSS_SELECTOR))],
+      visitors,
       mockScope);
 };
 
@@ -180,6 +222,24 @@ describe('ShellParserImpl', () => {
         .then(done);
     });
 
+    describe('parseDoc with commented markup', () => {
+      it('should strip shellNoRender markup and recover shellRender one', (done: any) => {
+	const mockScope = new MockWorkerScope();
+	const parser = createMockedWorker(mockScope, {}, [
+	  new TemplateRecoverVisitor('shellRender', new Parse5TemplateParser()),
+	  new TemplateStripVisitor(
+	  cssNodeMatcherFactory('[shellNoRender]'))
+	]);
+	const response = new MockResponse(prerenderedTemplateWithCommentedShell);
+	parser.parseDoc(response)
+	  .then((response: any) => response.text())
+	  .then((template: string) => {
+	    expect(normalize(template)).toBe(normalize(processedTemplateWithCommentedShell));
+	    done();
+	  });
+      });
+    });
+
     describe('match', () => {
 
       it('should match routes added to the config', (done: any) => {
@@ -264,7 +324,7 @@ describe('ShellParserImpl', () => {
               .then((data: any) => {
                 expect(data).toBe(null);
                 done();
-              })
+	      });
           });
       });
 
