@@ -213,7 +213,7 @@ If instead of Gulp, you use Webpack to build your project, the service worker al
 
     import {AngularServiceWorkerPlugin} from '@angular/service-worker/build/webpack';
     // or
-    const AngularServiceWorkerPlugin = require('@angular/service-worker/webpack');
+    const AngularServiceWorkerPlugin = require('@angular/service-worker/webpack').default;
     
     webpack({
       entry: 'index.js',
