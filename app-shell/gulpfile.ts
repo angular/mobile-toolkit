@@ -1,5 +1,3 @@
-declare var require;
-
 const childProcess = require('child_process');
 const commonjs = require('rollup-plugin-commonjs');
 const gulp = require('gulp');
@@ -8,7 +6,7 @@ const rimraf = require('rimraf');
 const rollup = require('rollup');
 const nodeResolve = require('rollup-plugin-node-resolve');
 const runSequence = require('run-sequence');
-
+const change = require('gulp-change');
 
 gulp.task('clean', done => {
   rimraf('./tmp', () => {
@@ -103,8 +101,19 @@ gulp.task('task:bundles:deploy', () => gulp
   ], {base: 'tmp/es5'})
   .pipe(gulp.dest('dist')));
 
+const updatePackage = (content: string) => {
+  const blacklist = [
+    'private',
+    'devDependencies'
+  ];
+  const parsed = JSON.parse(content);
+  blacklist.forEach(prop => delete parsed[prop]);
+  return JSON.stringify(parsed, null, 2);
+};
+
 gulp.task('task:package:deploy', () => gulp
   .src([
     'package.json'
   ])
+  .pipe(change(updatePackage))
   .pipe(gulp.dest('dist')));
