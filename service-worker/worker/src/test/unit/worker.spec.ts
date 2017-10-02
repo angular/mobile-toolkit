@@ -5,7 +5,7 @@ import {StaticContentCache} from '../../plugins/static';
 import {RouteRedirection} from '../../plugins/routes';
 import {TestWorkerDriver} from '../../testing/mock';
 import {Observable} from 'rxjs/Rx';
-import {MockRequest} from '../../testing/mock_cache';
+import {MockRequest, MockCache, MockResponse} from '../../testing/mock_cache';
 import {Manifest} from '../../worker/manifest';
 
 const MANIFEST_URL = '/ngsw-manifest.json';
@@ -83,6 +83,7 @@ function errored(err, done) {
 function expectOkResponse(value: Response): Response {
   expect(value).not.toBeUndefined();
   expect(value.ok).toBeTruthy();
+  expect(value['redirected']).toBeFalsy();
   return value;
 }
 
@@ -258,4 +259,55 @@ describe('ngsw', () => {
       .then(() => expectServed(driver, '/', 'Hello world!'))
       .then(done, err => errored(err, done)))
   });
+  sequence('non-cached requests', () => {
+    let driver: TestWorkerDriver = new TestWorkerDriver(createServiceWorker);
+    beforeAll(() => {
+      driver.emptyCaches();
+      driver.refresh();
+      driver.mockUrl(MANIFEST_URL, SIMPLE_MANIFEST);
+      driver.mockUrl('/hello.txt', 'Hello world!');
+      driver.mockUrl('/goodbye.txt', 'Goodbye world!');
+      driver.mockUrl('/solong.txt', 'So long world!');
+      driver.mockUrl('/versioned.txt', 'Not cache busted', true);
+    });
+    it('follow redirect when requested', done => {
+      const resp = new MockResponse('This was not redirected');
+      resp.redirected = true;
+      resp.url = '/redirected.txt';
+      driver.mockUrl('/redirect.txt', resp);
+      driver.mockUrl('/redirected.txt', 'This was redirected');
+      expectServed(driver, '/redirect.txt', 'This was redirected')
+        .then(done, err => errored(err, done));
+    });
+  })
+  sequence('manifest staging bugs', () => {
+    let driver: TestWorkerDriver = new TestWorkerDriver(createServiceWorker);
+    beforeAll(done => {
+      driver.mockUrl(MANIFEST_URL, SIMPLE_MANIFEST);
+      driver.mockUrl('/hello.txt', 'Hello world!');
+      driver.mockUrl('/goodbye.txt', 'Goodbye world!');
+      driver.mockUrl('/solong.txt', 'So long world!');
+      driver.mockUrl('/versioned.txt', 'Not cache busted', true);
+      driver.startup();
+      driver
+        .triggerInstall()
+        .then(() => driver.triggerActivate())
+        .then(() => driver.waitForReady())
+        .then(() => driver.unmockAll())
+        .then(() => putRequestInCache(driver, 'ngsw:staged', MANIFEST_URL, SIMPLE_MANIFEST))
+        .then(done, err => errored(err, done));
+    });
+    it('still serves after active manifest was also staged', done => Promise
+      .resolve(null)
+      .then(() => driver.refresh())
+      .then(() => expectServed(driver, '/hello.txt', 'Hello world!'))
+      .then(done, err => errored(err, done))
+    );
+  });
 });
+
+function putRequestInCache(driver: TestWorkerDriver, cache: string, url: string, body: string): void {
+  driver.caches.caches[cache] = driver.caches.caches[cache] || new MockCache();
+  const mock = driver.caches.caches[cache] as MockCache;
+  mock.put(new MockRequest(url), new MockResponse(body));
+}

@@ -1,6 +1,6 @@
 {
   "name": "@angular/service-worker",
-  "version": "1.0.0-beta.14",
+  "version": "1.0.0-beta.15",
   "description": "Experimental service worker by the Angular Mobile team",
   "main": "bundles/service-worker.umd.js",
   "module": "index.js",
@@ -20,13 +20,13 @@
   },
   "homepage": "https://mobile.angular.io",
   "devDependencies": {
-    "@angular/common": "^2.1.0",
-    "@angular/compiler": "^2.1.0",
-    "@angular/compiler-cli": "^2.1.0",
-    "@angular/core": "^2.1.0",
-    "@angular/forms": "^2.1.0",
-    "@angular/platform-browser": "^2.1.0",
-    "@angular/platform-browser-dynamic": "^2.1.0",
+    "@angular/common": "^4.1.3",
+    "@angular/compiler": "^4.1.3",
+    "@angular/compiler-cli": "^4.1.3",
+    "@angular/core": "^4.1.3",
+    "@angular/forms": "^4.1.3",
+    "@angular/platform-browser": "^4.1.3",
+    "@angular/platform-browser-dynamic": "^4.1.3",
     "@types/base64-js": "^1.1.4",
     "@types/express": "^4.0.33",
     "@types/jasmine": "^2.2.34",
@@ -50,7 +50,7 @@
     "rollup-plugin-commonjs": "^4.1.0",
     "rollup-plugin-node-resolve": "^2.0.0",
     "run-sequence": "^1.1.5",
-    "rxjs": "^5.0.0-beta.12",
+    "rxjs": "^5.4.0",
     "systemjs": "^0.19.17",
     "ts-node": "^0.7.3",
     "typescript": "^2.2.2",
@@ -58,7 +58,7 @@
     "web-push": "^3.2.2",
     "webdriver-manager": "^10.2.6",
     "webpack": "^2.1.0-beta.22",
-    "zone.js": "^0.7.2"
+    "zone.js": "^0.8.12"
   },
   "dependencies": {
     "base64-js": "^1.1.2",
